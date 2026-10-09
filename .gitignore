@@ -1,0 +1,25 @@
+# Patient / cohort data - never commit
+resources/expression/downloads/
+data/raw/*/*
+resources/bravo-dbsnp-all.vcf.gz
+resources/bravo-dbsnp-all.vcf.gz.tbi
+resources/bravo-dbsnp-all.vcf.gz.csi
+data/interim/*
+data/processed/*
+results/*/*
+!**/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

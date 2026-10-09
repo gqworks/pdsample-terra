@@ -1,0 +1,6 @@
+sample_id,sex,ethnicity,age_at_onset,age_at_sampling,symptoms,family_history
+P001,M,Ashkenazi Jewish,62,70,"Resting tremor, levodopa responsive",yes
+P002,F,European,32,40,"Foot dystonia, slow progression, levodopa responsive",no
+P003,M,East Asian,45,50,"Bradykinesia, anxiety",no
+P004,F,European,58,66,"Tremor, cognitive impairment, visual hallucinations",yes
+P005,M,South Asian,25,30,"Dystonia, dyskinesia",no

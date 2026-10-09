@@ -1,0 +1,40 @@
+# Map canonical column names to the Introme TSV, phenotype table, and panel CSV.
+
+introme:                        # Introme v2 TSV (gene and samples_with_alt are added by the WDL)
+  chrom: CHROM
+  pos: POS
+  ref: REF
+  alt: ALT                      # "('C',)" or a plain base from vcf2pandas
+  gene: gene                    # optional; Python list, bare symbol, or comma/semicolon list
+  carriers: samples_with_alt    # optional; "[('SAMPLE_A', 1)]". Absent on a raw v2 TSV.
+  introme_rsid: ID
+  introme_qual: QUAL
+  introme_score: introme_score
+  introme_gene_region: "INFO:GENEINFO_gene_regions"
+  introme_intronic: "INFO:GENEINFO_is_intronic"
+  introme_spliceai_ds_ag: "INFO:SpliceAI_DS_AG"
+  introme_spliceai_ds_al: "INFO:SpliceAI_DS_AL"
+  introme_spliceai_ds_dg: "INFO:SpliceAI_DS_DG"
+  introme_spliceai_ds_dl: "INFO:SpliceAI_DS_DL"
+  introme_pangolin_gain: "INFO:Pangolin_Gain"
+  introme_pangolin_loss: "INFO:Pangolin_Loss"
+  introme_mmsplice_pathogenicity: "INFO:MMSplice_pathogenicity"
+  introme_spip_score: "INFO:SPIP_Score"
+
+phenotype:
+  sample_id: sample_id
+  sex: sex
+  ethnicity: ethnicity
+  age_onset: age_at_onset
+  age_sampling: age_at_sampling
+  symptoms: symptoms
+  family_history: family_history
+
+panel:                          # resources/panel/monopdaus-gene-inheritance.csv
+  gene_id: Gene_ID              # Ensembl gene ID
+  gene: Symbol
+  moi: inheritance_primary      # AD / AR / XL / risk / unknown (placeholder labels pending expert review)
+  moi_notes: inheritance_notes
+  risk_allele_exception: risk_allele_exception
+  confidence: confidence        # high / medium / low
+  sources: sources

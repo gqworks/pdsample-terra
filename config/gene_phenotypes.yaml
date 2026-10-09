@@ -1,0 +1,57 @@
+# Expected phenotype profile per gene, used for phenotype-genotype concordance.
+# Starter entries from the literature - review and extend alongside the supplied gene panel.
+# Fields:
+#   moi:              AD / AR / XL / risk
+#   onset_range:      [min, max] typical age of onset (years)
+#   key_features:     keywords expected in symptom descriptions (case-insensitive match)
+#   atypical_features: keywords that, if present, raise suspicion of this gene
+#   enriched_ancestry: ancestries where the gene / specific variants are more common
+
+SNCA:
+  moi: AD
+  onset_range: [20, 60]
+  key_features: [dementia, rapid progression, autonomic, hallucinations]
+  atypical_features: [myoclonus]
+  enriched_ancestry: []
+
+LRRK2:
+  moi: AD
+  onset_range: [40, 80]
+  key_features: [tremor, levodopa responsive]
+  atypical_features: []
+  enriched_ancestry: [Ashkenazi Jewish, North African Berber]
+
+VPS35:
+  moi: AD
+  onset_range: [35, 65]
+  key_features: [tremor, levodopa responsive]
+  atypical_features: []
+  enriched_ancestry: []
+
+PRKN:
+  moi: AR
+  onset_range: [10, 45]
+  key_features: [dystonia, levodopa responsive, slow progression, dyskinesia]
+  atypical_features: [hyperreflexia]
+  enriched_ancestry: []
+
+PINK1:
+  moi: AR
+  onset_range: [20, 50]
+  key_features: [levodopa responsive, slow progression, dystonia, psychiatric]
+  atypical_features: []
+  enriched_ancestry: []
+
+PARK7:
+  moi: AR
+  onset_range: [15, 45]
+  key_features: [levodopa responsive, psychiatric, dystonia]
+  atypical_features: []
+  enriched_ancestry: []
+
+GBA1:
+  moi: risk
+  onset_range: [40, 75]
+  key_features: [cognitive impairment, dementia, hallucinations, autonomic]
+  atypical_features: []
+  enriched_ancestry: [Ashkenazi Jewish]

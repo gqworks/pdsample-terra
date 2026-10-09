@@ -1,0 +1,9 @@
+# Normalise text to LF in the repo so Windows CRLF checkouts do not churn whole files.
+* text=auto eol=lf
+*.bed text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.csv text eol=lf
+*.tsv text eol=lf

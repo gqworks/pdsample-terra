@@ -1,0 +1,134 @@
+Gene_ID,Symbol,inheritance_primary,inheritance_notes,risk_allele_exception,confidence,sources
+ENSG00000160710,ADAR,AD,Aicardi-Goutières / dyschromatosis; AD or AR by phenotype; rare PD panel differential,false,medium,OMIM:ADAR; GeneReviews AGS
+ENSG00000141385,AFG3L2,AD,SCA28 AD; also AR SPAX5; primary AD for adult ataxia/parkinsonism differential,false,high,OMIM:AFG3L2; GeneReviews SCA28
+ENSG00000162551,ALPL,AD,Hypophosphatasia AD or AR by severity; adult forms often AD,false,medium,OMIM:ALPL; GeneReviews HPP
+ENSG00000214274,ANG,AD,ALS/MND risk/causative contested; not established Mendelian PD,false,low,OMIM:ANG; ALS genetics reviews
+ENSG00000134343,ANO3,AD,DYT24 craniocervical dystonia; AD,false,high,OMIM:ANO3; GeneReviews Hereditary Dystonia
+ENSG00000148120,AOPEP,AR,Biallelic generalized dystonia / dystonia-parkinsonism,false,high,OMIM:AOPEP; Zech 2022 Mov Disord
+ENSG00000142192,APP,AD,Familial Alzheimer / CAA; AD,false,high,OMIM:APP; GeneReviews AD
+ENSG00000100299,ARSA,AR,Metachromatic leukodystrophy; biallelic,false,high,OMIM:ARSA; GeneReviews MLD
+ENSG00000159363,ATP13A2,AR,PARK-ATP13A2 / Kufor-Rakeb; biallelic atypical PD,false,high,GeneReviews NBK1223; MDSGene PARK
+ENSG00000105409,ATP1A3,AD,AHC / RDP / CAPOS; AD (often de novo),false,high,OMIM:ATP1A3; GeneReviews ATP1A3
+ENSG00000182220,ATP6AP2,XL,X-linked parkinsonism with spasticity (rare; limited families),false,medium,OMIM:300911; Korvatska 2013
+ENSG00000123191,ATP7B,AR,Wilson disease; biallelic; rare dominant copper phenotypes uncommon,false,high,OMIM:ATP7B; GeneReviews Wilson
+ENSG00000131943,C19orf12,AR,MPAN NBIA primarily AR; rare AD reports,false,high,GeneReviews NBIA/MPAN; OMIM:C19orf12
+ENSG00000250479,CHCHD10,AD,ALS/FTD/mitochondrial myopathy AD; parkinsonism occasional,false,medium,OMIM:CHCHD10; Bannwarth 2014
+ENSG00000106153,CHCHD2,AD,OMIM PARK22 (616710) AD; replication uneven outside East Asia; MDS PARK-CHCHD2,false,medium,OMIM:616710; GeneReviews NBK1223; Lange 2022 MDS
+ENSG00000188603,CLN3,AR,Juvenile neuronal ceroid lipofuscinosis; biallelic,false,high,OMIM:CLN3; GeneReviews CLN3
+ENSG00000068120,COASY,AR,CoPAN NBIA; biallelic,false,high,GeneReviews NBIA; OMIM:COASY
+ENSG00000047457,CP,AR,Aceruloplasminemia; biallelic,false,high,OMIM:CP; GeneReviews aceruloplasminemia
+ENSG00000182578,CSF1R,AD,ALSP / HDLS; AD,false,high,OMIM:CSF1R; GeneReviews ALSP
+ENSG00000135929,CYP27A1,AR,Cerebrotendinous xanthomatosis; biallelic,false,high,OMIM:CYP27A1; GeneReviews CTX
+ENSG00000164535,DAGLB,AR,Biallelic early-onset PD; rare confirmed reports,false,high,Liu 2022 Nat Commun; GeneReviews NBK1223 notes
+ENSG00000115827,DCAF17,AR,Woodhouse-Sakati; biallelic; dystonia/parkinsonism,false,high,OMIM:DCAF17; GeneReviews Woodhouse-Sakati
+ENSG00000204843,DCTN1,AD,Perry syndrome / atypical parkinsonism; AD; MDS atypical PARK,false,high,Lange 2022 MDS; OMIM:DCTN1
+ENSG00000132437,DDC,AR,Aromatic L-amino acid decarboxylase deficiency; biallelic,false,high,OMIM:DDC; GeneReviews AADC
+ENSG00000117682,DHDDS,AD,DEE / retinitis; AD de novo common; also AR RP; primary AD NDD/movement,false,medium,OMIM:DHDDS
+ENSG00000108176,DNAJC12,AR,Hyperphenylalaninemia / biopterin; biallelic; dystonia-parkinsonism,false,high,OMIM:DNAJC12; Anikster 2017
+ENSG00000138246,DNAJC13,unknown,PARK21 candidate; AD reports not replicated; GeneReviews conflicting,false,low,GeneReviews NBK1223; Farhan 2020 Neurobiol Aging
+ENSG00000101152,DNAJC5,AD,CLN4 adult NCL; AD,false,high,OMIM:DNAJC5; GeneReviews NCL
+ENSG00000116675,DNAJC6,AR,PARK-DNAJC6; biallelic juvenile/early-onset PD,false,high,GeneReviews NBK1223; MDSGene
+ENSG00000055332,EIF2AK2,AD,Leukodystrophy / dystonia (LEUDEN); AD,false,medium,OMIM:EIF2AK2
+ENSG00000114867,EIF4G1,unknown,PARK18 candidate AD; association not supported in large cohorts,false,low,GeneReviews NBK1223; Farhan 2020
+ENSG00000112425,EPM2A,AR,Lafora progressive myoclonus epilepsy; biallelic,false,high,OMIM:EPM2A; GeneReviews Lafora
+ENSG00000103089,FA2H,AR,SPG35 / FAHN NBIA; biallelic,false,high,OMIM:FA2H; GeneReviews NBIA
+ENSG00000100225,FBXO7,AR,PARK-FBXO7; biallelic parkinsonism-pyramidal,false,high,GeneReviews NBK1223; OMIM:260300
+ENSG00000112367,FIG4,AR,CMT4J AR primary; also ALS AD reports — score as AR for panel LoF,false,medium,OMIM:FIG4; GeneReviews CMT
+ENSG00000162769,FLVCR1,AR,PCA / sensory neuropathy / anemia spectrum; primarily AR,false,medium,OMIM:FLVCR1
+ENSG00000176165,FOXG1,AD,FOXG1 syndrome; AD haploinsufficiency (often de novo),false,high,OMIM:FOXG1; GeneReviews FOXG1
+ENSG00000260230,FRRS1L,AR,DEE / continuous spike-wave; biallelic,false,high,OMIM:FRRS1L
+ENSG00000087086,FTL,AD,Neuroferritinopathy NBIA; AD,false,high,OMIM:FTL; GeneReviews neuroferritinopathy
+ENSG00000089280,FUS,AD,ALS/FTD; AD; rare parkinsonism overlap,false,high,OMIM:FUS; GeneReviews ALS
+ENSG00000177628,GBA,risk,Heterozygous GBA1 = strongest PD risk; Gaucher AR when biallelic; incomplete penetrance,true,high,GeneReviews NBK1223; Sidransky 2009 NEJM; Gan-Or 2015
+ENSG00000131979,GCH1,AD,DRD primarily AD (GTPCH); rare AR GTPCH deficiency — primary AD for PD/DRD scoring,false,high,OMIM:GCH1; GeneReviews DRD
+ENSG00000204120,GIGYF2,unknown,PARK11 candidate; not supported as Mendelian PD,false,low,GeneReviews NBK1223; Farhan 2020
+ENSG00000170266,GLB1,AR,GM1 gangliosidosis / MPS IVB; biallelic,false,high,OMIM:GLB1; GeneReviews GM1
+ENSG00000030582,GRN,AD,FTD-GRN; AD haploinsufficiency,false,high,OMIM:GRN; GeneReviews GRN-FTD
+ENSG00000213614,HEXA,AR,Tay-Sachs; biallelic; founder alleles studied as PD risk in AJ — primary AR LSD,false,high,OMIM:HEXA; GeneReviews Tay-Sachs
+ENSG00000010818,HIVEP2,AD,NDD with hypotonia; AD LoF,false,medium,OMIM:HIVEP2
+ENSG00000154721,JAM2,AR,PFBC AR; biallelic,false,high,MDSGene PFBC; PMC10342144
+ENSG00000155980,KIF5A,AD,SPG10 / CMT2 / ALS; AD,false,high,OMIM:KIF5A; GeneReviews HSP
+ENSG00000272333,KMT2B,AD,DYT28 dystonia; AD (often de novo),false,high,OMIM:KMT2B; GeneReviews dystonia
+ENSG00000188906,LRRK2,AD,"PARK-LRRK2 AD reduced penetrance; selected alleles (e.g. G2019S, G2385R) behave as risk — AF exception",true,high,GeneReviews NBK1208; NBK1223; MDSGene
+ENSG00000143669,LYST,AR,Chediak-Higashi; biallelic; parkinsonism in survivors,false,high,OMIM:LYST; GeneReviews CHS
+ENSG00000186868,MAPT,AD,FTDP-17 / PSP-like; AD,false,high,OMIM:MAPT; GeneReviews MAPT
+ENSG00000169057,MECP2,XL,Rett / related NDD; X-linked,false,high,OMIM:MECP2; GeneReviews Rett
+ENSG00000164976,MYORG,AR,PFBC AR; biallelic,false,high,MDSGene PFBC; OMIM:MYORG
+ENSG00000164134,NAA15,AD,NDD; AD,false,medium,OMIM:NAA15
+ENSG00000187566,NHLRC1,AR,Lafora (EPM2B); biallelic,false,high,OMIM:NHLRC1; GeneReviews Lafora
+ENSG00000141458,NPC1,AR,Niemann-Pick C1; biallelic,false,high,OMIM:NPC1; GeneReviews NPC
+ENSG00000119655,NPC2,AR,Niemann-Pick C2; biallelic,false,high,OMIM:NPC2; GeneReviews NPC
+ENSG00000153234,NR4A2,unknown,DRD/parkinsonism reports; not OMIM monogenic PD or GeneReviews Table 1/2,false,low,OMIM:NR4A2; GeneReviews NBK1223
+ENSG00000153989,NUS1,AD,NDD / epilepsy / movement; AD; also AR CDG rare,false,medium,OMIM:NUS1
+ENSG00000198836,OPA1,AD,DOA primarily AD; AR Behr syndrome — primary AD optic atrophy/parkinsonism overlap,false,high,OMIM:OPA1; GeneReviews DOA
+ENSG00000125741,OPA3,AD,Costeff AR; ADOAC AD — dual MOI; adult optic atrophy often AD,false,medium,OMIM:OPA3
+ENSG00000125779,PANK2,AR,PKAN NBIA; biallelic,false,high,OMIM:PANK2; GeneReviews PKAN
+ENSG00000116288,PARK7,AR,PARK-DJ1; biallelic early-onset PD,false,high,GeneReviews NBK1223; MDSGene
+ENSG00000113231,PDE8B,AD,Striatal degeneration / chorea; AD,false,medium,OMIM:PDE8B
+ENSG00000100311,PDGFB,AD,PFBC AD,false,high,MDSGene PFBC; OMIM:PDGFB
+ENSG00000113721,PDGFRB,AD,PFBC AD; also infantile myofibromatosis,false,high,MDSGene PFBC; OMIM:PDGFRB
+ENSG00000102144,PGK1,XL,Phosphoglycerate kinase deficiency; X-linked; rare parkinsonism,false,high,OMIM:PGK1
+ENSG00000158828,PINK1,AR,PARK-PINK1; biallelic early-onset PD,false,high,GeneReviews NBK1223; MDSGene
+ENSG00000184381,PLA2G6,AR,PLAN / DYT/PARK-PLA2G6; biallelic,false,high,GeneReviews NBK1223; PLA2G6-AN
+ENSG00000032444,PNPLA6,AR,SPG39 / Boucher-Neuhauser / Oliver-McFarlane; primarily AR,false,high,OMIM:PNPLA6; GeneReviews
+ENSG00000128567,PODXL,AR,Single AR juvenile PD pedigree; awaiting confirmation,false,low,Frontiers 2021 Genotype-Phenotype; Puschmann 2017
+ENSG00000140521,POLG,AR,POLG spectrum AR or AD by allele; many ataxia/parkinsonism cases AR — primary AR for scoring,false,medium,OMIM:POLG; GeneReviews POLG
+ENSG00000148606,POLR3A,AR,4H leukodystrophy; biallelic,false,high,OMIM:POLR3A; GeneReviews POLR3
+ENSG00000112640,PPP2R5D,AD,Jordan syndrome NDD; AD,false,high,OMIM:PPP2R5D
+ENSG00000126583,PRKCG,AD,SCA14; AD,false,high,OMIM:PRKCG; GeneReviews SCA14
+ENSG00000185345,PRKN,AR,PARK-Parkin; biallelic early-onset PD; het not clearly risk,false,high,GeneReviews NBK1223; MDSGene
+ENSG00000180228,PRKRA,AR,DYT16 dystonia-parkinsonism; biallelic,false,high,OMIM:PRKRA; GeneReviews dystonia
+ENSG00000171867,PRNP,AD,Genetic prion disease; AD,false,high,OMIM:PRNP; GeneReviews prion
+ENSG00000197746,PSAP,risk,OMIM PARK24 (619491) AD susceptibility (saposin D); AR LSD when biallelic; pipeline scores het as risk,true,medium,OMIM:176801; OMIM:619491; GeneReviews NBK1223
+ENSG00000080815,PSEN1,AD,Familial Alzheimer / FTD spectrum; AD,false,high,OMIM:PSEN1; GeneReviews AD
+ENSG00000143801,PSEN2,AD,Familial Alzheimer; AD,false,high,OMIM:PSEN2; GeneReviews AD
+ENSG00000125818,PSMF1,AR,Biallelic early-onset PD to perinatal neurodegeneration,false,high,PMC11326324; Magrinelli 2024
+ENSG00000119383,PTPA,AR,Biallelic early-onset parkinsonism + ID (PPP2R4/PTPA),false,high,OMIM-linked PTPA reports; GeneReviews NBK1223 notes
+ENSG00000184924,PTRHD1,AR,Biallelic juvenile parkinsonism + ID; OMIM NEDPBA,false,high,OMIM:620747; Khodadadi 2017 Mov Disord
+ENSG00000150787,PTS,AR,BH4 deficiency (PTS); biallelic,false,high,OMIM:PTS; GeneReviews BH4
+ENSG00000151552,QDPR,AR,DHPR deficiency; biallelic,false,high,OMIM:QDPR; GeneReviews BH4
+ENSG00000118508,RAB32,AD,PARK-RAB32: OMIM AD; PD association variant-specific (p.Ser71Arg) not all RAB32 variants,false,high,OMIM; GeneReviews NBK1223; Gustavsson 2024
+ENSG00000155961,RAB39B,XL,PARK-RAB39B X-linked ID/parkinsonism,false,high,GeneReviews NBK1223; OMIM:RAB39B
+ENSG00000166405,RIC3,unknown,Single-family AD PD report; unreplicated,false,low,Puschmann 2017 Curr Neurol Neurosci Rep
+ENSG00000144285,SCN1A,AD,Dravet / GEFS+; AD,false,high,OMIM:SCN1A; GeneReviews Dravet
+ENSG00000116171,SCP2,AR,Leukodystrophy / Zellweger-like; biallelic rare,false,medium,OMIM:SCP2
+ENSG00000122335,SERAC1,AR,MEGDEL syndrome; biallelic,false,high,OMIM:SERAC1; GeneReviews MEGDEL
+ENSG00000165646,SLC18A2,AR,Brain monoamine vesicular transport disease; biallelic,false,high,OMIM:SLC18A2
+ENSG00000135917,SLC19A3,AR,Biotin-thiamine responsive basal ganglia disease; biallelic,false,high,OMIM:SLC19A3; GeneReviews BTBGD
+ENSG00000168575,SLC20A2,AD,PFBC AD most common,false,high,MDSGene PFBC; OMIM:SLC20A2
+ENSG00000151729,SLC25A4,AD,adPEO / mitochondrial myopathy; AD or AR by phenotype — primary AD adult PEO,false,medium,OMIM:SLC25A4
+ENSG00000164209,SLC25A46,AR,Optic atrophy / neuropathy / pontocerebellar; primarily AR,false,medium,OMIM:SLC25A46
+ENSG00000196660,SLC30A10,AR,Hypermanganesemia with dystonia; biallelic,false,high,OMIM:SLC30A10; GeneReviews
+ENSG00000104635,SLC39A14,AR,Hypermanganesemia with dystonia-2; biallelic,false,high,OMIM:SLC39A14
+ENSG00000142319,SLC6A3,AR,Dopamine transporter deficiency syndrome; biallelic,false,high,OMIM:SLC6A3; GeneReviews DTDS
+ENSG00000198689,SLC9A6,XL,Christianson syndrome; X-linked,false,high,OMIM:SLC9A6; GeneReviews Christianson
+ENSG00000166311,SMPD1,risk,Niemann-Pick A/B AR when biallelic; heterozygous founder alleles (e.g. p.L302P) PD risk,true,high,Gan-Or 2013 Neurology; lysosomal PD reviews
+ENSG00000145335,SNCA,AD,PARK-SNCA; AD high penetrance (point/CNV),false,high,GeneReviews NBK1223; MDSGene
+ENSG00000110693,SOX6,unknown,No established Mendelian PD gene; DA-neuron biology / vulnerability literature only,false,low,PMC11727119 mechanistic; no OMIM PD
+ENSG00000104133,SPG11,AR,SPG11 HSP ± parkinsonism; biallelic,false,high,OMIM:SPG11; GeneReviews HSP
+ENSG00000197912,SPG7,AR,SPG7 HSP; primarily AR; rare AD reports,false,high,OMIM:SPG7; GeneReviews HSP
+ENSG00000116096,SPR,AR,Sepiapterin reductase deficiency; biallelic DRD-like,false,high,OMIM:SPR; GeneReviews SR deficiency
+ENSG00000161011,SQSTM1,AD,ALS/FTD / Paget; AD,false,high,OMIM:SQSTM1
+ENSG00000103266,STUB1,AR,SCA48 / SCAR16; AR and AD reports — many ataxia cases AR/biallelic; note dual MOI,false,medium,OMIM:STUB1
+ENSG00000136854,STXBP1,AD,DEE / STXBP1 encephalopathy; AD (often de novo),false,high,OMIM:STXBP1; GeneReviews STXBP1
+ENSG00000159082,SYNJ1,AR,PARK-SYNJ1; biallelic early-onset atypical PD,false,high,GeneReviews NBK1223; MDSGene
+ENSG00000162065,TBC1D24,AR,Epilepsy / DOORS / hearing loss; AR or AD by phenotype — primary AR for severe NDD,false,medium,OMIM:TBC1D24
+ENSG00000183735,TBK1,AD,ALS/FTD; AD haploinsufficiency,false,high,OMIM:TBK1
+ENSG00000180176,TH,AR,Tyrosine hydroxylase deficiency; biallelic; rare AD reports negligible,false,high,OMIM:TH; GeneReviews TH deficiency
+ENSG00000127419,TMEM175,risk,GWAS lysosomal PD risk (e.g. p.M393T); not Mendelian PD,true,high,npj Parkinsons 2025; Jinn 2019 PMC6859430
+ENSG00000089063,TMEM230,unknown,PARK candidate AD; conflicting unreplicated evidence,false,low,GeneReviews NBK1223; Deng 2016 contested
+ENSG00000166340,TPP1,AR,CLN2 disease; biallelic,false,high,OMIM:TPP1; GeneReviews CLN2
+ENSG00000104833,TUBB4A,AD,DYT4 / H-ABC; AD,false,high,OMIM:TUBB4A; GeneReviews
+ENSG00000107815,TWNK,AD,adPEO primarily AD; also AR IOSCA/MTDPS — primary AD adult PEO,false,medium,OMIM:TWNK; GeneReviews
+ENSG00000108312,UBTF,AD,NDD / CONDBA; AD,false,medium,OMIM:UBTF
+ENSG00000010256,UQCRC1,unknown,AD parkinsonism+neuropathy in Taiwanese families; not replicated in Europeans,false,low,Lin 2020 Brain; Farhan/IPDGC negative European
+ENSG00000103043,VAC14,AR,Childhood striatonigral degeneration; biallelic rare,false,medium,OMIM:VAC14
+ENSG00000165280,VCP,AD,IBMPFD / ALS/FTD; AD,false,high,OMIM:VCP; GeneReviews VCP
+ENSG00000197969,VPS13A,AR,Chorea-acanthocytosis; biallelic,false,high,OMIM:VPS13A; GeneReviews ChAc
+ENSG00000129003,VPS13C,AR,PARK-VPS13C; biallelic early-onset atypical PD,false,high,GeneReviews NBK1223; Lesage 2016
+ENSG00000069329,VPS35,AD,PARK-VPS35; AD classic PD (D620N),false,high,GeneReviews NBK1223; MDSGene
+ENSG00000116874,WARS2,AR,Mitochondrial NDD / movement; biallelic,false,medium,OMIM:WARS2
+ENSG00000106299,WASL,AR,Compound-het EOPD one pedigree (medRxiv); unreplicated — tentative AR,false,low,medRxiv 2020 WASL EOPD
+ENSG00000196998,WDR45,XL,BPAN NBIA; X-linked (often de novo; mostly females),false,high,GeneReviews NBK424403
+ENSG00000143324,XPR1,AD,PFBC AD,false,high,MDSGene PFBC; OMIM:XPR1
+ENSG00000072121,ZFYVE26,AR,SPG15 HSP ± parkinsonism; biallelic,false,high,OMIM:ZFYVE26; GeneReviews HSP

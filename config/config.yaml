@@ -1,0 +1,228 @@
+# Main pipeline configuration.
+# Thresholds are placeholders - tune once real data distributions have been reviewed.
+
+paths:
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  results_dir: results
+  columns: config/columns.yaml
+  gene_phenotypes: config/gene_phenotypes.yaml
+  gene_bed: resources/panel/monopdaus-genes.grch38.bed
+  exon_bed: resources/panel/monopdaus-exons.grch38.bed
+
+inputs:
+  panel: resources/panel/monopdaus-gene-inheritance.csv
+  expression: null
+  splicevault: null
+  prs_weights: null
+
+genome_build: GRCh38
+
+# Legacy/alias symbol -> symbol used throughout (applied to VEP symbols and the panel).
+gene_aliases:
+  GBA: GBA1
+
+filters:
+  restrict_to_panel: true
+  max_gnomad_af: 0.01          # global gnomAD AF
+  max_gnomad_popmax_af: 0.01   # ancestry-specific max AF
+  max_gnomad_hom: 5            # for AD genes, many homozygotes in gnomAD argues against pathogenicity
+  # Relaxed AF ceilings for panel genes flagged risk_allele_exception (e.g. GBA1 E326K,
+  # LRRK2 G2385R, TMEM175 M393T are too common for the Mendelian thresholds above).
+  risk_exception_max_af: 0.05
+  min_depth: 10
+  min_gq: 20
+  min_allele_balance: 0.2
+  # Consequences retained (VEP terms). Splice-region / intronic kept so Introme can rescue them.
+  keep_consequences:
+    - transcript_ablation
+    - splice_acceptor_variant
+    - splice_donor_variant
+    - stop_gained
+    - frameshift_variant
+    - stop_lost
+    - start_lost
+    - inframe_insertion
+    - inframe_deletion
+    - missense_variant
+    - protein_altering_variant
+    - splice_region_variant
+    - splice_donor_5th_base_variant
+    - splice_donor_region_variant
+    - splice_polypyrimidine_tract_variant
+    - synonymous_variant
+    - intron_variant
+    - 5_prime_UTR_variant
+    - 3_prime_UTR_variant
+    - copy_number_gain
+    - structural_variant
+    - short_tandem_repeat_variant
+    - mitochondrial_variant
+  # Always keep ClinVar P/LP regardless of frequency/consequence filters.
+  always_keep_clinvar_plp: true
+  # Off-panel STR / GBA1 / mtDNA rows. Quality filters still apply.
+  # TTN truncations are kept even when TTN is off the panel and tagged incidental.
+  always_keep_sources:
+    - expansionhunter
+    - gauchian
+    - mtdna
+
+scoring:
+  # Each rule adds `points` to the evidence score when satisfied.
+  cadd_high: 25
+  cadd_moderate: 20
+  revel_high: 0.7
+  spliceai_high: 0.5
+  spliceai_moderate: 0.2
+  points:
+    clinvar_plp: 10
+    clinvar_conflicting: 3
+    clinvar_blb: -10
+    null_variant: 8          # stop_gained, frameshift, canonical splice, start_lost
+    cadd_high: 3
+    cadd_moderate: 1
+    revel_high: 3
+    spliceai_high: 4
+    spliceai_moderate: 2
+    introme_high: 5
+    absent_gnomad: 2
+  tiers:
+    # Evaluated top-down; first matching tier wins.
+    tier1_min_score: 10
+    tier2_min_score: 6
+    tier3_min_score: 3
+
+splicing:
+  introme_high: 0.7          # placeholder - set from Introme documentation / calibration
+  introme_moderate: 0.6
+  # Second-allele lookup inside this sample. gnomAD AF is applied only when the
+  # Introme table already carries gnomad_af (from the VEP custom annotation).
+  lookup_min_score: 0.7
+  lookup_max_gnomad_af: 0.01
+  # Consequences where Introme is expected to add information beyond SpliceAI
+  consider_consequences:
+    - splice_region_variant
+    - splice_donor_5th_base_variant
+    - splice_donor_region_variant
+    - splice_polypyrimidine_tract_variant
+    - intron_variant
+    - synonymous_variant
+    - missense_variant
+
+inheritance:
+  # Minimum tier a variant needs to count as a qualifying hit in each MOI context.
+  ad_min_tier: 2
+  ar_first_hit_min_tier: 3
+  ar_second_hit_min_tier: 3
+  allow_introme_second_hit: true
+  unknown_moi_min_tier: 2    # panel genes with inheritance "unknown" (low-confidence candidates)
+
+phenotype:
+  early_onset_age: 50        # EOPD threshold
+  juvenile_onset_age: 21
+
+report:
+  max_candidates_per_patient: 20
+  excel_filename: curation_sheet.xlsx
+
+sv:
+  auto_index: true
+  exclude_filters:
+    - HIGH_ALGORITHM_FDR
+    - HIGH_NCR
+    - UNRESOLVED
+  # Mechanism labels. Points reuse scoring.points.null_variant. Citations are for dosage biology, not penetrance.
+  dosage_rules:
+    - gene: SNCA
+      effect: copy_gain
+      citation: "Singleton AB et al. Science. 2003;302:841. Chartier-Harlin MC et al. Lancet. 2004;364:1167."
+    - gene: PRKN
+      effect: lof
+      citation: "Kitada T et al. Nature. 1998;392:605. GeneReviews Parkinson Disease Overview (NBK1223)."
+
+compound:
+  statistical_phasing:
+    enabled: false
+    reference_panel: null
+
+expression:
+  resource: null
+  min_brain_pext: null
+  min_gtex_tpm: null
+  unexpressed_weight: null
+
+liability:
+  # From panel notes, not a percentage. Heterozygous findings in these genes are partially_explained.
+  reduced_penetrance_genes:
+    - GBA1
+    - LRRK2
+  # Numeric penetrance stays null until a value and a citation are both set.
+  penetrance: {}
+  prs_weights: null
+  prs_beta: null
+  prs_beta_citation: null
+  sex_coefficient: null
+  sex_coefficient_citation: null
+  age_coefficient: null
+  age_coefficient_citation: null
+
+biomarkers:
+  gene_classes:
+    recessive_eopd: [PRKN, PINK1, PARK7, ATP13A2, VPS13C, SYNJ1, DNAJC6]
+    synucleinopathy: [SNCA, GBA1]
+    dystonia_parkinsonism: [PRKN, ATP13A2, PLA2G6, DNAJC6, FBXO7]
+  fields:
+    age_onset: [age_onset, age_at_onset]
+    saa: [saa, alpha_synuclein_saa, asyn_saa]
+    datscan: [datscan, dat_scan]
+    dystonia_at_onset: [dystonia_at_onset]
+    dementia: [dementia]
+    levodopa_response: [levodopa_response, levodopa]
+  rules:
+    - id: early_onset
+      field: age_onset
+      gene_class: recessive_eopd
+      use_early_onset_age: true
+      direction: recessive_eopd
+      multiplier: null
+      citation: null
+    - id: dystonia_at_onset
+      field: dystonia_at_onset
+      gene_class: dystonia_parkinsonism
+      equals: ["true", "yes", "positive"]
+      direction: dystonia_parkinsonism
+      multiplier: null
+      citation: null
+    - id: dementia
+      field: dementia
+      gene_class: synucleinopathy
+      equals: ["true", "yes", "positive"]
+      direction: synucleinopathy
+      multiplier: null
+      citation: null
+    - id: saa_positive
+      field: saa
+      gene_class: synucleinopathy
+      equals: ["true", "yes", "positive"]
+      direction: synucleinopathy
+      multiplier: null
+      citation: "Siderowf A et al. Lancet Neurol. 2023. Assessment of heterogeneity among participants in the Parkinson's Progression Markers Initiative cohort using alpha-synuclein seed amplification."
+    - id: levodopa_response
+      field: levodopa_response
+      gene_class: recessive_eopd
+      equals: ["true", "yes", "positive"]
+      direction: flag_only
+      multiplier: null
+      citation: null
+
+# Repeat-locus catalogue. pathogenic_min_repeats stays null until a cited cutoff is supplied.
+str_loci:
+  RFC1:
+    gene: RFC1
+    pathogenic_min_repeats: null
+    citation: null
+  NOTCH2NLC:
+    gene: NOTCH2NLC
+    pathogenic_min_repeats: null
+    citation: null

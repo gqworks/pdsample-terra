@@ -1,0 +1,7 @@
+Gene_ID,Symbol,inheritance_primary,inheritance_notes,risk_allele_exception,confidence,sources
+ENSG00000188906,LRRK2,AD,"PARK-LRRK2 AD reduced penetrance; selected alleles behave as risk",true,high,GeneReviews NBK1208
+ENSG00000185345,PRKN,AR,PARK-Parkin; biallelic early-onset PD,false,high,GeneReviews NBK1223
+ENSG00000158828,PINK1,AR,PARK-PINK1; biallelic early-onset PD,false,high,GeneReviews NBK1223
+ENSG00000177628,GBA,risk,Heterozygous GBA1 = strongest PD risk,true,high,GeneReviews NBK1223
+ENSG00000145335,SNCA,AD,PARK-SNCA; AD high penetrance,false,high,GeneReviews NBK1223
+ENSG00000138246,DNAJC13,unknown,PARK21 candidate; not replicated,false,low,GeneReviews NBK1223

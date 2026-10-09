@@ -1,0 +1,10 @@
+{
+  "source": "Ensembl REST lookup/id",
+  "assembly": "GRCh38",
+  "n_genes": 133,
+  "flank_bp": 5000,
+  "coordinate_system": "BED 0-based half-open; Ensembl start/end are 1-based inclusive",
+  "contig_naming": "Ensembl names prefixed with chr; MT -> chrM (Broad GRCh38)",
+  "content": "gene body plus flank, overlapping genes merged",
+  "queried_on": "2026-10-08"
+}

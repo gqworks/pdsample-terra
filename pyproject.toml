@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdvar"
+version = "0.3.0"
+description = "Per-sample Parkinson's disease variant assessment from a Terra CRAM"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "pyarrow>=14",
+    "pyyaml>=6.0",
+    "typer>=0.9",
+    "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "jupyter", "matplotlib", "seaborn"]
+
+[project.scripts]
+pdvar = "pdvar.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "workflow/tests"]
+pythonpath = ["src", "workflow/scripts"]

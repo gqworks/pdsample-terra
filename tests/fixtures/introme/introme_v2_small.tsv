@@ -1,0 +1,3 @@
+CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO:SpliceAI_DS_AG	INFO:SpliceAI_DS_AL	INFO:SpliceAI_DS_DG	INFO:SpliceAI_DS_DL	INFO:Pangolin_Gain	INFO:Pangolin_Loss	INFO:MMSplice_pathogenicity	INFO:SPIP_Score	INFO:GENEINFO_gene_regions	INFO:GENEINFO_is_intronic	introme_score
+chr1	20660000	rs999	A	G	700.0	PASS	0.1	0.4	0	0	0.3	0	.	55.2	donor_region	intronic	0.85
+chr6	161500000	.	TA	T	800.0	PASS	0	0	0.3	0	0	0.2	.	.	.	intronic	0.75

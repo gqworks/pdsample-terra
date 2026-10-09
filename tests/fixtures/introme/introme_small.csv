@@ -1,0 +1,7 @@
+CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO:SpliceAI_DS_AG,INFO:SpliceAI_DS_AL,INFO:SpliceAI_DS_DG,INFO:SpliceAI_DS_DL,INFO:Pangolin_Gain,INFO:Pangolin_Loss,INFO:MMSplice_pathogenicity,INFO:SPIP_Score,INFO:GENEINFO_gene_regions,INFO:GENEINFO_is_intronic,introme_score,samples_with_alt,gene
+chr6,161400000,,C,"('T',)",500.0,PASS,0.01,0.02,0.03,0.05,0.2,0,.,40.1,.,intronic,0.9,"[('P002', 1)]",['PRKN']
+chr1,20650000,,G,"('A',)",300.0,PASS,0,0,0,0.01,0,0,.,.,.,exonic,0.61,"[('P003', 1)]",['PINK1']
+chr1,20660000,rs999,A,"('G',)",700.0,PASS,0.1,0.4,0,0,0.3,0,.,55.2,donor_region,intronic,0.85,"[('P003', 1)]",['PINK1']
+chr1,20670000,rs1000,C,"('T',)",9000.0,PASS,0,0.2,0,0,0.1,0,.,20.0,.,intronic,0.9,"[('P003', 1), ('S10', 2), ('S11', 2), ('S12', 2), ('S13', 2), ('S14', 2), ('S15', 2), ('S16', 2), ('S17', 2), ('S18', 2), ('S19', 2), ('S20', 2)]",['PINK1']
+chr6,161500000,,TA,"('T',)",800.0,PASS,0,0,0.3,0,0,0.2,.,.,.,intronic,0.75,"[('P005', 1)]","['ENSG00000286805', 'PRKN']"
+chr6,161500000,,TA,"('T',)",800.0,PASS,0,0,0.3,0,0,0.2,.,.,.,intronic,0.75,"[('X1', 1)]","['ENSG00000286805', 'PRKN']"

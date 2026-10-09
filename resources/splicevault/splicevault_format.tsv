@@ -1,0 +1,4 @@
+# chrom	pos	ref	alt	gene	event	outcome	exon_chrom	exon_start	exon_end	proportion	n_reads	transcript_id	citation
+# One row per variant. If several outcomes exist, pdvar keeps the highest proportion.
+# outcome: exon_skip, intron_retention, cryptic_donor, cryptic_acceptor, or other.
+# This file annotates splice outcome and isoform targeting. It does not add score points.
