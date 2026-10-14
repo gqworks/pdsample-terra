@@ -122,6 +122,28 @@ def test_json_placeholders_are_public_or_documented():
     assert "YOUR_WORKSPACE_BUCKET" not in terra["PdSample.cram"]
 
 
+def test_cp_uses_localized_file_interpolation():
+    """Coercing File to String in WDL leaves gs:// paths; shell cp cannot use them."""
+    wdl_root = ROOT / "workflow" / "wdl"
+    banned = (
+        "dict_path",
+        'cp "~{supplied_tar}"',
+    )
+    for path in sorted(wdl_root.rglob("*.wdl")):
+        if "stubs" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for fragment in banned:
+            assert fragment not in text, f"{path}: found banned fragment {fragment!r}"
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("cp ") and "~{" in stripped:
+                assert "_path}" not in stripped, f"{path}: cp uses string-coerced *_path: {stripped}"
+        for line in text.splitlines():
+            if '"" + select_first' in line:
+                assert False, f"{path}: File coerced to String: {line.strip()}"
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"

@@ -198,13 +198,22 @@ workflow PdSample {
     String python_docker = "python:3.11.11-slim-bookworm"
   }
 
-  call Tasks.MakeReferenceDict {
-    input:
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      ref_dict = ref_dict,
-      preemptible = preemptible
+  scatter (unused in if defined(ref_dict) then [1] else []) {
+    call Tasks.CopyReferenceDict as ProvidedReferenceDict {
+      input:
+        ref_dict = select_first([ref_dict]),
+        preemptible = preemptible
+    }
   }
+  scatter (unused in if !defined(ref_dict) then [1] else []) {
+    call Tasks.SamtoolsReferenceDict as BuiltReferenceDict {
+      input:
+        ref_fasta = ref_fasta,
+        preemptible = preemptible
+    }
+  }
+  Array[File] reference_dict_files = ProvidedReferenceDict.dict + BuiltReferenceDict.dict
+
   call Tasks.ExtractCramHeader {
     input:
       cram = cram,
@@ -215,7 +224,7 @@ workflow PdSample {
   call Tasks.CheckReference {
     input:
       cram_header = ExtractCramHeader.header,
-      reference_dict = MakeReferenceDict.dict,
+      reference_dict = select_first(reference_dict_files),
       check_reference_py = check_reference_py,
       sample_id = sample_id,
       python_docker = python_docker
@@ -278,7 +287,7 @@ workflow PdSample {
       cram_index = crai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      ref_dict = MakeReferenceDict.dict,
+      ref_dict = select_first(reference_dict_files),
       interval_bed = panel_bed,
       use_intervals = !wgs_small_variants,
       sample_id = sample_id,
@@ -293,7 +302,7 @@ workflow PdSample {
       gvcf_index = HaplotypeCaller.gvcf_index,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      ref_dict = MakeReferenceDict.dict,
+      ref_dict = select_first(reference_dict_files),
       interval_bed = panel_bed,
       use_intervals = !wgs_small_variants,
       sample_id = sample_id,
@@ -377,7 +386,7 @@ workflow PdSample {
       wgs_aligned_input_bam_or_cram_index = ReleaseCrai.released,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      ref_dict = MakeReferenceDict.dict,
+      ref_dict = select_first(reference_dict_files),
       mt_dict = mt_dict,
       mt_fasta = mt_fasta,
       mt_fasta_index = mt_fasta_index,

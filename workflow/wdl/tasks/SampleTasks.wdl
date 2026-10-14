@@ -27,23 +27,38 @@ task ExtractCramHeader {
   }
 }
 
-task MakeReferenceDict {
+task CopyReferenceDict {
+  input {
+    File ref_dict
+    String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+    Int preemptible = 3
+  }
+  command <<<
+    set -euo pipefail
+    cp "~{ref_dict}" reference.dict
+  >>>
+  output {
+    File dict = "reference.dict"
+  }
+  runtime {
+    docker: samtools_docker
+    preemptible: preemptible
+    memory: "4 GiB"
+    disks: "local-disk 10 HDD"
+    cpu: 1
+  }
+}
+
+task SamtoolsReferenceDict {
   input {
     File ref_fasta
-    File ref_fasta_index
-    File? ref_dict
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(ref_fasta, "GiB") + 10)
-  String dict_path = if defined(ref_dict) then "" + select_first([ref_dict]) else ""
   command <<<
     set -euo pipefail
-    if [[ -n "~{dict_path}" ]]; then
-      cp "~{dict_path}" reference.dict
-    else
-      samtools dict ~{ref_fasta} > reference.dict
-    fi
+    samtools dict ~{ref_fasta} > reference.dict
   >>>
   output {
     File dict = "reference.dict"
@@ -255,9 +270,12 @@ task HaplotypeCaller {
   }
   Int disk_gb = ceil(size(cram, "GiB") + size(ref_fasta, "GiB") + 50)
   String rp = select_first([requester_pays_project, ""])
-  String interval_arg = if use_intervals && defined(interval_bed) then "-L " + select_first([interval_bed]) else ""
   command <<<
     set -euo pipefail
+    interval_args=()
+    if [[ "~{use_intervals}" == "true" ]]; then
+      interval_args=(-L ~{interval_bed})
+    fi
     wc -c ~{qc_gate} >/dev/null
     mem_unit=$(echo "${MEM_UNIT:-}" | cut -c 1)
     if [[ "$mem_unit" == "M" ]]; then
@@ -277,7 +295,7 @@ task HaplotypeCaller {
       HaplotypeCaller \
       -R ~{ref_fasta} \
       -I ~{cram} \
-      ~{interval_arg} \
+      "${interval_args[@]}" \
       -O ~{sample_id}.g.vcf.gz \
       -G StandardAnnotation -G StandardHCAnnotation -G AS_StandardAnnotation \
       -GQB 10 -GQB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60 -GQB 70 -GQB 80 -GQB 90 \
@@ -318,12 +336,15 @@ task GenotypeHardFilter {
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(gvcf, "GiB") * 4 + size(ref_fasta, "GiB") + 20)
-  String interval_arg = if use_intervals && defined(interval_bed) then "-L " + select_first([interval_bed]) else ""
   command <<<
     set -euo pipefail
+    interval_args=()
+    if [[ "~{use_intervals}" == "true" ]]; then
+      interval_args=(-L ~{interval_bed})
+    fi
     # GATK hard filters for a single sample. VQSR needs a cohort to fit
     # tranches, and this workflow does not ship a CNN score model.
-    gatk --java-options "-Xmx6g" GenotypeGVCFs -R ~{ref_fasta} -V ~{gvcf} ~{interval_arg} -O raw.vcf.gz
+    gatk --java-options "-Xmx6g" GenotypeGVCFs -R ~{ref_fasta} -V ~{gvcf} "${interval_args[@]}" -O raw.vcf.gz
     gatk --java-options "-Xmx6g" SelectVariants -V raw.vcf.gz -select-type SNP -O snps.vcf.gz
     gatk --java-options "-Xmx6g" VariantFiltration -V snps.vcf.gz \
       --filter-expression "QD < 2.0 || QUAL < 30.0 || SOR > 3.0 || FS > 60.0 || MQ < 40.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0" \
@@ -394,14 +415,17 @@ task VepAnnotate {
     Int threads = 4
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 3 + 30)
-  String gnomad_arg = if defined(gnomad_vcf) then "--custom " + select_first([gnomad_vcf]) + ",gnomAD,vcf,exact,0,AF,AF_popmax,nhomalt" else ""
-  String clinvar_arg = if defined(clinvar_vcf) then "--custom " + select_first([clinvar_vcf]) + ",ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT" else ""
-  String gnomad_index = if defined(gnomad_vcf_index) then select_first([gnomad_vcf_index]) else ""
-  String clinvar_index = if defined(clinvar_vcf_index) then select_first([clinvar_vcf_index]) else ""
   command <<<
     set -euo pipefail
-    if [[ -n "~{gnomad_index}" ]]; then test -s "~{gnomad_index}"; fi
-    if [[ -n "~{clinvar_index}" ]]; then test -s "~{clinvar_index}"; fi
+    custom_args=()
+    if [[ -n "~{gnomad_vcf}" ]]; then
+      test -s ~{gnomad_vcf_index}
+      custom_args+=(--custom ~{gnomad_vcf},gnomAD,vcf,exact,0,AF,AF_popmax,nhomalt)
+    fi
+    if [[ -n "~{clinvar_vcf}" ]]; then
+      test -s ~{clinvar_vcf_index}
+      custom_args+=(--custom ~{clinvar_vcf},ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT)
+    fi
     cache_arg="~{cache_dir}"
     case "~{cache_dir}" in
       *.tar.gz|*.tgz)
@@ -413,7 +437,7 @@ task VepAnnotate {
     vep --offline --cache --dir_cache "$cache_arg" --fasta ~{ref_fasta} --assembly GRCh38 \
       --vcf --allele_number --symbol --hgvs --canonical --pick --force_overwrite \
       --fork ~{threads} \
-      ~{gnomad_arg} ~{clinvar_arg} ~{extra_args} \
+      "${custom_args[@]}" ~{extra_args} \
       -i ~{vcf} -o panel.vep.vcf
     bgzip -f panel.vep.vcf
     tabix -p vcf panel.vep.vcf.gz
@@ -665,12 +689,6 @@ task Assess {
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     String pdvar_git_commit = "main"
   }
-  String gene_bed_path = if defined(gene_bed) then "" + select_first([gene_bed]) else ""
-  String exon_bed_path = if defined(exon_bed) then "" + select_first([exon_bed]) else ""
-  String expression_path = if defined(expression_tsv) then "" + select_first([expression_tsv]) else ""
-  String splicevault_path = if defined(splicevault_tsv) then "" + select_first([splicevault_tsv]) else ""
-  String prs_path = if defined(prs_weights) then "" + select_first([prs_weights]) else ""
-  String avi_path = if defined(avi_tsv) then "" + select_first([avi_tsv]) else ""
   String age_value = select_first([age_onset, ""])
   String symptoms_value = select_first([symptoms, ""])
   Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + 20)
@@ -696,12 +714,12 @@ task Assess {
     export MTDNA_VCF="~{mtdna_vcf}"
     export INTROME_TSV="~{introme_tsv}"
     export QC_JSON="~{qc_json}"
-    export GENE_BED="~{gene_bed_path}"
-    export EXON_BED="~{exon_bed_path}"
-    export EXPRESSION="~{expression_path}"
-    export SPLICEVAULT="~{splicevault_path}"
-    export PRS_WEIGHTS="~{prs_path}"
-    export AVI_TSV="~{avi_path}"
+    export GENE_BED="~{gene_bed}"
+    export EXON_BED="~{exon_bed}"
+    export EXPRESSION="~{expression_tsv}"
+    export SPLICEVAULT="~{splicevault_tsv}"
+    export PRS_WEIGHTS="~{prs_weights}"
+    export AVI_TSV="~{avi_tsv}"
     export AGE_ONSET="~{age_value}"
     export SYMPTOMS="~{symptoms_value}"
     python3 - <<'PY'
@@ -741,8 +759,8 @@ document = {
 Path("sample.json").write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
 PY
     extra=()
-    if [[ -n "~{gene_bed_path}" ]]; then extra+=(--gene-bed "~{gene_bed_path}"); fi
-    if [[ -n "~{exon_bed_path}" ]]; then extra+=(--exon-bed "~{exon_bed_path}"); fi
+    if [[ -n "$GENE_BED" ]]; then extra+=(--gene-bed "$GENE_BED"); fi
+    if [[ -n "$EXON_BED" ]]; then extra+=(--exon-bed "$EXON_BED"); fi
     pdvar assess sample.json \
       --config ~{config_yaml} \
       --columns ~{columns_yaml} \
