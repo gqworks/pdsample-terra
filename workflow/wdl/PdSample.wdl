@@ -20,20 +20,20 @@ workflow PdSample {
     File? ref_dict
     String requester_pays_project = ""
 
-    File panel_bed
-    File panel_csv
-    File gene_bed
-    File exon_bed
-    File eh_catalog
-    File config_yaml
-    File columns_yaml
-    File phenotypes_yaml
-    File check_reference_py
-    File qc_summary_py
+    File panel_bed = "../assets/monopdaus-genes.grch38.bed"
+    File panel_csv = "../../resources/panel/monopdaus-gene-inheritance.csv"
+    File gene_bed = "../../resources/panel/monopdaus-genes.grch38.bed"
+    File exon_bed = "../../resources/panel/monopdaus-exons.grch38.bed"
+    File eh_catalog = "../assets/expansionhunter_pd.hg38.json"
+    File config_yaml = "../../config/config.yaml"
+    File columns_yaml = "../../config/columns.yaml"
+    File phenotypes_yaml = "../../config/gene_phenotypes.yaml"
+    File check_reference_py = "../scripts/check_reference.py"
+    File qc_summary_py = "../scripts/qc_summary.py"
 
     File vep_cache
     String vep_extra_args = ""
-    File annotate_avi_py
+    File annotate_avi_py = "../scripts/annotate_avi.py"
     String alphagenome_api_key = ""
     File? gnomad_vcf
     File? gnomad_vcf_index
@@ -41,10 +41,10 @@ workflow PdSample {
     File? clinvar_vcf_index
 
     File somalier_sites
-    File verifybamid_ud
-    File verifybamid_v
-    File verifybamid_bed
-    File verifybamid_mu
+    File verifybamid_ud = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
+    File verifybamid_v = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.V"
+    File verifybamid_bed = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
+    File verifybamid_mu = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
     Float max_freemix = 0.02
     Float min_mean_coverage = 0
     Boolean hard_fail_contamination = true

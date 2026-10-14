@@ -37,6 +37,7 @@ PUBLIC_MT = {
 STAGED = {
     "PdSample.vep_cache": "gs://YOUR_WORKSPACE_BUCKET/resources/vep/homo_sapiens_vep_116_GRCh38.tar.gz",
     "PdSample.somalier_sites": "gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz",
+    "PdSample.introme_gtf": "gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz",
 }
 EXAMPLE_SAMPLE = {
     "PdSample.cram": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam",
@@ -70,9 +71,9 @@ def test_pdsample_is_the_only_entry_workflow():
     example = (ROOT / "workflow" / "terra" / "PdSample.example.json").read_text(encoding="utf-8")
     assert "SYNTHETIC_SAMPLE" in example
     assert "gs://fc-" not in example
-    assert "raw.githubusercontent.com/gqworks/pdsample-terra/main/" in example
+    assert "raw.githubusercontent.com/gqworks/pdsample-terra/main/" not in example
     assert "ref_panel_1kg_v2-contig-ploidy-model.tar.gz" in example
-    assert "workflow/scripts/annotate_avi.py" in example
+    assert "../scripts/annotate_avi.py" in example
     assert '"PdSample.alphagenome_api_key": ""' in example
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sample_id": "${this.sample_id}"' in terra
@@ -84,6 +85,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "gs://fc-" not in terra
     assert "workspace.sv_pipeline_docker" not in terra
     assert "workspace.manta_docker" not in terra
+    assert "raw.githubusercontent.com" not in terra
+    assert "check_reference_py" not in terra
 
 
 def test_json_placeholders_are_public_or_documented():
@@ -120,6 +123,34 @@ def test_json_placeholders_are_public_or_documented():
     assert terra["PdSample.cram"] == "${this.bam_or_cram_file}"
     assert terra["PdSample.crai"] == "${this.bai}"
     assert "YOUR_WORKSPACE_BUCKET" not in terra["PdSample.cram"]
+
+
+def test_file_inputs_do_not_use_https_on_terra_json():
+    """Terra GCP Batch localizes gs:// only; https File paths fail at runtime."""
+    fileish_prefixes = (
+        "PdSample.panel_",
+        "PdSample.gene_",
+        "PdSample.exon_",
+        "PdSample.eh_",
+        "PdSample.config_",
+        "PdSample.columns_",
+        "PdSample.phenotypes_",
+        "PdSample.check_",
+        "PdSample.qc_",
+        "PdSample.annotate_",
+        "PdSample.verifybamid_",
+        "PdSample.introme_gtf",
+        "PdSample.vep_cache",
+        "PdSample.somalier_",
+    )
+    terra = json.loads(
+        (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
+    )
+    for key, value in terra.items():
+        if not any(key.startswith(p) for p in fileish_prefixes):
+            continue
+        if isinstance(value, str) and value.startswith("https://"):
+            raise AssertionError(f"{key} must be gs:// on Terra, not {value}")
 
 
 def test_cp_uses_localized_file_interpolation():

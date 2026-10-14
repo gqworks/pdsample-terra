@@ -2,7 +2,9 @@
 
 `PdSample.example.json` and `PdSample.terra_inputs.json` point at public `gs://` objects wherever an anonymous copy exists. The inputs below do not. Their values stay `gs://YOUR_WORKSPACE_BUCKET/...`. Replace `YOUR_WORKSPACE_BUCKET` with the Terra workspace bucket when you launch. Do not commit a real bucket name, sample id, or billing project.
 
-Mitochondria references, the GRCh38 FASTA, VerifyBamID 2.0.3 files, the vendored ExpansionHunter catalog, and the GATK-SV v0.29-beta resources are already public. They are not staged here. See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
+Mitochondria references, the GRCh38 FASTA, VerifyBamID 2.0.3 SVD files (vendored under `workflow/assets/verifybamid/`), panel/config/scripts bundled with the Dockstore workflow, and the GATK-SV v0.29-beta public resources are not staged here. Terra GCP Batch only localizes `gs://` (and DRS) `File` inputs, not `https://` URLs.
+
+See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 
 ## Placeholders
 
@@ -12,6 +14,7 @@ Mitochondria references, the GRCh38 FASTA, VerifyBamID 2.0.3 files, the vendored
 | `PdSample.crai` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai` | `.bai` or `.crai` for that file | small |
 | `PdSample.vep_cache` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/vep/homo_sapiens_vep_116_GRCh38.tar.gz` | Ensembl VEP cache release 116 | 26 GB (27,644,657,162 bytes) |
 | `PdSample.somalier_sites` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz` | somalier v0.3.5 release notes, chr-prefixed hg38 | 260 KB (265,818 bytes) |
+| `PdSample.introme_gtf` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz` | GENCODE v44 annotation | ~47 MB |
 
 `PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are still named `cram` and `crai`). BAM plus `.bai` and CRAM plus `.crai` both work. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
 
@@ -46,6 +49,21 @@ gcloud storage cp homo_sapiens_vep_116_GRCh38.tar.gz \
 ```
 
 `workflow/scripts/download_resources.sh DEST --vep` fetches the same tarball into `DEST/vep/`. Copy that file with the `gcloud storage cp` line above.
+
+## GENCODE v44 GTF (Introme)
+
+Terra cannot read `https://ftp.ebi.ac.uk/...` as a workflow `File`. Copy GENCODE v44 into the workspace bucket once:
+
+Source: `https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz`
+
+```bash
+curl -fL -o gencode.v44.annotation.gtf.gz \
+  "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz"
+gcloud storage cp gencode.v44.annotation.gtf.gz \
+  gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz
+```
+
+Set `PdSample.introme_gtf` to that `gs://` path (already in `PdSample.terra_inputs.json`).
 
 ## somalier sites (hg38, chr-prefixed)
 
@@ -95,7 +113,7 @@ Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. P
 
 These are unset in both JSON files. A default launch does not need them.
 
-- **Introme GTF.** `PdSample.introme_gtf` is already `https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz` (GENCODE v44). The Introme pin is `d6da48bc84abda66f588470f79abcf1244acfb21`.
+- **Introme GTF.** Stage GENCODE v44 to `gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz` (see above). The Introme pin is `d6da48bc84abda66f588470f79abcf1244acfb21`.
 - **Introme assets tar.** Optional `introme_assets_tar`. Unset, the fetch task downloads `https://github.com/CCICB/introme/archive/d6da48bc84abda66f588470f79abcf1244acfb21.tar.gz`.
 - **VEP plugin data** (CADD, REVEL, SpliceAI) passed through `vep_extra_args`. No public GCS copy was verified, and the files are license-restricted. Stage your own copies if you use them. They are not example-JSON inputs.
 - **gnomAD and ClinVar** (`gnomad_vcf`, `clinvar_vcf`, and their indexes). Optional `--custom` annotations. They are not set in the example JSON.
