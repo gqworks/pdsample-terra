@@ -30,6 +30,7 @@ def _col(df: pd.DataFrame, name: str) -> pd.Series:
 def evidence_flags(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     """Return a boolean frame with one column per scoring rule."""
     cadd, revel, spliceai = _col(df, "cadd"), _col(df, "revel"), _col(df, "spliceai")
+    avi = _col(df, "avi_phred")
     clinvar = df.get("clinvar_class", pd.Series("none", index=df.index))
     flags = pd.DataFrame(index=df.index)
     flags["clinvar_plp"] = clinvar == "P/LP"
@@ -43,6 +44,9 @@ def evidence_flags(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     flags["spliceai_moderate"] = (
         (spliceai >= scfg["spliceai_moderate"]) & (spliceai < scfg["spliceai_high"])
     ).fillna(False)
+    # Genome-wide AVI Phred bands (top 0.1% / top 1%), not a clinical cutoff.
+    flags["avi_high"] = (avi >= scfg["avi_high"]).fillna(False)
+    flags["avi_moderate"] = ((avi >= scfg["avi_moderate"]) & (avi < scfg["avi_high"])).fillna(False)
     flags["absent_gnomad"] = _col(df, "gnomad_af").fillna(0) == 0
     return flags.astype(bool)
 

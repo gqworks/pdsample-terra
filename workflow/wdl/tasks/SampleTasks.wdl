@@ -606,6 +606,37 @@ task ReleaseAfterQc {
   }
 }
 
+task AnnotateAvi {
+  input {
+    File vcf
+    File annotate_avi_py
+    String alphagenome_api_key = ""
+    String python_docker = "python:3.11.11-slim-bookworm"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(vcf, "GiB") + 12)
+  command <<<
+    set -euo pipefail
+    # The key is read from the environment. It is not written to the TSV.
+    export ALPHAGENOME_API_KEY='~{alphagenome_api_key}'
+    if [[ -n "${ALPHAGENOME_API_KEY}" ]]; then
+      pip install --no-cache-dir "alphagenome==0.10.0"
+    fi
+    python3 "~{annotate_avi_py}" --vcf "~{vcf}" --out avi.tsv
+    unset ALPHAGENOME_API_KEY
+  >>>
+  output {
+    File avi_tsv = "avi.tsv"
+  }
+  runtime {
+    docker: python_docker
+    preemptible: preemptible
+    memory: "8 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 2
+  }
+}
+
 task Assess {
   input {
     String sample_id
@@ -617,6 +648,7 @@ task Assess {
     File gauchian_json
     File mtdna_vcf
     File introme_tsv
+    File? avi_tsv
     File qc_json
     File config_yaml
     File columns_yaml
@@ -638,9 +670,10 @@ task Assess {
   String expression_path = if defined(expression_tsv) then "" + select_first([expression_tsv]) else ""
   String splicevault_path = if defined(splicevault_tsv) then "" + select_first([splicevault_tsv]) else ""
   String prs_path = if defined(prs_weights) then "" + select_first([prs_weights]) else ""
+  String avi_path = if defined(avi_tsv) then "" + select_first([avi_tsv]) else ""
   String age_value = select_first([age_onset, ""])
   String symptoms_value = select_first([symptoms, ""])
-  Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + 20)
+  Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + 20)
   command <<<
     set -euo pipefail
     if ! python3 -c "import pdvar" >/dev/null 2>&1; then
@@ -668,6 +701,7 @@ task Assess {
     export EXPRESSION="~{expression_path}"
     export SPLICEVAULT="~{splicevault_path}"
     export PRS_WEIGHTS="~{prs_path}"
+    export AVI_TSV="~{avi_path}"
     export AGE_ONSET="~{age_value}"
     export SYMPTOMS="~{symptoms_value}"
     python3 - <<'PY'
@@ -700,6 +734,7 @@ document = {
     "expression": maybe("EXPRESSION"),
     "splicevault": maybe("SPLICEVAULT"),
     "prs_weights": maybe("PRS_WEIGHTS"),
+    "avi_tsv": maybe("AVI_TSV"),
     "phenotype": phenotype,
     "qc": qc,
 }

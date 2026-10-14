@@ -60,6 +60,8 @@ def test_pdsample_is_the_only_entry_workflow():
         assert banned not in text
     assert "gatk-sv/v0.29-beta/wdl/GATKSVPipelineSingleSample.wdl" in text
     assert "gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl" in text
+    assert "alphagenome==0.10.0" in (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert "AnnotateAvi" in text
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
     assert "PdCohort" not in dockstore
@@ -70,6 +72,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "gs://fc-" not in example
     assert "raw.githubusercontent.com/gqworks/pdsample-terra/main/" in example
     assert "ref_panel_1kg_v2-contig-ploidy-model.tar.gz" in example
+    assert "workflow/scripts/annotate_avi.py" in example
+    assert '"PdSample.alphagenome_api_key": ""' in example
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sample_id": "${this.sample_id}"' in terra
     assert '"PdSample.cram": "${this.cram}"' in terra

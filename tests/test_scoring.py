@@ -26,6 +26,39 @@ def test_benign_is_tier4(cfg):
     assert row["tier"] == 4
 
 
+def test_avi_phred_bands_add_points(cfg):
+    bare = _score(cfg, consequence="missense_variant", clinvar_class="none", gnomad_af=0.0)
+    high = _score(cfg, consequence="missense_variant", clinvar_class="none", gnomad_af=0.0, avi_phred=31)
+    mid = _score(cfg, consequence="missense_variant", clinvar_class="none", gnomad_af=0.0, avi_phred=21)
+    low = _score(cfg, consequence="missense_variant", clinvar_class="none", gnomad_af=0.0, avi_phred=10)
+    assert high["evidence_score"] == bare["evidence_score"] + cfg["scoring"]["points"]["avi_high"]
+    assert "avi_high" in high["evidence_reasons"]
+    assert "avi_moderate" not in high["evidence_reasons"]
+    assert mid["evidence_score"] == bare["evidence_score"] + cfg["scoring"]["points"]["avi_moderate"]
+    assert "avi_moderate" in mid["evidence_reasons"]
+    assert "avi_high" not in mid["evidence_reasons"]
+    assert low["evidence_score"] == bare["evidence_score"]
+    assert "avi_high" not in low["evidence_reasons"]
+    assert "avi_moderate" not in low["evidence_reasons"]
+
+
+def test_higher_avi_breaks_evidence_ties():
+    from pdvar.report import rank_candidates
+
+    frame = pd.DataFrame(
+        {
+            "sample_id": ["S", "S"],
+            "inheritance_status": ["AD_candidate", "AD_candidate"],
+            "tier": [2, 2],
+            "evidence_score": [6, 6],
+            "avi_phred": [12.0, 35.0],
+            "variant_id": ["low", "high"],
+        }
+    )
+    ranked = rank_candidates(frame)
+    assert ranked.iloc[0]["variant_id"] == "high"
+
+
 def test_normalize_clinvar():
     s = pd.Series(["Pathogenic", "Likely_pathogenic", "Pathogenic/Likely_benign", "Conflicting_classifications",
                    "Uncertain_significance", "Benign", None])

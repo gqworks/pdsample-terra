@@ -18,6 +18,8 @@
   "PdSample.check_reference_py": "https://raw.githubusercontent.com/gqworks/pdsample-terra/main/workflow/scripts/check_reference.py",
   "PdSample.qc_summary_py": "https://raw.githubusercontent.com/gqworks/pdsample-terra/main/workflow/scripts/qc_summary.py",
   "PdSample.vep_cache": "gs://YOUR_WORKSPACE_BUCKET/resources/vep/homo_sapiens_vep_116_GRCh38.tar.gz",
+  "PdSample.annotate_avi_py": "https://raw.githubusercontent.com/gqworks/pdsample-terra/main/workflow/scripts/annotate_avi.py",
+  "PdSample.alphagenome_api_key": "",
   "PdSample.somalier_sites": "gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz",
   "PdSample.verifybamid_ud": "https://github.com/Griffan/VerifyBamID/raw/v2.0.3/resource/1000g.phase3.100k.b38.vcf.gz.dat.UD",
   "PdSample.verifybamid_v": "https://github.com/Griffan/VerifyBamID/raw/v2.0.3/resource/1000g.phase3.100k.b38.vcf.gz.dat.V",

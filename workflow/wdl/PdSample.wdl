@@ -33,6 +33,8 @@ workflow PdSample {
 
     File vep_cache
     String vep_extra_args = ""
+    File annotate_avi_py
+    String alphagenome_api_key = ""
     File? gnomad_vcf
     File? gnomad_vcf_index
     File? clinvar_vcf
@@ -307,6 +309,13 @@ workflow PdSample {
       sample_id = sample_id,
       preemptible = preemptible
   }
+  call Tasks.AnnotateAvi {
+    input:
+      vcf = NormPass.normalized_vcf,
+      annotate_avi_py = annotate_avi_py,
+      alphagenome_api_key = alphagenome_api_key,
+      preemptible = preemptible
+  }
   call Tasks.VepAnnotate {
     input:
       vcf = NormPass.normalized_vcf,
@@ -530,6 +539,7 @@ workflow PdSample {
       gauchian_json = Gauchian.json,
       mtdna_vcf = Mito.out_vcf,
       introme_tsv = Introme.introme_tsv,
+      avi_tsv = AnnotateAvi.avi_tsv,
       qc_json = QcGate.qc_json,
       config_yaml = config_yaml,
       columns_yaml = columns_yaml,

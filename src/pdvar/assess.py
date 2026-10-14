@@ -27,6 +27,7 @@ from . import (
     splicing,
     sv,
 )
+from .avi import merge_avi
 from .incidental import apply_incidental_tags
 from .vep import parse_vep
 
@@ -188,6 +189,12 @@ def assess_sample(
         notes["introme"] = "called"
     notes["vep"] = "called"
 
+    avi_path = _exists(sample.get("avi_tsv"))
+    avi_table = pd.DataFrame()
+    if avi_path is not None:
+        avi_table = io.read_table(avi_path)
+    notes["avi"] = "called" if not avi_table.empty else "not_assessed"
+
     follow = pd.DataFrame()
     if variants.empty:
         scored = variants
@@ -196,6 +203,7 @@ def assess_sample(
         if scored.empty:
             follow = pd.DataFrame()
         else:
+            scored = merge_avi(scored, avi_table)
             scored = scoring.score_variants(scored, cfg["scoring"])
             scored = sv.apply_dosage_evidence(scored, cfg["scoring"])
             if not introme_variants.empty:
