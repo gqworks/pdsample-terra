@@ -27,23 +27,38 @@ task ExtractCramHeader {
   }
 }
 
-task MakeReferenceDict {
+task CopyReferenceDict {
+  input {
+    File ref_dict
+    String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+    Int preemptible = 3
+  }
+  command <<<
+    set -euo pipefail
+    cp "~{ref_dict}" reference.dict
+  >>>
+  output {
+    File dict = "reference.dict"
+  }
+  runtime {
+    docker: samtools_docker
+    preemptible: preemptible
+    memory: "4 GiB"
+    disks: "local-disk 10 HDD"
+    cpu: 1
+  }
+}
+
+task SamtoolsReferenceDict {
   input {
     File ref_fasta
-    File ref_fasta_index
-    File? ref_dict
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(ref_fasta, "GiB") + 10)
-  String dict_path = if defined(ref_dict) then "" + select_first([ref_dict]) else ""
   command <<<
     set -euo pipefail
-    if [[ -n "~{dict_path}" ]]; then
-      cp "~{dict_path}" reference.dict
-    else
-      samtools dict ~{ref_fasta} > reference.dict
-    fi
+    samtools dict ~{ref_fasta} > reference.dict
   >>>
   output {
     File dict = "reference.dict"
