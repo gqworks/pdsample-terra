@@ -35,7 +35,7 @@ task MakeReferenceDict {
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     Int preemptible = 3
   }
-  Float disk_gb = size(ref_fasta, "GiB") + 10
+  Int disk_gb = ceil(size(ref_fasta, "GiB") + 10)
   String dict_path = if defined(ref_dict) then "" + select_first([ref_dict]) else ""
   command <<<
     set -euo pipefail
