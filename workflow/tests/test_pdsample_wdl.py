@@ -120,3 +120,18 @@ def test_json_placeholders_are_public_or_documented():
     assert terra["PdSample.cram"] == "${this.bam_or_cram_file}"
     assert terra["PdSample.crai"] == "${this.bai}"
     assert "YOUR_WORKSPACE_BUCKET" not in terra["PdSample.cram"]
+
+
+def test_runtime_disk_gb_is_integer_ceiled():
+    """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
+    wdl_root = ROOT / "workflow" / "wdl"
+    for path in sorted(wdl_root.rglob("*.wdl")):
+        if "stubs" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        assert "Float disk_gb" not in text, path
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("disk_gb =") or stripped.startswith("Int disk_gb ="):
+                assert "ceil(" in stripped, f"{path}: disk_gb must use ceil(): {stripped}"
+                assert stripped.startswith("Int disk_gb"), f"{path}: disk_gb must be Int: {stripped}"
