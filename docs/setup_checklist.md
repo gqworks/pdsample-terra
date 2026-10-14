@@ -5,7 +5,7 @@
 ## You must supply
 
 - **GCP requester-pays project.** Broad reference reads need `requester_pays_project` (`gsutil -u PROJECT`).
-- **GRCh38 FASTA, index, and dictionary.** `gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta` plus `.fai` and `.dict`. The CRAM must match this reference. The header check fails on an MD5 or `chr` prefix mismatch.
+- **GRCh38 FASTA, index, and dictionary.** `gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta` plus `.fai` and `.dict`. The BAM or CRAM must match this reference. The header check fails on an MD5 or `chr` prefix mismatch.
 - **VEP 116 cache, as a `.tar.gz`.** `https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_vep_116_GRCh38.tar.gz` (about 26 GB). The VEP task extracts it. There is no public GCS copy. Stage it with the commands in [`workflow/terra/STAGING.md`](../workflow/terra/STAGING.md). The example path is `gs://YOUR_WORKSPACE_BUCKET/resources/vep/homo_sapiens_vep_116_GRCh38.tar.gz`.
 - **VerifyBamID2 2.0.3 SVD files (four inputs).** Public raw URLs, also fetched by `download_resources.sh`:
   - `https://github.com/Griffan/VerifyBamID/raw/v2.0.3/resource/1000g.phase3.100k.b38.vcf.gz.dat.UD`
@@ -34,7 +34,7 @@ Keep that set intact. Replacing only the ploidy tar, or only the VCF, breaks the
 
 ### Your own Terra panel
 
-If the workspace was created from the GATK-SV featured workspace, the attributes are already there. Import `workflow/terra/PdSample.terra_inputs.json`, or set each input in the Terra Inputs tab to the expression in `gatksv_panel_keys.md`. Sample columns stay `this.sample_id`, `this.cram`, `this.crai`, and `this.sex`.
+If the workspace was created from the GATK-SV featured workspace, the attributes are already there. Import `workflow/terra/PdSample.terra_inputs.json`, or set each input in the Terra Inputs tab to the expression in `gatksv_panel_keys.md`. Sample columns stay `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, and `this.sex`.
 
 Panel attributes use the `ref_panel_*` names (`workspace.ref_panel_vcf`, `workspace.ref_panel_ped_file`, `workspace.ref_panel_samples_list`, and the rest of that family). hg38 resource files use the `reference_*` twins (`workspace.reference_fasta`, `workspace.reference_genome_file`, `workspace.reference_empty_file`, and so on). `pesr_exclude_intervals` reads `workspace.reference_pesr_exclude_list`. `qc_definitions` reads `workspace.ref_panel_qc_definitions`.
 

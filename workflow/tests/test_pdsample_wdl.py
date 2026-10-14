@@ -39,8 +39,8 @@ STAGED = {
     "PdSample.somalier_sites": "gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz",
 }
 EXAMPLE_SAMPLE = {
-    "PdSample.cram": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.cram",
-    "PdSample.crai": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.cram.crai",
+    "PdSample.cram": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam",
+    "PdSample.crai": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai",
 }
 
 
@@ -76,8 +76,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert '"PdSample.alphagenome_api_key": ""' in example
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sample_id": "${this.sample_id}"' in terra
-    assert '"PdSample.cram": "${this.cram}"' in terra
-    assert '"PdSample.crai": "${this.crai}"' in terra
+    assert '"PdSample.cram": "${this.bam_or_cram_file}"' in terra
+    assert '"PdSample.crai": "${this.bai}"' in terra
     assert '"PdSample.sex": "${this.sex}"' in terra
     assert '"PdSample.sv_ref_panel_vcf": "${workspace.ref_panel_vcf}"' in terra
     assert '"PdSample.sv_empty_file": "${workspace.reference_empty_file}"' in terra
@@ -117,6 +117,6 @@ def test_json_placeholders_are_public_or_documented():
         assert example[key] == value
         assert value in staging
         assert key in staging
-    assert terra["PdSample.cram"] == "${this.cram}"
-    assert terra["PdSample.crai"] == "${this.crai}"
+    assert terra["PdSample.cram"] == "${this.bam_or_cram_file}"
+    assert terra["PdSample.crai"] == "${this.bai}"
     assert "YOUR_WORKSPACE_BUCKET" not in terra["PdSample.cram"]

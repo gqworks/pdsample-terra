@@ -8,24 +8,24 @@ Mitochondria references, the GRCh38 FASTA, VerifyBamID 2.0.3 files, the vendored
 
 | Input | JSON | Placeholder | Upstream | Approx. size |
 | --- | --- | --- | --- | --- |
-| `PdSample.cram` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.cram` | your own GRCh38 CRAM | the alignment |
-| `PdSample.crai` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.cram.crai` | index of that CRAM | small |
+| `PdSample.cram` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam` | your own GRCh38 BAM or CRAM | the alignment |
+| `PdSample.crai` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai` | `.bai` or `.crai` for that file | small |
 | `PdSample.vep_cache` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/vep/homo_sapiens_vep_116_GRCh38.tar.gz` | Ensembl VEP cache release 116 | 26 GB (27,644,657,162 bytes) |
 | `PdSample.somalier_sites` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz` | somalier v0.3.5 release notes, chr-prefixed hg38 | 260 KB (265,818 bytes) |
 
-`PdSample.terra_inputs.json` binds the alignment to `${this.cram}` and `${this.crai}` on the sample table. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
+`PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are still named `cram` and `crai`). BAM plus `.bai` and CRAM plus `.crai` both work. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
 
 `PdSample.requester_pays_project` stays `YOUR_GCP_PROJECT`. It is the GCP project that pays for requester-pays reads of `gs://gcp-public-data--broad-references` (the genome FASTA and the chrM bundle). It is not a file.
 
-## Sample CRAM
+## Sample BAM or CRAM
 
-Copy a CRAM aligned to `Homo_sapiens_assembly38` (chr-prefixed, dictionary MD5s matching that FASTA) and its `.crai` into the workspace bucket, then set the sample-table columns. This repository does not publish an example alignment.
+Copy a BAM or CRAM aligned to `Homo_sapiens_assembly38` (chr-prefixed, dictionary MD5s matching that FASTA) and its index into the workspace bucket, then set the sample-table columns `bam_or_cram_file` and `bai`. This repository does not publish an example alignment.
 
 ```bash
-gcloud storage cp /path/to/SYNTHETIC_SAMPLE.cram \
-  gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.cram
-gcloud storage cp /path/to/SYNTHETIC_SAMPLE.cram.crai \
-  gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.cram.crai
+gcloud storage cp /path/to/SYNTHETIC_SAMPLE.bam \
+  gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam
+gcloud storage cp /path/to/SYNTHETIC_SAMPLE.bam.bai \
+  gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai
 ```
 
 ## VEP 116 cache
@@ -89,7 +89,7 @@ stage(
 )
 ```
 
-Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. Put the CRAM and CRAI on the sample table (`cram`, `crai`).
+Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. Put the alignment and index on the sample table (`bam_or_cram_file`, `bai`).
 
 ## Optional inputs that are not in the JSON
 

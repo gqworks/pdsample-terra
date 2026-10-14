@@ -1,7 +1,7 @@
 {
   "PdSample.sample_id": "${this.sample_id}",
-  "PdSample.cram": "${this.cram}",
-  "PdSample.crai": "${this.crai}",
+  "PdSample.cram": "${this.bam_or_cram_file}",
+  "PdSample.crai": "${this.bai}",
   "PdSample.sex": "${this.sex}",
   "PdSample.ref_fasta": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta",
   "PdSample.ref_fasta_index": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai",
