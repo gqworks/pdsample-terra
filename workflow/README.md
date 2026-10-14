@@ -46,6 +46,7 @@ The public `ref_panel_1kg` bundle already mixes a 1KG v2 contig-ploidy model tar
 | mosdepth | `quay.io/biocontainers/mosdepth:0.3.14--h87be163_2` | 0.3.14 |
 | PASS and norm | `quay.io/biocontainers/bcftools:1.24--h118bc1c_4` | bcftools 1.24 |
 | VEP | `quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0` | 116.2 |
+| AlphaGenome Atlas AVI | `python:3.11.11-slim-bookworm` | pip `alphagenome==0.10.0`, scorer `AVI_SCORE` |
 | ExpansionHunter | `quay.io/biocontainers/expansionhunter:5.0.0--hc26b3af_5` | 5.0.0, 19-locus catalog |
 | Gauchian | `python:3.11.11-slim-bookworm` unless `gauchian_docker` is set | pip `gauchian==1.0.2` |
 | mtDNA | images inside MitochondriaPipeline | GATK 4.7.0.0 |
@@ -82,6 +83,6 @@ docker push REGISTRY/pdvar:COMMIT
 
 ## Internal sample JSON
 
-The Assess task writes `sample.json` and passes it to `pdvar assess`. Keys: `sample_id`, `sex`, `vep_vcf`, `small_vcf`, `sv_vcf`, `sv_status`, `expansionhunter_vcf`, `gauchian_json`, `mtdna_vcf`, `introme_tsv`, `gene_bed`, `exon_bed`, `expression`, `splicevault`, `prs_weights`, `phenotype`, `qc`. This file is an in-task handoff. It is not an external manifest.
+The Assess task writes `sample.json` and passes it to `pdvar assess`. Keys: `sample_id`, `sex`, `vep_vcf`, `small_vcf`, `sv_vcf`, `sv_status`, `expansionhunter_vcf`, `gauchian_json`, `mtdna_vcf`, `introme_tsv`, `avi_tsv`, `gene_bed`, `exon_bed`, `expression`, `splicevault`, `prs_weights`, `phenotype`, `qc`. This file is an in-task handoff. It is not an external manifest.
 
 Introme's own tasks still accept `force_rerun_token` with default `""` so a cache-buster can be set on that subworkflow. `PdSample` does not expose it.

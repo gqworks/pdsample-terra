@@ -12,11 +12,13 @@ flowchart TD
   norm --> vep[VEP 116]
   vep --> lift[Lift gnomAD INFO]
   lift --> introme[Introme v2 on the panel BED]
+  norm --> avi[AlphaGenome Atlas AVI]
   qc --> eh[ExpansionHunter]
   qc --> gba[Gauchian]
   qc --> mito[MitochondriaPipeline]
   qc --> gatksv[GATKSVPipelineSingleSample]
   introme --> assess[Assess]
+  avi --> assess[Assess]
   eh --> assess
   gba --> assess
   mito --> assess
@@ -57,8 +59,9 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 6. **GBA1.** Gauchian 1.0.2.
 7. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0.
 8. **VEP 116.2.** Offline cache, GRCh38, `--pick`. Optional `--custom` gnomAD (`AF|AF_popmax|nhomalt`) and ClinVar. A following task copies `INFO/gnomAD` into `INFO/gnomAD_AF` and `INFO/AF_popmax` so the Introme rare filter can see them.
-9. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
-10. **Assess.** `pdvar assess` ranks candidates and writes the Terra outputs.
+9. **AlphaGenome Atlas AVI.** PASS SNVs are looked up with `alphagenome` 0.10.0 (`AVI_SCORE`) when `alphagenome_api_key` is set. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties. An empty key leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
+10. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
+11. **Assess.** `pdvar assess` ranks candidates and writes the Terra outputs.
 
 ## Hard filters
 

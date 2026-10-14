@@ -32,7 +32,8 @@ CURATION_COLUMNS = [
     "zygosity", "tier", "evidence_score", "evidence_reasons", "inheritance_status", "hit_source",
     "introme_class", "introme_score", "introme_cohort_af", "introme_n_carriers", "introme_gene_region",
     "clinvar_class", "gnomad_af", "gnomad_popmax_af",
-    "cadd", "revel", "spliceai", "age_onset", "onset_category", "sex", "ethnicity",
+    "cadd", "revel", "spliceai", "avi_phred", "avi_raw", "avi_quantile", "avi_url",
+    "age_onset", "onset_category", "sex", "ethnicity",
     "onset_match", "matched_features", "phenotype_score", "symptoms",
     "variant_class", "dosage_mechanism", "phase_relation", "phase_source",
     "lof_weight", "weighted_evidence_score", "svtype", "biomarker_notes",
@@ -49,12 +50,18 @@ def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
         df["_rank_score"] = df["evidence_score"]
     sort_cols = ["sample_id", "status_priority", "tier", "_rank_score"]
     asc = [True, True, True, False]
+    drop_cols = ["_rank_score"]
+    if "avi_phred" in df.columns:
+        df["_avi"] = pd.to_numeric(df["avi_phred"], errors="coerce").fillna(-1)
+        sort_cols.append("_avi")
+        asc.append(False)
+        drop_cols.append("_avi")
     if "phenotype_score" in df.columns:
         sort_cols.append("phenotype_score")
         asc.append(False)
     df = df.sort_values(sort_cols, ascending=asc, kind="mergesort")
     df["rank"] = df.groupby("sample_id").cumcount() + 1
-    return df.drop(columns="_rank_score")
+    return df.drop(columns=drop_cols)
 
 
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
@@ -193,7 +200,7 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
     if candidates is None or candidates.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "consequence", "zygosity", "tier", "evidence_score", "incidental") if column in candidates.columns]
+        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "consequence", "zygosity", "tier", "evidence_score", "avi_phred", "evidence_reasons", "incidental") if column in candidates.columns]
         lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)

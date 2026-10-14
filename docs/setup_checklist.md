@@ -42,6 +42,7 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 
 ## Optional
 
+- **AlphaGenome API key.** Set `alphagenome_api_key` to turn on AVI scoring. Create a key at https://deepmind.google.com/science/alphagenome. Do not commit it. The task installs `alphagenome==0.10.0` and queries Atlas `AVI_SCORE` for PASS SNVs. The example JSON leaves the key empty, which writes a header-only table and records `avi: not_assessed`. Scores are research ranks (Cheng et al., medRxiv, 2026, doi:10.64898/2026.09.16.26363192), not a diagnostic result.
 - **gnomAD and ClinVar VCFs** for VEP `--custom`, plus their tabix indexes (`gnomad_vcf_index`, `clinvar_vcf_index`). Without gnomAD, the Introme rare filter has no allele frequency to apply. Missing AF is kept by the assessor.
 - **VEP plugin data** (CADD, REVEL, SpliceAI) via `vep_extra_args` if you have a license and the files. The scorer reads those CSQ fields when they are present.
 - **Introme assets tar.** Optional `introme_assets_tar`: a workspace copy of `https://github.com/CCICB/introme/archive/d6da48bc84abda66f588470f79abcf1244acfb21.tar.gz`. Unset, the fetch task downloads that pin.

@@ -28,10 +28,11 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 | `sv_panel_af` | Allele frequency on the GATK-SV reference panel, when that VCF ran |
 | `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` |
 | `cadd`, `revel`, `spliceai` | Present when VEP plugins or Introme wrote them |
+| `avi_phred`, `avi_raw`, `avi_quantile`, `avi_url` | AlphaGenome Atlas AVI for SNVs when `alphagenome_api_key` was set. Phred 20 is the top 1% of genome-wide SNVs. Empty when the key was unset, the allele is not an SNV, or Atlas had no row |
 | `introme_score`, `introme_class` | Introme v2 score and high / moderate / low |
 | `str_locus`, `str_expanded` | ExpansionHunter locus. `str_expanded` is null until a cited repeat cutoff exists |
 | `heteroplasmy` | mtDNA allele fraction when the caller wrote `AF` |
 | `incidental`, `disposition` | `TTN_truncation` / `incidental` for TTN null alleles. ClinVar is not overwritten |
 | `lof_weight` | 1 while expression cutoffs are null |
 
-`qc_summary.json` `modules` records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, and VEP. GATK-SV is `called` when the SV VCF is present. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object is `called`. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.
+`qc_summary.json` `modules` records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, VEP, and AVI. AVI is `called` only when the Atlas table has at least one score. GATK-SV is `called` when the SV VCF is present. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object is `called`. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.

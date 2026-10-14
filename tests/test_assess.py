@@ -159,6 +159,7 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert pd.isna(row["explained_liability"])
 
     qc = json.loads(written["qc_json"].read_text(encoding="utf-8"))
+    assert qc["modules"]["avi"] == "not_assessed"
     assert qc["sv_status"] == "called"
     assert qc["modules"]["gatk_sv"] == "called"
     assert qc["sv"][0]["sv_status"] == "no SV"
