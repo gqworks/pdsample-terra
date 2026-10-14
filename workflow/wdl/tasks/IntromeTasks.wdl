@@ -27,7 +27,6 @@ task FetchIntromeAssets {
     String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 2
   }
-  String supplied_tar = if defined(introme_assets_tar) then select_first([introme_assets_tar]) else ""
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -41,8 +40,8 @@ task FetchIntromeAssets {
     fi
     pin="~{introme_commit}"
     mkdir -p src/unpack stage/tomls stage/branchpointer stage/regions stage/U12 stage/AG_check stage/ESE stage/ml stage/models
-    if [[ -n "~{supplied_tar}" ]]; then
-      cp "~{supplied_tar}" src/in.tar.gz
+    if [[ -n "~{introme_assets_tar}" ]]; then
+      cp "~{introme_assets_tar}" src/in.tar.gz
     else
       python3 -c "import urllib.request; urllib.request.urlretrieve('~{archive_url}', 'src/in.tar.gz')"
     fi
@@ -137,7 +136,6 @@ task DataPreprocessing {
     Int cpu = 4
     Int memory_gb = 8
   }
-  String bed_path = if defined(bed) then select_first([bed]) else ""
   String gtf_prefix = if basename(gtf) != basename(gtf, ".gtf.gz") then basename(gtf, ".gtf.gz") else basename(gtf, ".gtf")
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + size(assets_tar, "GiB") + 20)
   command <<<
@@ -173,7 +171,7 @@ task DataPreprocessing {
         tabix -f "$gtf_path"
     fi
     rm -f "$gtf_path.tbi"
-    bed_path="~{bed_path}"
+    bed_path="~{bed}"
     if [ "~{use_bed}" != "true" ] || [ -z "$bed_path" ]; then
         echo $(date +%x_%r) 'No BED file provided - Beginning subsetting to GTF regions'
         bedtools intersect -header -u -a ~{prefix}.sorted.norm.vcf.gz -b "$gtf_path" | bgzip > ~{prefix}.subset.vcf.gz
@@ -386,7 +384,6 @@ task SpliceAI {
     Int cpu = 8
     Int memory_gb = 8
   }
-  String db_path = if defined(spliceai_db_file) then select_first([spliceai_db_file]) else ""
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + 30)
   Int boot_gb = if use_gpu then 50 else 30
   command <<<
@@ -398,7 +395,7 @@ task SpliceAI {
     # Faithful port of nextflow/modules/spliceai/spliceai.nf.
     # Optional spliceai_db_file skips the wget (stage it to avoid the runtime download).
     export TF_FORCE_GPU_ALLOW_GROWTH=true
-    db_path="~{db_path}"
+    db_path="~{spliceai_db_file}"
     if [[ -n "$db_path" ]]; then
       db="$db_path"
     else
@@ -493,7 +490,6 @@ task Pangolin {
     Int cpu = 8
     Int memory_gb = 8
   }
-  String db_path = if defined(pangolin_db_file) then select_first([pangolin_db_file]) else ""
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + 30)
   Int boot_gb = if use_gpu then 50 else 30
   command <<<
@@ -504,7 +500,7 @@ task Pangolin {
     ln -s "$(readlink -f ~{ref_fasta_index})" ref/ref.fa.fai
     # Faithful port of nextflow/modules/pangolin/pangolin.nf.
     # The annotation DB is about 300 MB. Pass pangolin_db_file to skip wget.
-    db_path="~{db_path}"
+    db_path="~{pangolin_db_file}"
     if [[ -n "$db_path" ]]; then
       db="$db_path"
     else
