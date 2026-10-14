@@ -212,7 +212,7 @@ workflow PdSample {
         preemptible = preemptible
     }
   }
-  Array[File] reference_dict_files = ProvidedReferenceDict.dict + BuiltReferenceDict.dict
+  Array[File] reference_dict_files = flatten([ProvidedReferenceDict.dict, BuiltReferenceDict.dict])
 
   call Tasks.ExtractCramHeader {
     input:
