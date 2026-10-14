@@ -1,0 +1,4 @@
+{
+  "google_project": "YOUR_TERRA_BILLING_GCP_PROJECT",
+  "use_reference_disks": true
+}

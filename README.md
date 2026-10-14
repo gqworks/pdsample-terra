@@ -36,6 +36,8 @@ Register the repository root. `.dockstore.yml` publishes one workflow:
 
 Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, `bai`, and `sex` to the sample table (method inputs are still named `cram` and `crai` in the WDL). Put reference and resource files on the workspace data table or in the method configuration.
 
+Broad hg38 paths under `gs://gcp-public-data--broad-references` are requester pays. On submit, enable **Use reference disks** and set workflow option `google_project` to your billing GCP project (`workflow/terra/PdSample.workflow_options.example.json`). Set `PdSample.requester_pays_project` to that same project. See [`docs/setup_checklist.md`](docs/setup_checklist.md).
+
 ## Terra sample table
 
 | Column | Required | Meaning |
