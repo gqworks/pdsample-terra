@@ -1,10 +1,10 @@
 # Per-sample Parkinson's variant assessment
 
-One Terra sample row goes in as a CRAM. `PdSample` calls every required tool from that CRAM, annotates the small-variant VCF, and writes a ranked candidate list for that person. A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow.
+One Terra sample row goes in as a BAM or CRAM. `PdSample` calls every required tool from that alignment, annotates the small-variant VCF, and writes a ranked candidate list for that person. A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow.
 
 ```mermaid
 flowchart TD
-  cram[CRAM plus reference] --> check[Reference check]
+  cram[BAM or CRAM plus reference] --> check[Reference check]
   check --> qc[VerifyBamID2, somalier sex, mosdepth]
   qc --> hc[HaplotypeCaller GVCF]
   hc --> gt[GenotypeGVCFs and hard filters]
@@ -34,24 +34,24 @@ Register the repository root. `.dockstore.yml` publishes one workflow:
 | --- | --- | --- |
 | `PdSample` | `/workflow/wdl/PdSample.wdl` | `/workflow/terra/PdSample.example.json` |
 
-Import `PdSample` into a Terra workspace. Bind `sample_id`, `cram`, `crai`, and `sex` to the sample table. Put reference and resource files on the workspace data table or in the method configuration.
+Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, `bai`, and `sex` to the sample table (method inputs are still named `cram` and `crai` in the WDL). Put reference and resource files on the workspace data table or in the method configuration.
 
 ## Terra sample table
 
 | Column | Required | Meaning |
 | --- | --- | --- |
 | `sample_id` | yes | Identifier written into outputs. Use a synthetic id in examples. |
-| `cram` | yes | Aligned GRCh38 CRAM for this row. |
-| `crai` | yes | CRAM index. |
+| `bam_or_cram_file` | yes | Aligned GRCh38 BAM or CRAM for this row. |
+| `bai` | yes | BAM index (`.bai`) or CRAM index (`.crai`). |
 | `sex` | no | `male` or `female`. Blank, `unspecified`, or anything else is inferred from somalier, then from the X heterozygosity rate. |
 
 A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shared reference inputs stay in the method config.
 
-`workflow/terra/PdSample.example.json` uses `SYNTHETIC_SAMPLE`, `gs://YOUR_WORKSPACE_BUCKET/...` placeholders for the CRAM and for the VEP cache and somalier sites (see [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md)), raw GitHub URLs on `main` for files in this repo, the public VerifyBamID 2.0.3 resource files, the public GATK hg38 chrM bundle, and the public GATK-SV v0.29-beta hg38 resources plus the 1KG reference panel. `pdvar_git_commit` defaults to `main` on https://github.com/gqworks/pdsample-terra. After this snapshot is published, pin that input to the commit SHA of `pdsample-terra` so Terra does not float. `workflow/terra/PdSample.terra_inputs.json` is the Terra form of that config: sample fields are `this.sample_id`, `this.cram`, `this.crai`, and `this.sex`, the mitochondria files are the same public `gs://` paths, `vep_cache` and `somalier_sites` stay `gs://YOUR_WORKSPACE_BUCKET/...`, and each GATK-SV file is a `workspace.<key>` expression. The mapping is `workflow/terra/gatksv_panel_keys.md`.
+`workflow/terra/PdSample.example.json` uses `SYNTHETIC_SAMPLE`, `gs://YOUR_WORKSPACE_BUCKET/...` placeholders for the example BAM and for the VEP cache and somalier sites (see [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md)), raw GitHub URLs on `main` for files in this repo, the public VerifyBamID 2.0.3 resource files, the public GATK hg38 chrM bundle, and the public GATK-SV v0.29-beta hg38 resources plus the 1KG reference panel. `pdvar_git_commit` defaults to `main` on https://github.com/gqworks/pdsample-terra. After this snapshot is published, pin that input to the commit SHA of `pdsample-terra` so Terra does not float. `workflow/terra/PdSample.terra_inputs.json` is the Terra form of that config: sample fields are `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, and `this.sex`, the mitochondria files are the same public `gs://` paths, `vep_cache` and `somalier_sites` stay `gs://YOUR_WORKSPACE_BUCKET/...`, and each GATK-SV file is a `workspace.<key>` expression. The mapping is `workflow/terra/gatksv_panel_keys.md`.
 
 ## What each stage does
 
-1. **Reference check.** The CRAM `@SQ` MD5s are compared with the reference dictionary. A missing `chr` prefix fails the check.
+1. **Reference check.** The alignment header `@SQ` MD5s are compared with the reference dictionary. A missing `chr` prefix fails the check.
 2. **QC.** VerifyBamID2 contamination (`FREEMIX` above 0.02 fails the sample by default), somalier extract plus relate on this sample only (sex; relatedness is not run), and mosdepth on the calling BED. Callers wait on the QC gate.
 3. **Small variants.** GATK 4.6.1.0 HaplotypeCaller in GVCF mode, then GenotypeGVCFs, then GATK hard filters, then `bcftools view -f PASS` and `bcftools norm -m -both`. Intervals default to `workflow/assets/monopdaus-genes.grch38.bed`. Set `wgs_small_variants` true to call the whole genome.
 4. **Structural variants.** `GATKSVPipelineSingleSample` v0.29-beta runs on every sample. The reference-panel and hg38 resource inputs are required. `sv_status` is `called`. A missing SV VCF is an error in `pdvar assess`.
