@@ -36,6 +36,8 @@ The public `ref_panel_1kg` bundle already mixes a 1KG v2 contig-ploidy model tar
 
 ## Task graph
 
+`SampleTasks.wdl` pins each Quay biocontainer to its schema-2 digest. Quay answers a manifest-list request with a schema-1 digest, and Google Batch cannot pull that digest.
+
 | Step | Image | Version |
 | --- | --- | --- |
 | CRAM header | `quay.io/biocontainers/samtools:1.24--h9dcdb79_1` | samtools 1.24 |

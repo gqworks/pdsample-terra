@@ -1,13 +1,15 @@
 version 1.0
 
 # Tasks for one fresh CRAM. No header discovery and no cached callset reuse.
+# Quay biocontainer tags are pinned to schema-2 digests. Asking Quay for a
+# manifest list returns a schema-1 digest that Google Batch cannot pull.
 
 task ExtractCramHeader {
   input {
     File cram
     File cram_index
     String sample_id
-    String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+    String samtools_docker = "quay.io/biocontainers/samtools@sha256:a130447589651ed09252aa95a5e4f4132942cdb54d835d81a04a9a930d656561"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(cram, "GiB") + 20)
@@ -30,7 +32,7 @@ task ExtractCramHeader {
 task CopyReferenceDict {
   input {
     File ref_dict
-    String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+    String samtools_docker = "quay.io/biocontainers/samtools@sha256:a130447589651ed09252aa95a5e4f4132942cdb54d835d81a04a9a930d656561"
     Int preemptible = 3
   }
   command <<<
@@ -52,7 +54,7 @@ task CopyReferenceDict {
 task SamtoolsReferenceDict {
   input {
     File ref_fasta
-    String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+    String samtools_docker = "quay.io/biocontainers/samtools@sha256:a130447589651ed09252aa95a5e4f4132942cdb54d835d81a04a9a930d656561"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(ref_fasta, "GiB") + 10)
@@ -164,7 +166,7 @@ task VerifyBamID {
     File svd_mu
     String sample_id
     File reference_report
-    String verifybamid_docker = "quay.io/biocontainers/verifybamid2:2.0.3--hc004090_0"
+    String verifybamid_docker = "quay.io/biocontainers/verifybamid2@sha256:7f8b271e644c690fc870521e49bf542b3df1c392eb715f1e7f123e27e9d2da3c"
     Int preemptible = 3
   }
   # Cromwell copies the whole BAM or CRAM and the reference onto this disk.
@@ -200,7 +202,7 @@ task SomalierCheck {
     File sites
     String sample_id
     File reference_report
-    String somalier_docker = "quay.io/biocontainers/somalier:0.3.5--h5205c93_0"
+    String somalier_docker = "quay.io/biocontainers/somalier@sha256:b2853bb0ee4edbb6dc48c0e7a814a2a53226f17ff7c0e91222879e2723ad444e"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(cram, "GiB") + size(cram_index, "GiB") + size(ref_fasta, "GiB") + 50)
@@ -241,7 +243,7 @@ task Mosdepth {
     File bed
     String sample_id
     File reference_report
-    String mosdepth_docker = "quay.io/biocontainers/mosdepth:0.3.14--h87be163_2"
+    String mosdepth_docker = "quay.io/biocontainers/mosdepth@sha256:63f50e21185f5ce50fb0b6c6d3b3d4b7e50ab19356096f1045ca2538b739793c"
     Int preemptible = 3
     Int threads = 4
   }
@@ -433,7 +435,7 @@ task NormPass {
     File ref_fasta
     File ref_fasta_index
     String sample_id
-    String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
+    String bcftools_docker = "quay.io/biocontainers/bcftools@sha256:186c45de3059dbb1837006c27788284c89d17f8e693e7804624b6cf6ca5caca0"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(vcf, "GiB") * 3 + size(ref_fasta, "GiB") + 10)
@@ -468,7 +470,7 @@ task VepAnnotate {
     File? clinvar_vcf
     File? clinvar_vcf_index
     String extra_args = ""
-    String vep_docker = "quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0"
+    String vep_docker = "quay.io/biocontainers/ensembl-vep@sha256:fde86b9f4fc1c4b816c7c124d995a664d1711c7513f83920418afdd1fc2bbffa"
     Int preemptible = 3
     Int threads = 4
   }
@@ -517,7 +519,7 @@ task LiftGnomadInfo {
   input {
     File vcf
     File vcf_index
-    String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
+    String bcftools_docker = "quay.io/biocontainers/bcftools@sha256:186c45de3059dbb1837006c27788284c89d17f8e693e7804624b6cf6ca5caca0"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(vcf, "GiB") * 3) + 10
@@ -587,7 +589,7 @@ task ExpansionHunter {
     String sample_id
     String sex = ""
     File qc_gate
-    String eh_docker = "quay.io/biocontainers/expansionhunter:5.0.0--hc26b3af_5"
+    String eh_docker = "quay.io/biocontainers/expansionhunter@sha256:32a3a0d18d9ae4e575255fe15e1d14c15f84a6b42f79d2872c9fdecaa4268884"
     Int preemptible = 3
     Int threads = 4
   }
