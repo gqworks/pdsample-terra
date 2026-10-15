@@ -59,8 +59,8 @@ To point Terra at workspace data instead of the baked-in `gs://` paths, import `
 | `sv_autosome_file` | `autosome_file` | `gs://gcp-public-data--broad-references/hg38/v0/sv-resources/resources/v1/autosome.fai` | `workspace.reference_autosome_file` |
 | `sv_allosome_file` | `allosome_file` | `gs://gcp-public-data--broad-references/hg38/v0/sv-resources/resources/v1/allosome.fai` | `workspace.reference_allosome_file` |
 | `sv_preprocessed_intervals` | `preprocessed_intervals` | `gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/preprocessed_intervals.interval_list` | `workspace.reference_preprocessed_intervals` |
-| `sv_manta_region_bed` | `manta_region_bed` | `gs://gcp-public-data--broad-references/hg38/v0/sv-resources/resources/v1/primary_contigs_plus_mito.bed.gz` | `workspace.reference_manta_region_bed` |
-| `sv_manta_region_bed_index` | `manta_region_bed_index` | `gs://gcp-public-data--broad-references/hg38/v0/sv-resources/resources/v1/primary_contigs_plus_mito.bed.gz.tbi` | `workspace.reference_manta_region_bed_index` |
+| `sv_manta_region_bed` | `manta_region_bed` | `gs://gcp-public-data--broad-references/hg38/v0/sv-resources/resources/v1/primary_contigs_plus_mito.bed.gz` | `workspace.manta_region_bed` |
+| `sv_manta_region_bed_index` | `manta_region_bed_index` | `gs://gcp-public-data--broad-references/hg38/v0/sv-resources/resources/v1/primary_contigs_plus_mito.bed.gz.tbi` | `workspace.manta_region_bed_index` |
 | `sv_sd_locs_vcf` | `sd_locs_vcf` | `gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf` | `workspace.reference_sd_locs_vcf` |
 | `sv_wham_include_list_bed_file` | `wham_include_list_bed_file` | `gs://gcp-public-data--broad-references/hg38/v0/sv-resources/resources/v1/wham_whitelist.bed` | `workspace.reference_wham_include_list_bed_file` |
 | `sv_wgd_scoring_mask` | `wgd_scoring_mask` | `gs://gcp-public-data--broad-references/hg38/v0/sv-resources/resources/v1/wgd_scoring_mask.hg38.gnomad_v3.bed` | `workspace.reference_wgd_scoring_mask` |
