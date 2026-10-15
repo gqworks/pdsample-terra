@@ -195,9 +195,10 @@ def test_cp_uses_localized_file_interpolation():
 
 
 def test_qc_tasks_size_disk_for_the_full_alignment():
-    """VerifyBamID, somalier, and mosdepth localize the BAM, not 20% of it."""
+    """Tasks that copy the BAM must budget the whole file, its index, and headroom."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert 'size(cram, "GiB") * 0.2' not in text
+    assert text.count('size(cram, "GiB") * 2 + size(cram_index, "GiB")') >= 5
 
 
 def test_runtime_disk_gb_is_integer_ceiled():

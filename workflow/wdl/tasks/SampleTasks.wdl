@@ -10,7 +10,7 @@ task ExtractCramHeader {
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(cram, "GiB") + 20)
+  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + 100)
   command <<<
     set -euo pipefail
     samtools view -H ~{cram} > ~{sample_id}.cram.header.txt
@@ -55,7 +55,7 @@ task SamtoolsReferenceDict {
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(ref_fasta, "GiB") + 10)
+  Int disk_gb = ceil(size(ref_fasta, "GiB") * 2 + 100)
   command <<<
     set -euo pipefail
     samtools dict ~{ref_fasta} > reference.dict
@@ -168,7 +168,7 @@ task VerifyBamID {
     Int preemptible = 3
   }
   # Cromwell copies the whole BAM or CRAM and the reference onto this disk.
-  Int disk_gb = ceil(size(cram, "GiB") + size(cram_index, "GiB") + size(ref_fasta, "GiB") + 50)
+  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
     wc -c ~{reference_report} >/dev/null
@@ -203,7 +203,7 @@ task SomalierCheck {
     String somalier_docker = "quay.io/biocontainers/somalier:0.3.5--h5205c93_0"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(cram, "GiB") + size(cram_index, "GiB") + size(ref_fasta, "GiB") + 50)
+  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
     wc -c ~{reference_report} >/dev/null
@@ -245,7 +245,7 @@ task Mosdepth {
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(cram, "GiB") + size(cram_index, "GiB") + size(ref_fasta, "GiB") + 50)
+  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
     wc -c ~{reference_report} >/dev/null
@@ -324,9 +324,9 @@ task HaplotypeCaller {
     String? requester_pays_project
     String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.6.1.0"
     Int preemptible = 3
-    Int memory_mb = 10000
+    Int memory_mb = 32768
   }
-  Int disk_gb = ceil(size(cram, "GiB") + size(ref_fasta, "GiB") + 50)
+  Int disk_gb = ceil(size(cram, "GiB") * 3 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_dict, "GiB") + 250)
   String rp = select_first([requester_pays_project, ""])
   command <<<
     set -euo pipefail
@@ -368,7 +368,7 @@ task HaplotypeCaller {
     preemptible: preemptible
     memory: "~{memory_mb} MiB"
     disks: "local-disk ~{disk_gb} HDD"
-    cpu: 2
+    cpu: 4
     bootDiskSizeGb: 15
   }
   parameter_meta {
@@ -393,7 +393,7 @@ task GenotypeHardFilter {
     String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.6.1.0"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(gvcf, "GiB") * 4 + size(ref_fasta, "GiB") + 20)
+  Int disk_gb = ceil(size(gvcf, "GiB") * 4 + size(gvcf_index, "GiB") + size(ref_fasta, "GiB") + 200)
   command <<<
     set -euo pipefail
     interval_args=()
@@ -436,7 +436,7 @@ task NormPass {
     String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(vcf, "GiB") * 3 + size(ref_fasta, "GiB") + 10)
+  Int disk_gb = ceil(size(vcf, "GiB") * 3 + size(vcf_index, "GiB") + size(ref_fasta, "GiB") + 150)
   command <<<
     set -euo pipefail
     bcftools view -f PASS ~{vcf} \
@@ -472,7 +472,7 @@ task VepAnnotate {
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 3 + 30)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(vcf_index, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 4 + 200)
   command <<<
     set -euo pipefail
     custom_args=()
@@ -520,7 +520,7 @@ task LiftGnomadInfo {
     String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(vcf, "GiB") * 3) + 10
+  Int disk_gb = ceil(size(vcf, "GiB") * 3 + size(vcf_index, "GiB") + 150)
   command <<<
     set -euo pipefail
     header=$(bcftools view -h ~{vcf})
@@ -591,7 +591,7 @@ task ExpansionHunter {
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(cram, "GiB") + size(ref_fasta, "GiB") + 20)
+  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
     wc -c ~{qc_gate} >/dev/null
@@ -617,7 +617,7 @@ task ExpansionHunter {
   runtime {
     docker: eh_docker
     preemptible: preemptible
-    memory: "8 GiB"
+    memory: "16 GiB"
     disks: "local-disk ~{disk_gb} HDD"
     cpu: threads
   }
@@ -635,7 +635,7 @@ task Gauchian {
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(cram, "GiB") + size(ref_fasta, "GiB") + 20)
+  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
     wc -c ~{qc_gate} >/dev/null
@@ -671,7 +671,7 @@ task ReleaseAfterQc {
     File gate
     String name
   }
-  Int disk_gb = ceil(size(payload, "GiB") * 2 + 5)
+  Int disk_gb = ceil(size(payload, "GiB") * 2 + 200)
   command <<<
     set -euo pipefail
     wc -c ~{gate} >/dev/null
@@ -696,7 +696,7 @@ task AnnotateAvi {
     String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + 12)
+  Int disk_gb = ceil(size(vcf, "GiB") + 150)
   command <<<
     set -euo pipefail
     # The key is read from the environment. It is not written to the TSV.
@@ -749,7 +749,7 @@ task Assess {
   }
   String age_value = select_first([age_onset, ""])
   String symptoms_value = select_first([symptoms, ""])
-  Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + 20)
+  Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + 150)
   command <<<
     set -euo pipefail
     if ! python3 -c "import pdvar" >/dev/null 2>&1; then

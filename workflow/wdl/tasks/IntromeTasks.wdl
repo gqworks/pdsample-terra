@@ -114,7 +114,7 @@ task FetchIntromeAssets {
     docker: python_docker
     preemptible: preemptible
     memory: "2 GiB"
-    disks: "local-disk 20 HDD"
+    disks: "local-disk 100 HDD"
     cpu: 1
   }
 }
@@ -137,7 +137,7 @@ task DataPreprocessing {
     Int memory_gb = 8
   }
   String gtf_prefix = if basename(gtf) != basename(gtf, ".gtf.gz") then basename(gtf, ".gtf.gz") else basename(gtf, ".gtf")
-  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + size(assets_tar, "GiB") + 20)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + size(assets_tar, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -222,7 +222,7 @@ task QualityFilter {
     Int cpu = 2
     Int memory_gb = 4
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + 20)
+  Int disk_gb = ceil(size(vcf, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -287,7 +287,7 @@ task VariantInfo {
     Int cpu = 4
     Int memory_gb = 8
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(gtf, "GiB") + size(assets_tar, "GiB") + 20)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(gtf, "GiB") + size(assets_tar, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -384,7 +384,7 @@ task SpliceAI {
     Int cpu = 8
     Int memory_gb = 8
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + 30)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + 200)
   Int boot_gb = if use_gpu then 50 else 30
   command <<<
     set -euo pipefail
@@ -440,7 +440,7 @@ task MMSplice {
     Int cpu = 8
     Int memory_gb = 8
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + 20)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + 150)
   Int boot_gb = if use_gpu then 50 else 30
   command <<<
     set -euo pipefail
@@ -490,7 +490,7 @@ task Pangolin {
     Int cpu = 8
     Int memory_gb = 8
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + 30)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + 200)
   Int boot_gb = if use_gpu then 50 else 30
   command <<<
     set -euo pipefail
@@ -536,7 +536,7 @@ task Spip {
     Int cpu = 1
     Int memory_gb = 4
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + 20)
+  Int disk_gb = ceil(size(vcf, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -574,7 +574,7 @@ task Spliceogen {
     Int cpu = 3
     Int memory_gb = 4
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + 20)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -624,7 +624,7 @@ task IntromeFunctions {
     Int cpu = 2
     Int memory_gb = 8
   }
-  Int disk_gb = ceil(size(variant_info_stripped, "GiB") + size(ref_fasta, "GiB") + size(assets_tar, "GiB") + 20)
+  Int disk_gb = ceil(size(variant_info_stripped, "GiB") + size(ref_fasta, "GiB") + size(assets_tar, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -686,7 +686,7 @@ task SplicingAnno {
     Int cpu = 4
     Int memory_gb = 8
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(spliceai_vcf, "GiB") + size(mmsplice_vcf, "GiB") + size(pangolin_vcf, "GiB") + size(spip_vcf, "GiB") + size(spliceogen_tsv, "GiB") + size(assets_tar, "GiB") + 20)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(spliceai_vcf, "GiB") + size(mmsplice_vcf, "GiB") + size(pangolin_vcf, "GiB") + size(spip_vcf, "GiB") + size(spliceogen_tsv, "GiB") + size(assets_tar, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -759,7 +759,7 @@ task EnsembleInfer {
     Int cpu = 4
     Int memory_gb = 16
   }
-  Int disk_gb = ceil(size(splicing_anno_vcf, "GiB") + size(assets_tar, "GiB") + 20)
+  Int disk_gb = ceil(size(splicing_anno_vcf, "GiB") + size(assets_tar, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
