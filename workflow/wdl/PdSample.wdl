@@ -20,20 +20,8 @@ workflow PdSample {
     File? ref_dict
     String requester_pays_project = ""
 
-    File panel_bed = "../assets/monopdaus-genes.grch38.bed"
-    File panel_csv = "../../resources/panel/monopdaus-gene-inheritance.csv"
-    File gene_bed = "../../resources/panel/monopdaus-genes.grch38.bed"
-    File exon_bed = "../../resources/panel/monopdaus-exons.grch38.bed"
-    File eh_catalog = "../assets/expansionhunter_pd.hg38.json"
-    File config_yaml = "../../config/config.yaml"
-    File columns_yaml = "../../config/columns.yaml"
-    File phenotypes_yaml = "../../config/gene_phenotypes.yaml"
-    File check_reference_py = "../scripts/check_reference.py"
-    File qc_summary_py = "../scripts/qc_summary.py"
-
     File vep_cache
     String vep_extra_args = ""
-    File annotate_avi_py = "../scripts/annotate_avi.py"
     String alphagenome_api_key = ""
     File? gnomad_vcf
     File? gnomad_vcf_index
@@ -41,10 +29,6 @@ workflow PdSample {
     File? clinvar_vcf_index
 
     File somalier_sites
-    File verifybamid_ud = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
-    File verifybamid_v = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.V"
-    File verifybamid_bed = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
-    File verifybamid_mu = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
     Float max_freemix = 0.02
     Float min_mean_coverage = 0
     Boolean hard_fail_contamination = true
@@ -198,6 +182,12 @@ workflow PdSample {
     String python_docker = "python:3.11.11-slim-bookworm"
   }
 
+  call Tasks.FetchRepoAssets {
+    input:
+      git_commit = pdvar_git_commit,
+      python_docker = python_docker
+  }
+
   scatter (unused in if defined(ref_dict) then [1] else []) {
     call Tasks.CopyReferenceDict as ProvidedReferenceDict {
       input:
@@ -225,7 +215,7 @@ workflow PdSample {
     input:
       cram_header = ExtractCramHeader.header,
       reference_dict = select_first(reference_dict_files),
-      check_reference_py = check_reference_py,
+      check_reference_py = FetchRepoAssets.check_reference_py,
       sample_id = sample_id,
       python_docker = python_docker
   }
@@ -235,10 +225,10 @@ workflow PdSample {
       cram_index = crai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      svd_ud = verifybamid_ud,
-      svd_v = verifybamid_v,
-      svd_bed = verifybamid_bed,
-      svd_mu = verifybamid_mu,
+      svd_ud = FetchRepoAssets.verifybamid_ud,
+      svd_v = FetchRepoAssets.verifybamid_v,
+      svd_bed = FetchRepoAssets.verifybamid_bed,
+      svd_mu = FetchRepoAssets.verifybamid_mu,
       sample_id = sample_id,
       reference_report = CheckReference.report,
       preemptible = preemptible
@@ -260,14 +250,14 @@ workflow PdSample {
       cram_index = crai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      bed = panel_bed,
+      bed = FetchRepoAssets.panel_bed,
       sample_id = sample_id,
       reference_report = CheckReference.report,
       preemptible = preemptible
   }
   call Tasks.QcGate {
     input:
-      qc_summary_py = qc_summary_py,
+      qc_summary_py = FetchRepoAssets.qc_summary_py,
       selfsm = VerifyBamID.self_sm,
       somalier_samples = SomalierCheck.samples_tsv,
       mosdepth_summary = Mosdepth.summary,
@@ -288,7 +278,7 @@ workflow PdSample {
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       ref_dict = select_first(reference_dict_files),
-      interval_bed = panel_bed,
+      interval_bed = FetchRepoAssets.panel_bed,
       use_intervals = !wgs_small_variants,
       sample_id = sample_id,
       qc_gate = QcGate.gate,
@@ -303,7 +293,7 @@ workflow PdSample {
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       ref_dict = select_first(reference_dict_files),
-      interval_bed = panel_bed,
+      interval_bed = FetchRepoAssets.panel_bed,
       use_intervals = !wgs_small_variants,
       sample_id = sample_id,
       gatk_docker = hc_gatk_docker,
@@ -321,7 +311,7 @@ workflow PdSample {
   call Tasks.AnnotateAvi {
     input:
       vcf = NormPass.normalized_vcf,
-      annotate_avi_py = annotate_avi_py,
+      annotate_avi_py = FetchRepoAssets.annotate_avi_py,
       alphagenome_api_key = alphagenome_api_key,
       preemptible = preemptible
   }
@@ -351,7 +341,7 @@ workflow PdSample {
       cram_index = crai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      catalog = eh_catalog,
+      catalog = FetchRepoAssets.eh_catalog,
       sample_id = sample_id,
       sex = QcGate.sex,
       qc_gate = QcGate.gate,
@@ -506,7 +496,7 @@ workflow PdSample {
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       gtf = introme_gtf,
-      bed = panel_bed,
+      bed = FetchRepoAssets.panel_bed,
       introme_assets_tar = introme_assets_tar,
       prefix = sample_id,
       restrict_to_panel = introme_restrict_to_panel,
@@ -550,12 +540,12 @@ workflow PdSample {
       introme_tsv = Introme.introme_tsv,
       avi_tsv = AnnotateAvi.avi_tsv,
       qc_json = QcGate.qc_json,
-      config_yaml = config_yaml,
-      columns_yaml = columns_yaml,
-      phenotypes_yaml = phenotypes_yaml,
-      panel_csv = panel_csv,
-      gene_bed = gene_bed,
-      exon_bed = exon_bed,
+      config_yaml = FetchRepoAssets.config_yaml,
+      columns_yaml = FetchRepoAssets.columns_yaml,
+      phenotypes_yaml = FetchRepoAssets.phenotypes_yaml,
+      panel_csv = FetchRepoAssets.panel_csv,
+      gene_bed = FetchRepoAssets.gene_bed,
+      exon_bed = FetchRepoAssets.exon_bed,
       expression_tsv = expression_tsv,
       splicevault_tsv = splicevault_tsv,
       prs_weights = prs_weights,

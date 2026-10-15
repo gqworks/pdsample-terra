@@ -73,7 +73,7 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "gs://fc-" not in example
     assert "raw.githubusercontent.com/gqworks/pdsample-terra/main/" not in example
     assert "ref_panel_1kg_v2-contig-ploidy-model.tar.gz" in example
-    assert "../scripts/annotate_avi.py" in example
+    assert '"../' not in example
     assert '"PdSample.alphagenome_api_key": ""' in example
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sample_id": "${this.sample_id}"' in terra
@@ -123,6 +123,25 @@ def test_json_placeholders_are_public_or_documented():
     assert terra["PdSample.cram"] == "${this.bam_or_cram_file}"
     assert terra["PdSample.crai"] == "${this.bai}"
     assert "YOUR_WORKSPACE_BUCKET" not in terra["PdSample.cram"]
+
+
+def test_wdl_file_defaults_are_not_relative_paths():
+    """Terra localizes every File, including defaults. Relative paths fail there."""
+    wdl_root = ROOT / "workflow" / "wdl"
+    for path in sorted(wdl_root.rglob("*.wdl")):
+        if "stubs" in path.parts:
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("File ") and ("\"../" in stripped or "\"../../" in stripped):
+                raise AssertionError(f"{path}: relative File default: {stripped}")
+
+
+def test_example_json_has_no_relative_file_paths():
+    """Terra GCP Batch only localizes gs://; relative paths in JSON are passed literally."""
+    example = (ROOT / "workflow" / "terra" / "PdSample.example.json").read_text(encoding="utf-8")
+    assert '"../' not in example
+    assert '"../../' not in example
 
 
 def test_file_inputs_do_not_use_https_on_terra_json():

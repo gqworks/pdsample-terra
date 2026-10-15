@@ -72,6 +72,63 @@ task SamtoolsReferenceDict {
   }
 }
 
+task FetchRepoAssets {
+  input {
+    String git_commit = "main"
+    String python_docker = "python:3.11.11-slim-bookworm"
+  }
+  command <<<
+    set -euo pipefail
+    python3 - <<'PY'
+import urllib.request
+
+base = "https://raw.githubusercontent.com/gqworks/pdsample-terra/~{git_commit}"
+pairs = [
+    ("workflow/scripts/check_reference.py", "check_reference.py"),
+    ("workflow/scripts/qc_summary.py", "qc_summary.py"),
+    ("workflow/scripts/annotate_avi.py", "annotate_avi.py"),
+    ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
+    ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
+    ("resources/panel/monopdaus-genes.grch38.bed", "genes.bed"),
+    ("resources/panel/monopdaus-exons.grch38.bed", "exons.bed"),
+    ("workflow/assets/expansionhunter_pd.hg38.json", "eh_catalog.json"),
+    ("config/config.yaml", "config.yaml"),
+    ("config/columns.yaml", "columns.yaml"),
+    ("config/gene_phenotypes.yaml", "phenotypes.yaml"),
+    ("workflow/assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD", "svd.UD"),
+    ("workflow/assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.V", "svd.V"),
+    ("workflow/assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed", "svd.bed"),
+    ("workflow/assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu", "svd.mu"),
+]
+for rel, dest in pairs:
+    urllib.request.urlretrieve(base + "/" + rel, dest)
+PY
+  >>>
+  output {
+    File check_reference_py = "check_reference.py"
+    File qc_summary_py = "qc_summary.py"
+    File annotate_avi_py = "annotate_avi.py"
+    File panel_bed = "panel.bed"
+    File panel_csv = "panel.csv"
+    File gene_bed = "genes.bed"
+    File exon_bed = "exons.bed"
+    File eh_catalog = "eh_catalog.json"
+    File config_yaml = "config.yaml"
+    File columns_yaml = "columns.yaml"
+    File phenotypes_yaml = "phenotypes.yaml"
+    File verifybamid_ud = "svd.UD"
+    File verifybamid_v = "svd.V"
+    File verifybamid_bed = "svd.bed"
+    File verifybamid_mu = "svd.mu"
+  }
+  runtime {
+    docker: python_docker
+    memory: "2 GiB"
+    disks: "local-disk 20 HDD"
+    cpu: 1
+  }
+}
+
 task CheckReference {
   input {
     File cram_header
