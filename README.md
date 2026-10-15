@@ -38,7 +38,7 @@ Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, 
 
 Broad hg38 paths under `gs://gcp-public-data--broad-references` are requester pays. On submit, enable **Use reference disks** and set workflow option `google_project` to your billing GCP project (`workflow/terra/PdSample.workflow_options.example.json`). Set `PdSample.requester_pays_project` to that same project. See [`docs/setup_checklist.md`](docs/setup_checklist.md).
 
-Terra GCP Batch only localizes `gs://` workflow `File` inputs (not `https://` and not `../` paths in the method config). Scripts and VerifyBamID SVD files are bundled in the Dockstore descriptor (task defaults); panel and config use WDL defaults—do not override those inputs with relative or HTTPS paths in the method configuration. Stage VEP, somalier, GENCODE GTF, and the alignment into your workspace bucket per [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md). Re-import `PdSample.terra_inputs.json` after upgrades.
+Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https://` URLs fail if they are workflow `File` values, including WDL defaults. `FetchRepoAssets` downloads panel, config, scripts, and VerifyBamID SVD files from GitHub inside the task (`pdvar_git_commit`, default `main`) and passes the resulting `gs://` outputs to later tasks. Stage VEP, somalier, GENCODE GTF, and the alignment into your workspace bucket per [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md). Re-import `PdSample.terra_inputs.json` after upgrades and delete leftover `../` or `https://` method inputs.
 
 ## Terra sample table
 

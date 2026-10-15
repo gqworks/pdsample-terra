@@ -125,6 +125,18 @@ def test_json_placeholders_are_public_or_documented():
     assert "YOUR_WORKSPACE_BUCKET" not in terra["PdSample.cram"]
 
 
+def test_wdl_file_defaults_are_not_relative_paths():
+    """Terra localizes every File, including defaults. Relative paths fail there."""
+    wdl_root = ROOT / "workflow" / "wdl"
+    for path in sorted(wdl_root.rglob("*.wdl")):
+        if "stubs" in path.parts:
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("File ") and ("\"../" in stripped or "\"../../" in stripped):
+                raise AssertionError(f"{path}: relative File default: {stripped}")
+
+
 def test_example_json_has_no_relative_file_paths():
     """Terra GCP Batch only localizes gs://; relative paths in JSON are passed literally."""
     example = (ROOT / "workflow" / "terra" / "PdSample.example.json").read_text(encoding="utf-8")
