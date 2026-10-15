@@ -194,6 +194,12 @@ def test_cp_uses_localized_file_interpolation():
                 assert False, f"{path}: File coerced to String: {line.strip()}"
 
 
+def test_qc_tasks_size_disk_for_the_full_alignment():
+    """VerifyBamID, somalier, and mosdepth localize the BAM, not 20% of it."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert 'size(cram, "GiB") * 0.2' not in text
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"
