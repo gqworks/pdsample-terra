@@ -28,12 +28,9 @@ workflow PdSample {
     File config_yaml = "../../config/config.yaml"
     File columns_yaml = "../../config/columns.yaml"
     File phenotypes_yaml = "../../config/gene_phenotypes.yaml"
-    File check_reference_py = "../scripts/check_reference.py"
-    File qc_summary_py = "../scripts/qc_summary.py"
 
     File vep_cache
     String vep_extra_args = ""
-    File annotate_avi_py = "../scripts/annotate_avi.py"
     String alphagenome_api_key = ""
     File? gnomad_vcf
     File? gnomad_vcf_index
@@ -41,10 +38,6 @@ workflow PdSample {
     File? clinvar_vcf_index
 
     File somalier_sites
-    File verifybamid_ud = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
-    File verifybamid_v = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.V"
-    File verifybamid_bed = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
-    File verifybamid_mu = "../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
     Float max_freemix = 0.02
     Float min_mean_coverage = 0
     Boolean hard_fail_contamination = true
@@ -225,7 +218,6 @@ workflow PdSample {
     input:
       cram_header = ExtractCramHeader.header,
       reference_dict = select_first(reference_dict_files),
-      check_reference_py = check_reference_py,
       sample_id = sample_id,
       python_docker = python_docker
   }
@@ -235,10 +227,6 @@ workflow PdSample {
       cram_index = crai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      svd_ud = verifybamid_ud,
-      svd_v = verifybamid_v,
-      svd_bed = verifybamid_bed,
-      svd_mu = verifybamid_mu,
       sample_id = sample_id,
       reference_report = CheckReference.report,
       preemptible = preemptible
@@ -267,7 +255,6 @@ workflow PdSample {
   }
   call Tasks.QcGate {
     input:
-      qc_summary_py = qc_summary_py,
       selfsm = VerifyBamID.self_sm,
       somalier_samples = SomalierCheck.samples_tsv,
       mosdepth_summary = Mosdepth.summary,
@@ -321,7 +308,6 @@ workflow PdSample {
   call Tasks.AnnotateAvi {
     input:
       vcf = NormPass.normalized_vcf,
-      annotate_avi_py = annotate_avi_py,
       alphagenome_api_key = alphagenome_api_key,
       preemptible = preemptible
   }

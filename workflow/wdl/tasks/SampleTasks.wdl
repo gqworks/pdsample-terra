@@ -76,7 +76,7 @@ task CheckReference {
   input {
     File cram_header
     File reference_dict
-    File check_reference_py
+    File check_reference_py = "../../scripts/check_reference.py"
     String sample_id
     String python_docker = "python:3.11.11-slim-bookworm"
   }
@@ -101,10 +101,10 @@ task VerifyBamID {
     File cram_index
     File ref_fasta
     File ref_fasta_index
-    File svd_ud
-    File svd_v
-    File svd_bed
-    File svd_mu
+    File svd_ud = "../../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
+    File svd_v = "../../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.V"
+    File svd_bed = "../../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
+    File svd_mu = "../../assets/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
     String sample_id
     File reference_report
     String verifybamid_docker = "quay.io/biocontainers/verifybamid2:2.0.3--hc004090_0"
@@ -207,7 +207,7 @@ task Mosdepth {
 
 task QcGate {
   input {
-    File qc_summary_py
+    File qc_summary_py = "../../scripts/qc_summary.py"
     File selfsm
     File somalier_samples
     File mosdepth_summary
@@ -633,7 +633,7 @@ task ReleaseAfterQc {
 task AnnotateAvi {
   input {
     File vcf
-    File annotate_avi_py
+    File annotate_avi_py = "../../scripts/annotate_avi.py"
     String alphagenome_api_key = ""
     String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 3
