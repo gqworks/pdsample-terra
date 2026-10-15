@@ -167,7 +167,8 @@ task VerifyBamID {
     String verifybamid_docker = "quay.io/biocontainers/verifybamid2:2.0.3--hc004090_0"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 0.2 + size(ref_fasta, "GiB") + 20)
+  # Cromwell copies the whole BAM or CRAM and the reference onto this disk.
+  Int disk_gb = ceil(size(cram, "GiB") + size(cram_index, "GiB") + size(ref_fasta, "GiB") + 50)
   command <<<
     set -euo pipefail
     wc -c ~{reference_report} >/dev/null
@@ -202,7 +203,7 @@ task SomalierCheck {
     String somalier_docker = "quay.io/biocontainers/somalier:0.3.5--h5205c93_0"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 0.2 + size(ref_fasta, "GiB") + 10)
+  Int disk_gb = ceil(size(cram, "GiB") + size(cram_index, "GiB") + size(ref_fasta, "GiB") + 50)
   command <<<
     set -euo pipefail
     wc -c ~{reference_report} >/dev/null
@@ -244,7 +245,7 @@ task Mosdepth {
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 0.2 + size(ref_fasta, "GiB") + 20)
+  Int disk_gb = ceil(size(cram, "GiB") + size(cram_index, "GiB") + size(ref_fasta, "GiB") + 50)
   command <<<
     set -euo pipefail
     wc -c ~{reference_report} >/dev/null
