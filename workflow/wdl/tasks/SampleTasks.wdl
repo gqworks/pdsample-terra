@@ -324,7 +324,7 @@ task HaplotypeCaller {
     String? requester_pays_project
     String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.6.1.0"
     Int preemptible = 3
-    Int memory_mb = 10000
+    Int memory_mb = 32768
   }
   Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_dict, "GiB") + 100)
   String rp = select_first([requester_pays_project, ""])
@@ -368,7 +368,7 @@ task HaplotypeCaller {
     preemptible: preemptible
     memory: "~{memory_mb} MiB"
     disks: "local-disk ~{disk_gb} HDD"
-    cpu: 2
+    cpu: 4
     bootDiskSizeGb: 15
   }
   parameter_meta {
@@ -617,7 +617,7 @@ task ExpansionHunter {
   runtime {
     docker: eh_docker
     preemptible: preemptible
-    memory: "8 GiB"
+    memory: "16 GiB"
     disks: "local-disk ~{disk_gb} HDD"
     cpu: threads
   }
