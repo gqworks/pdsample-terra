@@ -194,6 +194,12 @@ def test_cp_uses_localized_file_interpolation():
                 assert False, f"{path}: File coerced to String: {line.strip()}"
 
 
+def test_requester_pays_flag_is_a_haplotypecaller_argument():
+    """GATK treats a token before the tool name as the command."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert "HaplotypeCaller \\\n      $rp_arg \\\n" in text
+
+
 def test_qc_tasks_size_disk_for_the_full_alignment():
     """Tasks that copy the BAM must budget the whole file, its index, and headroom."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
