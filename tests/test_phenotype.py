@@ -2,9 +2,29 @@
 
 import pandas as pd
 
+from pdvar.biomarkers import apply_biomarker_priors
 from pdvar.config import load_config
-from pdvar.phenotype import clean_phenotype, phenotype_concordance
+from pdvar.phenotype import clean_phenotype, phenotype_concordance, phenotype_for_frame, prepare_phenotype
+from pdvar.phenotype_report import parse_phenotype_report
 from pdvar.report import render_markdown
+
+GP2_REPORT = """\
+GP2ID: APGS_002617 | STUDYCODE_ID: parkinson03684
+Sex: Male | Age at sample collection: 58 | PD status: Yes
+Levodopa: Yes | Age at levodopa start: 57 | Age at diagnosis: NA | Diagnosis type: Neurologist | Age at onset: 56
+
+Exposures and comorbidities
+
+High clinical relevance:
+- High blood pressure (age: 50.0)
+- High cholesterol (age: 50.0)
+
+Lower relevance:
+- constipation (age: 48)
+- cold sores (age: 12)
+- back problems (age: 35)
+- Hearing loss (age: 58.0)
+"""
 
 
 def _score(rows, pheno_row):
@@ -95,3 +115,61 @@ def test_report_names_a_missing_phenotype_and_lists_risk_rows():
     assert "Age at onset: 55." in section
     assert "GBA1" in section
     assert "matched" in section
+
+
+def test_gp2_phenotype_report_sets_onset_match_and_keeps_comorbidities():
+    parsed = parse_phenotype_report(GP2_REPORT)
+    assert parsed["gp2_id"] == "APGS_002617"
+    assert parsed["study_id"] == "parkinson03684"
+    assert parsed["reported_sex"] == "male"
+    assert parsed["pd_status"] == "Yes"
+    assert parsed["levodopa"] == "Yes"
+    assert parsed["diagnosis_type"] == "Neurologist"
+    assert "age_diagnosis" not in parsed
+    high = [item for item in parsed["comorbidities"] if item["relevance"] == "high"]
+    lower = [item for item in parsed["comorbidities"] if item["relevance"] == "lower"]
+    assert [item["condition"] for item in high] == ["High blood pressure", "High cholesterol"]
+    assert high[0]["age"] == 50
+    assert [item["condition"] for item in lower] == ["constipation", "cold sores", "back problems", "Hearing loss"]
+    assert lower[0]["age"] == 48
+
+    pasted = clean_phenotype(prepare_phenotype({"symptoms": GP2_REPORT}))
+    assert pasted["age_onset"] == 56
+    assert pasted["age_sampling"] == 58
+    assert pasted["age_levodopa_start"] == 57
+    assert "symptoms" not in pasted
+
+    fields = phenotype_for_frame({"report_text": GP2_REPORT, "age_onset": "40"})
+    assert fields["age_onset"] == 40
+    assert "comorbidities" not in fields
+
+    fields = phenotype_for_frame({"report_text": GP2_REPORT})
+    out = _score(
+        [
+            {"sample_id": "S", "gene": "GBA1", "inheritance_status": "risk_carrier"},
+            {"sample_id": "S", "gene": "PRKN", "inheritance_status": "AR_single_het"},
+        ],
+        {"sample_id": "S", **fields},
+    ).set_index("gene")
+    assert out.loc["GBA1", "clinical_match"] == "matched"
+    assert bool(out.loc["GBA1", "onset_match"]) is True
+    assert out.loc["GBA1", "matched_features"] == ""
+    assert out.loc["GBA1", "phenotype_score"] == 2
+    assert out.loc["PRKN", "clinical_match"] == "unmatched"
+    assert out.loc["PRKN", "matched_features"] == ""
+
+    noted = apply_biomarker_priors(
+        pd.DataFrame([{"sample_id": "S", "gene": "PRKN", "levodopa": fields["levodopa"], "age_onset": fields["age_onset"]}]),
+        load_config()["biomarkers"],
+        early_onset_age=50,
+    )
+    assert "levodopa_response:flag_only" in noted.iloc[0]["biomarker_notes"]
+    assert noted.iloc[0]["biomarker_prior_adjusted"] == False  # noqa: E712
+
+    info = clean_phenotype(prepare_phenotype({"report_text": GP2_REPORT}))
+    report = render_markdown("S", pd.DataFrame(), pd.DataFrame(), {"modules": {}, "phenotype": {"provided": True, **info}})
+    section = report.split("## Phenotype concordance", 1)[1]
+    assert "APGS_002617" in section
+    assert "Age at diagnosis: blank." in section
+    assert "Comorbidities (high): High blood pressure (age 50); High cholesterol (age 50)." in section
+    assert "Comorbidities (lower): constipation (age 48); cold sores (age 12); back problems (age 35); Hearing loss (age 58)." in section

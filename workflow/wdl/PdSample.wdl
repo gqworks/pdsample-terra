@@ -75,6 +75,7 @@ workflow PdSample {
     String? age_onset
     String? symptoms
     String? ethnicity
+    File? phenotype_report
 
     File mt_dict
     File mt_fasta
@@ -553,6 +554,7 @@ workflow PdSample {
       age_onset = age_onset,
       symptoms = symptoms,
       ethnicity = ethnicity,
+      phenotype_report = phenotype_report,
       pdvar_docker = pdvar_docker,
       pdvar_git_url = pdvar_git_url,
       pdvar_git_commit = pdvar_git_commit

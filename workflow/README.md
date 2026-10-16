@@ -83,6 +83,6 @@ docker push REGISTRY/pdvar:COMMIT
 
 ## Internal sample JSON
 
-The Assess task writes `sample.json` and passes it to `pdvar assess`. Keys: `sample_id`, `sex`, `vep_vcf`, `small_vcf`, `sv_vcf`, `sv_status`, `expansionhunter_vcf`, `gauchian_json`, `mtdna_vcf`, `introme_tsv`, `avi_tsv`, `gene_bed`, `exon_bed`, `expression`, `splicevault`, `prs_weights`, `phenotype`, `qc`. `phenotype` holds `age_onset`, `symptoms`, and `ethnicity` when the sample row has them. This file is an in-task handoff. It is not an external manifest.
+The Assess task writes `sample.json` and passes it to `pdvar assess`. Keys: `sample_id`, `sex`, `vep_vcf`, `small_vcf`, `sv_vcf`, `sv_status`, `expansionhunter_vcf`, `gauchian_json`, `mtdna_vcf`, `introme_tsv`, `avi_tsv`, `gene_bed`, `exon_bed`, `expression`, `splicevault`, `prs_weights`, `phenotype`, `qc`. `phenotype` holds `age_onset`, `symptoms`, and `ethnicity` when the sample row has them, plus `report_text` when `phenotype_report` is set. The assessor parses that GP2-style sheet before scoring. This file is an in-task handoff. It is not an external manifest.
 
 Introme's own tasks still accept `force_rerun_token` with default `""` so a cache-buster can be set on that subworkflow. `PdSample` does not expose it.

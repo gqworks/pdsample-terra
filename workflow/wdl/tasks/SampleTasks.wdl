@@ -744,6 +744,7 @@ task Assess {
     String? age_onset
     String? symptoms
     String? ethnicity
+    File? phenotype_report
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     String pdvar_git_commit = "main"
@@ -787,6 +788,7 @@ task Assess {
     export PRS_WEIGHTS="~{prs_weights}"
     export AVI_TSV="~{avi_tsv}"
     export PHENOTYPE_JSON="~{phenotype_json}"
+    export PHENOTYPE_REPORT="~{phenotype_report}"
     python3 - <<'PY'
 import json, os
 from pathlib import Path
@@ -802,6 +804,9 @@ for key in ("age_onset", "symptoms", "ethnicity"):
     value = str(raw_phenotype.get(key) or "").strip()
     if value:
         phenotype[key] = value
+report_path = os.environ.get("PHENOTYPE_REPORT", "").strip()
+if report_path:
+    phenotype["report_text"] = Path(report_path).read_text(encoding="utf-8")
 document = {
     "sample_id": os.environ["SAMPLE_ID"],
     "sex": os.environ.get("SEX") or qc.get("sex", {}).get("value") or "unknown",

@@ -17,7 +17,7 @@ flowchart TD
   qc --> gba[Gauchian]
   qc --> mito[MitochondriaPipeline]
   qc --> gatksv[GATKSVPipelineSingleSample]
-  pheno[Age at onset, symptoms, ancestry] --> assess[Assess]
+  pheno[Phenotype report or age, symptoms, ancestry] --> assess[Assess]
   introme --> assess
   avi --> assess
   eh --> assess
@@ -35,7 +35,7 @@ Register the repository root. `.dockstore.yml` publishes one workflow:
 | --- | --- | --- |
 | `PdSample` | `/workflow/wdl/PdSample.wdl` | `/workflow/terra/PdSample.example.json` |
 
-Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, `bai`, `sex`, `age_onset`, `symptoms`, and `ethnicity` to the sample table (method inputs are still named `cram` and `crai` in the WDL). Put reference and resource files on the workspace data table or in the method configuration.
+Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, `bai`, `sex`, `age_onset`, `symptoms`, `ethnicity`, and `phenotype_report` to the sample table (method inputs are still named `cram` and `crai` in the WDL). Put reference and resource files on the workspace data table or in the method configuration.
 
 Broad hg38 paths under `gs://gcp-public-data--broad-references` are requester pays. On submit, enable **Use reference disks** and set workflow option `google_project` to your billing GCP project (`workflow/terra/PdSample.workflow_options.example.json`). Set `PdSample.requester_pays_project` to that same project. See [`docs/setup_checklist.md`](docs/setup_checklist.md).
 
@@ -52,12 +52,15 @@ Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https:
 | `age_onset` | no | Age at onset in years. Blank skips onset concordance. A numeric string is accepted. |
 | `symptoms` | no | Free-text clinical features. Keywords are matched to each gene profile in `config/gene_phenotypes.yaml` (for example dementia, tremor, dystonia, levodopa responsive, hallucinations, autonomic). |
 | `ethnicity` | no | Ancestry text. Matched against `enriched_ancestry` on the gene profile (for example Ashkenazi Jewish for GBA1 and LRRK2). |
+| `phenotype_report` | no | `gs://` text file in the GP2-style sheet layout (`GP2ID`, sex, age at onset, levodopa, exposures and comorbidities). Leave the cell empty when the patient has no report. |
 
-Add `age_onset`, `symptoms`, and `ethnicity` to the sample table even when a row leaves them blank. `workflow/terra/PdSample.terra_inputs.json` binds those columns. When any of them is filled, Assess compares the patient with the gene profile and writes `clinical_match` on each candidate, including risk variants (`risk_carrier`, `risk_biallelic`, and genes flagged `risk_allele_exception`). Genes with no profile stay `no_profile`. A blank phenotype leaves `clinical_match` as `not_assessed`.
+Add `age_onset`, `symptoms`, `ethnicity`, and `phenotype_report` to the sample table even when a row leaves them blank. `workflow/terra/PdSample.terra_inputs.json` binds those columns. A phenotype report is parsed into age at onset, levodopa, sampling age, diagnosis, and the comorbidity list. Explicit `age_onset`, `symptoms`, and `ethnicity` override the same fields from the report. The same text pasted into `symptoms` is recognized and parsed instead of being searched as free-text keywords.
+
+Assess writes `clinical_match` on each candidate, including risk variants (`risk_carrier`, `risk_biallelic`, and genes flagged `risk_allele_exception`). Onset, symptom keywords, and ancestry drive that match. Levodopa use is stored as a biomarker note on early-onset recessive genes. Comorbidities are printed on the report. They are not gene-profile keywords, so hypertension, constipation, hearing loss, and the other lines on the example sheet do not by themselves mark a risk variant as clinically matched. Genes with no profile stay `no_profile`. A blank phenotype leaves `clinical_match` as `not_assessed`.
 
 A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shared reference inputs stay in the method config.
 
-`workflow/terra/PdSample.example.json` uses `SYNTHETIC_SAMPLE`, `gs://YOUR_WORKSPACE_BUCKET/...` placeholders for the example BAM and for the VEP cache and somalier sites (see [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md)), raw GitHub URLs on `main` for files in this repo, the public VerifyBamID 2.0.3 resource files, the public GATK hg38 chrM bundle, and the public GATK-SV v0.29-beta hg38 resources plus the 1KG reference panel. `pdvar_git_commit` defaults to `main` on https://github.com/gqworks/pdsample-terra. After this snapshot is published, pin that input to the commit SHA of `pdsample-terra` so Terra does not float. `workflow/terra/PdSample.terra_inputs.json` is the Terra form of that config: sample fields are `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, `this.sex`, `this.age_onset`, `this.symptoms`, and `this.ethnicity`, the mitochondria files are the same public `gs://` paths, `vep_cache` and `somalier_sites` stay `gs://YOUR_WORKSPACE_BUCKET/...`, and each GATK-SV file is a `workspace.<key>` expression. The mapping is `workflow/terra/gatksv_panel_keys.md`.
+`workflow/terra/PdSample.example.json` uses `SYNTHETIC_SAMPLE`, `gs://YOUR_WORKSPACE_BUCKET/...` placeholders for the example BAM and for the VEP cache and somalier sites (see [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md)), raw GitHub URLs on `main` for files in this repo, the public VerifyBamID 2.0.3 resource files, the public GATK hg38 chrM bundle, and the public GATK-SV v0.29-beta hg38 resources plus the 1KG reference panel. `pdvar_git_commit` defaults to `main` on https://github.com/gqworks/pdsample-terra. After this snapshot is published, pin that input to the commit SHA of `pdsample-terra` so Terra does not float. `workflow/terra/PdSample.terra_inputs.json` is the Terra form of that config: sample fields are `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, `this.sex`, `this.age_onset`, `this.symptoms`, `this.ethnicity`, and `this.phenotype_report`, the mitochondria files are the same public `gs://` paths, `vep_cache` and `somalier_sites` stay `gs://YOUR_WORKSPACE_BUCKET/...`, and each GATK-SV file is a `workspace.<key>` expression. The mapping is `workflow/terra/gatksv_panel_keys.md`.
 
 ## What each stage does
 
@@ -71,7 +74,7 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 8. **VEP 116.2.** Offline cache, GRCh38, `--pick`. Optional `--custom` gnomAD (`AF|AF_popmax|nhomalt`) and ClinVar. A following task copies `INFO/gnomAD` into `INFO/gnomAD_AF` and `INFO/AF_popmax` so the Introme rare filter can see them.
 9. **AlphaGenome Atlas AVI.** PASS SNVs are looked up with `alphagenome` 0.10.0 (`AVI_SCORE`) when `alphagenome_api_key` is set. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties. An empty key leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
 10. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
-11. **Assess.** `pdvar assess` ranks candidates and writes the Terra outputs. When the sample row has age at onset, symptoms, or ancestry, those fields are compared with `config/gene_phenotypes.yaml`. `clinical_match` on a risk variant records whether that gene's onset range, key clinical features, or enriched ancestry fit the patient. The match is a triage note. It does not add evidence points. A higher `phenotype_score` breaks ties after tier and AlphaGenome Phred. Profiles currently cover SNCA, LRRK2, VPS35, PRKN, PINK1, PARK7, and GBA1. A risk gene without a profile (PSAP, SMPD1, TMEM175) is `no_profile`.
+11. **Assess.** `pdvar assess` ranks candidates and writes the Terra outputs. A phenotype report, or age at onset, symptoms, and ancestry, is compared with `config/gene_phenotypes.yaml`. `clinical_match` on a risk variant records whether that gene's onset range, key clinical features, or enriched ancestry fit the patient. The match is a triage note. It does not add evidence points. A higher `phenotype_score` breaks ties after tier and AlphaGenome Phred. Profiles currently cover SNCA, LRRK2, VPS35, PRKN, PINK1, PARK7, and GBA1. A risk gene without a profile (PSAP, SMPD1, TMEM175) is `no_profile`.
 
 ## Hard filters
 

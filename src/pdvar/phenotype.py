@@ -4,12 +4,49 @@ from __future__ import annotations
 
 import pandas as pd
 
+from pdvar.phenotype_report import looks_like_phenotype_report, parse_phenotype_report
+
+_NUMERIC_FIELDS = {"age_onset", "age_sampling", "age_levodopa_start", "age_diagnosis"}
+_FRAME_SKIP = {"comorbidities", "phenotype_source"}
+
+
+def prepare_phenotype(payload: dict | None) -> dict:
+    """Merge a phenotype report with explicit columns. Explicit columns win."""
+    payload = dict(payload or {})
+    report_text = payload.pop("report_text", None)
+    symptoms = payload.get("symptoms")
+    if not _filled(report_text) and isinstance(symptoms, str) and looks_like_phenotype_report(symptoms):
+        report_text = symptoms
+        payload.pop("symptoms", None)
+    parsed = parse_phenotype_report(report_text) if _filled(report_text) else {}
+    for key, value in payload.items():
+        if not _filled(value):
+            continue
+        parsed[key] = value
+    return parsed
+
+
+def phenotype_for_frame(payload: dict | None) -> dict:
+    """Scalar fields that can sit on a candidate row."""
+    cleaned = clean_phenotype(prepare_phenotype(payload))
+    return {key: value for key, value in cleaned.items() if key not in _FRAME_SKIP}
+
+
+def _filled(value: object) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, dict)):
+        return bool(value)
+    return True
+
 
 def clean_phenotype(payload: dict | None) -> dict:
-    """Keep non-blank patient fields. Age at onset is numeric when it parses.
+    """Keep non-blank patient fields. Age fields are numeric when they parse.
 
-    Extra keys (biomarkers, family history) are kept so a local sample JSON can
-    still feed them. Blank strings are dropped.
+    Extra keys (biomarkers, family history, a parsed report) are kept so a
+    local sample JSON can still feed them. Blank strings are dropped.
     """
     if not payload:
         return {}
@@ -17,10 +54,14 @@ def clean_phenotype(payload: dict | None) -> dict:
     for key, value in payload.items():
         if key in {"sample_id", "sex"} or value is None:
             continue
+        if isinstance(value, (list, dict)):
+            if value:
+                cleaned[key] = value
+            continue
         text = str(value).strip()
         if not text:
             continue
-        if key == "age_onset":
+        if key in _NUMERIC_FIELDS:
             number = pd.to_numeric(text, errors="coerce")
             if pd.isna(number):
                 continue

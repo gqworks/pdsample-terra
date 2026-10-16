@@ -84,8 +84,11 @@ def test_pdsample_is_the_only_entry_workflow():
     assert '"PdSample.symptoms": "${this.symptoms}"' in terra
     assert '"PdSample.ethnicity": "${this.ethnicity}"' in terra
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "pheno[Age at onset, symptoms, ancestry] --> assess" in readme
+    assert "pheno[Phenotype report or age, symptoms, ancestry] --> assess" in readme
+    assert '"PdSample.phenotype_report": "${this.phenotype_report}"' in terra
+    assert "File? phenotype_report" in text
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert "PHENOTYPE_REPORT" in tasks
     assert "String? ethnicity" in text
     assert "ethnicity = ethnicity" in text
     assert "write_json" in tasks
