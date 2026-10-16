@@ -349,8 +349,8 @@ task HaplotypeCaller {
       rp_arg="--gcs-project-for-requester-pays ~{rp}"
     fi
     gatk --java-options "-Xmx${java_memory_size_mb}m -Xms${java_memory_size_mb}m -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10" \
-      $rp_arg \
       HaplotypeCaller \
+      $rp_arg \
       -R ~{ref_fasta} \
       -I ~{cram} \
       "${interval_args[@]}" \
