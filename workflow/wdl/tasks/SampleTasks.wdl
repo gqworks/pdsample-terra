@@ -390,19 +390,10 @@ task HaplotypeCaller {
     if [[ -n "~{rp}" ]]; then
       rp_arg="--gcs-project-for-requester-pays ~{rp}"
     fi
-    # GATK requires the sequence dictionary beside the FASTA; Cromwell localizes dict separately.
-    ref_bundle_dir="gatk_ref"
-    mkdir -p "$ref_bundle_dir"
-    ref_base=$(basename ~{ref_fasta})
-    ln -sf "$(readlink -f ~{ref_fasta})" "$ref_bundle_dir/$ref_base"
-    ln -sf "$(readlink -f ~{ref_fasta_index})" "$ref_bundle_dir/${ref_base}.fai"
-    dict_name="${ref_base%.*}.dict"
-    ln -sf "$(readlink -f ~{ref_dict})" "$ref_bundle_dir/$dict_name"
-    ref_fasta_path="$ref_bundle_dir/$ref_base"
     gatk --java-options "-Xmx${java_memory_size_mb}m -Xms${java_memory_size_mb}m -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10" \
       HaplotypeCaller \
       $rp_arg \
-      -R "$ref_fasta_path" \
+      -R ~{ref_fasta} \
       -I ~{cram} \
       "${interval_args[@]}" \
       -O ~{sample_id}.g.vcf.gz \
@@ -455,10 +446,10 @@ task GenotypeHardFilter {
     ref_bundle_dir="gatk_ref"
     mkdir -p "$ref_bundle_dir"
     ref_base=$(basename ~{ref_fasta})
-    ln -sf "$(readlink -f ~{ref_fasta})" "$ref_bundle_dir/$ref_base"
-    ln -sf "$(readlink -f ~{ref_fasta_index})" "$ref_bundle_dir/${ref_base}.fai"
+    ln -sf ~{ref_fasta} "$ref_bundle_dir/$ref_base"
+    ln -sf ~{ref_fasta_index} "$ref_bundle_dir/${ref_base}.fai"
     dict_name="${ref_base%.*}.dict"
-    ln -sf "$(readlink -f ~{ref_dict})" "$ref_bundle_dir/$dict_name"
+    ln -sf ~{ref_dict} "$ref_bundle_dir/$dict_name"
     ref_fasta_path="$ref_bundle_dir/$ref_base"
     # GATK hard filters for a single sample. VQSR needs a cohort to fit
     # tranches, and this workflow does not ship a CNN score model.

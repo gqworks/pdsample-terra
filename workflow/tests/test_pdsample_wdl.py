@@ -219,13 +219,13 @@ def test_requester_pays_flag_is_a_haplotypecaller_argument():
     assert "HaplotypeCaller \\\n      $rp_arg \\\n" in text
 
 
-def test_gatk_tasks_bundle_reference_dict_with_fasta():
-    """GATK looks for <ref>.dict next to the FASTA path passed to -R."""
+def test_genotype_hard_filter_bundles_reference_dict_with_fasta():
+    """GenotypeGVCFs looks for <ref>.dict next to the FASTA path passed to -R."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
-    bundle = 'dict_name="${ref_base%.*}.dict"'
-    assert text.count(bundle) == 2
-    assert text.count('GenotypeGVCFs -R "$ref_fasta_path"') == 1
-    assert text.count('-R "$ref_fasta_path"') >= 2
+    assert text.count('dict_name="${ref_base%.*}.dict"') == 1
+    assert 'GenotypeGVCFs -R "$ref_fasta_path"' in text
+    assert "HaplotypeCaller \\\n      $rp_arg \\\n      -R ~{ref_fasta}" in text
+    assert "readlink -f ~{ref_fasta}" not in text
 
 
 def test_qc_tasks_size_disk_for_the_full_alignment():
