@@ -34,5 +34,9 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 | `heteroplasmy` | mtDNA allele fraction when the caller wrote `AF` |
 | `incidental`, `disposition` | `TTN_truncation` / `incidental` for TTN null alleles. ClinVar is not overwritten |
 | `lof_weight` | 1 while expression cutoffs are null |
+| `age_onset`, `symptoms`, `ethnicity` | Patient fields copied from the sample row when they were provided |
+| `onset_match`, `matched_features`, `phenotype_score` | Concordance against `config/gene_phenotypes.yaml`. Onset in range is +2, outside is -2, and each matched feature or enriched ancestry is +1 |
+| `clinical_match` | `matched`, `unmatched`, `uninformative`, `no_profile`, or `not_assessed`. Risk rows are repeated under Phenotype concordance in the report |
+| `levodopa`, `age_sampling`, `comorbidities` | From a phenotype report when one was supplied. Comorbidities are listed in the report. Levodopa use is a biomarker note |
 
 `qc_summary.json` `modules` records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, VEP, and AVI. AVI is `called` only when the Atlas table has at least one score. GATK-SV is `called` when the SV VCF is present. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object is `called`. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.

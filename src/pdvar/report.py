@@ -34,7 +34,7 @@ CURATION_COLUMNS = [
     "clinvar_class", "gnomad_af", "gnomad_popmax_af",
     "cadd", "revel", "spliceai", "avi_phred", "avi_raw", "avi_quantile", "avi_url",
     "age_onset", "onset_category", "sex", "ethnicity",
-    "onset_match", "matched_features", "phenotype_score", "symptoms",
+    "onset_match", "matched_features", "phenotype_score", "clinical_match", "symptoms",
     "variant_class", "dosage_mechanism", "phase_relation", "phase_source",
     "lof_weight", "weighted_evidence_score", "svtype", "biomarker_notes",
     "str_locus", "str_expanded", "heteroplasmy", "incidental", "disposition",
@@ -196,14 +196,129 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
                 "",
             ]
         )
+    lines.extend(_phenotype_lines(candidates, qc))
     lines.extend(["", "## Ranked candidates", ""])
     if candidates is None or candidates.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "consequence", "zygosity", "tier", "evidence_score", "avi_phred", "evidence_reasons", "incidental") if column in candidates.columns]
+        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "consequence", "zygosity", "tier", "evidence_score", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons", "incidental") if column in candidates.columns]
         lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)
+
+
+def _risk_rows(df: pd.DataFrame) -> pd.DataFrame:
+    status = df["inheritance_status"].astype(str) if "inheritance_status" in df.columns else pd.Series("", index=df.index)
+    moi = df["moi"].astype(str).str.upper() if "moi" in df.columns else pd.Series("", index=df.index)
+    if "risk_allele_exception" in df.columns:
+        flag = df["risk_allele_exception"]
+        if flag.dtype == bool:
+            exception = flag.fillna(False)
+        else:
+            exception = flag.astype(str).str.strip().str.lower().isin(["true", "1", "yes"])
+    else:
+        exception = pd.Series(False, index=df.index)
+    mask = status.isin(["risk_carrier", "risk_biallelic"]) | moi.eq("RISK") | exception
+    return df.loc[mask]
+
+
+def _show(value: object) -> str:
+    if value is None:
+        return "blank"
+    text = str(value).strip()
+    return text or "blank"
+
+
+def _phenotype_detail_lines(info: dict) -> list[str]:
+    lines = [
+        "Age at onset: {age}. Symptoms: {symptoms}. Ancestry: {ancestry}.".format(
+            age=_show(info.get("age_onset")),
+            symptoms=_show(info.get("symptoms")),
+            ancestry=_show(info.get("ethnicity")),
+        )
+    ]
+    if info.get("phenotype_source") == "report":
+        lines.append(
+            "Phenotype report {gp2} / {study}. Reported sex: {sex}. PD status: {pd}. "
+            "Age at sample collection: {sampling}. Age at diagnosis: {diagnosis_age}. Diagnosis type: {diagnosis}. "
+            "Levodopa: {levodopa}. Age at levodopa start: {levodopa_age}.".format(
+                gp2=_show(info.get("gp2_id")),
+                study=_show(info.get("study_id")),
+                sex=_show(info.get("reported_sex")),
+                pd=_show(info.get("pd_status")),
+                sampling=_show(info.get("age_sampling")),
+                diagnosis_age=_show(info.get("age_diagnosis")),
+                diagnosis=_show(info.get("diagnosis_type")),
+                levodopa=_show(info.get("levodopa")),
+                levodopa_age=_show(info.get("age_levodopa_start")),
+            )
+        )
+        lines.append(
+            "Levodopa use is stored as a biomarker note on early-onset recessive genes. "
+            "Gene-profile keywords still come from symptom text. "
+            "The comorbidity list is recorded in this section."
+        )
+    grouped: dict[str, list[str]] = {}
+    for item in info.get("comorbidities") or []:
+        if not isinstance(item, dict):
+            continue
+        relevance = str(item.get("relevance") or "unspecified")
+        label = str(item.get("condition") or "").strip()
+        if item.get("age") is not None:
+            label = f"{label} (age {item['age']})"
+        grouped.setdefault(relevance, []).append(label)
+    for relevance, labels in grouped.items():
+        lines.append(f"Comorbidities ({relevance}): {'; '.join(labels)}.")
+    return lines
+
+
+def _phenotype_lines(candidates: pd.DataFrame, qc: dict) -> list[str]:
+    info = qc.get("phenotype") or {}
+    lines = ["", "## Phenotype concordance", ""]
+    if not info.get("provided"):
+        lines.append(
+            "Age at onset, symptoms, ancestry, and the phenotype report were blank, so clinical concordance was not assessed. "
+            "Provide a phenotype report, or fill age_onset, symptoms, and ethnicity, when the patient has them."
+        )
+        return lines
+    lines.extend(_phenotype_detail_lines(info))
+    lines.append("")
+    lines.append(
+        "Candidates whose gene has a profile in config/gene_phenotypes.yaml are compared with those fields. "
+        "clinical_match is matched when onset is inside the profile range, a symptom keyword hits a key or atypical feature, "
+        "or the ancestry is one the profile lists. unmatched means the onset sits outside that range and no feature or ancestry hit. "
+        "uninformative means the gene has a profile and these fields neither confirm nor refute it. "
+        "no_profile means that gene has no phenotype profile yet. The comparison is a triage note."
+    )
+    lines.append("")
+    lines.append("Risk candidates:")
+    lines.append("")
+    if candidates is None or candidates.empty:
+        lines.append("No ranked candidates.")
+        return lines
+    risk = _risk_rows(candidates)
+    if risk.empty:
+        lines.append("No risk-labelled candidates were ranked.")
+        return lines
+    show = [
+        column
+        for column in (
+            "rank",
+            "gene",
+            "moi",
+            "inheritance_status",
+            "variant_id",
+            "clinical_match",
+            "onset_match",
+            "matched_features",
+            "matched_atypical",
+            "ancestry_enriched",
+            "phenotype_score",
+        )
+        if column in risk.columns
+    ]
+    lines.append(risk[show].to_csv(sep="\t", index=False).rstrip())
+    return lines
 
 
 def render_html(markdown: str, candidates: pd.DataFrame) -> str:

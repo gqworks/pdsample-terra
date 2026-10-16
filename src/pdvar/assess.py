@@ -93,10 +93,14 @@ def _load_panel(path: Path, cfg: dict) -> pd.DataFrame:
     return normalize.normalize_panel(raw, cfg["columns"]["panel"], cfg.get("gene_aliases"))
 
 
+def _phenotype_payload(sample: dict) -> dict | None:
+    payload = sample.get("phenotype")
+    return payload if isinstance(payload, dict) else None
+
+
 def _phenotype_frame(sample_id: str, sex: str, payload: dict | None) -> pd.DataFrame:
     row = {"sample_id": sample_id, "sex": sex}
-    if payload:
-        row.update({key: value for key, value in payload.items() if key != "sample_id"})
+    row.update(phenotype.phenotype_for_frame(payload))
     return pd.DataFrame([row])
 
 
@@ -228,7 +232,7 @@ def assess_sample(
             scored, follow = compound.refine(scored, cfg.get("compound"))
             scored = _integrate_special_calls(scored)
             scored = apply_incidental_tags(scored)
-            pheno = _phenotype_frame(sample_id, sex, sample.get("phenotype") if isinstance(sample.get("phenotype"), dict) else None)
+            pheno = _phenotype_frame(sample_id, sex, _phenotype_payload(sample))
             scored = phenotype.phenotype_concordance(scored, pheno, cfg.get("gene_phenotypes") or {}, cfg["phenotype"])
             scored = biomarkers.apply_biomarker_priors(
                 scored,
@@ -246,7 +250,7 @@ def assess_sample(
         classes = liability.classify_cohort(
             pd.DataFrame(columns=["sample_id", "inheritance_status"]),
             [sample_id],
-            _phenotype_frame(sample_id, sex, sample.get("phenotype") if isinstance(sample.get("phenotype"), dict) else None),
+            _phenotype_frame(sample_id, sex, _phenotype_payload(sample)),
             None,
             cfg.get("liability") or {},
         )
@@ -264,7 +268,7 @@ def assess_sample(
         classes = liability.classify_cohort(
             scored,
             [sample_id],
-            _phenotype_frame(sample_id, sex, sample.get("phenotype") if isinstance(sample.get("phenotype"), dict) else None),
+            _phenotype_frame(sample_id, sex, _phenotype_payload(sample)),
             prs,
             cfg.get("liability") or {},
         )
@@ -273,6 +277,8 @@ def assess_sample(
     qc["sample_id"] = sample_id
     qc["modules"] = notes
     qc["sv_status"] = sv_status
+    patient_phenotype = phenotype.clean_phenotype(phenotype.prepare_phenotype(_phenotype_payload(sample)))
+    qc["phenotype"] = {"provided": bool(patient_phenotype), **patient_phenotype}
     if not callset_assessment.empty:
         qc["callsets"] = callset_assessment.to_dict(orient="records")
     if not sv_assessment.empty:
