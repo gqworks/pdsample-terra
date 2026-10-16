@@ -171,6 +171,20 @@ task VerifyBamID {
   Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
+    align="~{cram}"
+    index="~{cram_index}"
+    if [[ "$align" != gs://* && -e "$index" ]]; then
+      case "$align" in
+        *.bam)
+          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
+          ;;
+        *.cram)
+          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
+          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
+          ;;
+      esac
+    fi
     wc -c ~{reference_report} >/dev/null
     mkdir -p svd
     cp "~{svd_ud}" svd/resource.UD
@@ -206,6 +220,20 @@ task SomalierCheck {
   Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
+    align="~{cram}"
+    index="~{cram_index}"
+    if [[ "$align" != gs://* && -e "$index" ]]; then
+      case "$align" in
+        *.bam)
+          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
+          ;;
+        *.cram)
+          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
+          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
+          ;;
+      esac
+    fi
     wc -c ~{reference_report} >/dev/null
     mkdir -p extract
     somalier extract -d extract --sites ~{sites} -f ~{ref_fasta} ~{cram}
@@ -248,6 +276,20 @@ task Mosdepth {
   Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
+    align="~{cram}"
+    index="~{cram_index}"
+    if [[ "$align" != gs://* && -e "$index" ]]; then
+      case "$align" in
+        *.bam)
+          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
+          ;;
+        *.cram)
+          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
+          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
+          ;;
+      esac
+    fi
     wc -c ~{reference_report} >/dev/null
     mosdepth -t ~{threads} -n -f ~{ref_fasta} --thresholds 1,10,20,30 --by ~{bed} ~{sample_id} ~{cram}
   >>>
@@ -594,6 +636,20 @@ task ExpansionHunter {
   Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
+    align="~{cram}"
+    index="~{cram_index}"
+    if [[ "$align" != gs://* && -e "$index" ]]; then
+      case "$align" in
+        *.bam)
+          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
+          ;;
+        *.cram)
+          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
+          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
+          ;;
+      esac
+    fi
     wc -c ~{qc_gate} >/dev/null
     sex_args=()
     if [[ "~{sex}" == "male" || "~{sex}" == "female" ]]; then
@@ -638,6 +694,20 @@ task Gauchian {
   Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
+    align="~{cram}"
+    index="~{cram_index}"
+    if [[ "$align" != gs://* && -e "$index" ]]; then
+      case "$align" in
+        *.bam)
+          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
+          ;;
+        *.cram)
+          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
+          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
+          ;;
+      esac
+    fi
     wc -c ~{qc_gate} >/dev/null
     if ! command -v gauchian >/dev/null; then
       pip install --no-cache-dir gauchian==1.0.2

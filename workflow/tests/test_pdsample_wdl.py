@@ -194,6 +194,12 @@ def test_cp_uses_localized_file_interpolation():
                 assert False, f"{path}: File coerced to String: {line.strip()}"
 
 
+def test_alignment_readers_accept_picard_bai_names():
+    """htslib looks for sample.bam.bai; Picard writes sample.bai."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert text.count('ln -s "$index" "${align}.bai"') == 5
+
+
 def test_requester_pays_flag_is_a_haplotypecaller_argument():
     """GATK treats a token before the tool name as the command."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
