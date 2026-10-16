@@ -130,6 +130,11 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
         "mtdna_vcf": str(mt),
         "introme_tsv": str(introme),
         "qc": {"pass": True},
+        "phenotype": {
+            "age_onset": "55",
+            "symptoms": "cognitive impairment, dementia, hallucinations",
+            "ethnicity": "Ashkenazi Jewish",
+        },
     }
     written = assess_sample(
         sample,
@@ -144,6 +149,11 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert by_gene["PINK1"] == {"AR_comphet_candidate"}
     assert "1-20652000-A-G" not in set(candidates["variant_id"].astype(str))
     assert by_gene["GBA1"] == {"risk_biallelic"}
+    gba_rows = candidates[candidates["gene"] == "GBA1"]
+    assert set(gba_rows["clinical_match"]) == {"matched"}
+    assert set(gba_rows["phenotype_score"]) == {6}
+    pink = candidates[candidates["gene"] == "PINK1"]
+    assert set(pink["clinical_match"]) == {"unmatched"}
     ttn = candidates[candidates["gene"] == "TTN"].iloc[0]
     assert ttn["inheritance_status"] == "incidental"
     assert ttn["incidental"] == "TTN_truncation"
@@ -165,7 +175,14 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert qc["sv"][0]["sv_status"] == "no SV"
     callsets = {item["module"]: item["callset_status"] for item in qc["callsets"]}
     assert callsets["expansionhunter"] == "STR carrier"
-    assert "SYNTHETIC_SAMPLE" in written["report_md"].read_text(encoding="utf-8")
+    report = written["report_md"].read_text(encoding="utf-8")
+    assert "SYNTHETIC_SAMPLE" in report
+    assert "## Phenotype concordance" in report
+    assert "Age at onset: 55." in report
+    assert "GBA1" in report.split("## Phenotype concordance", 1)[1].split("## Ranked candidates", 1)[0]
+    assert qc["phenotype"]["provided"] is True
+    assert qc["phenotype"]["age_onset"] == 55
+    assert qc["phenotype"]["ethnicity"] == "Ashkenazi Jewish"
     assert written["report_html"].read_text(encoding="utf-8").startswith("<!DOCTYPE html>")
     assert written["followup_tsv"].exists()
 

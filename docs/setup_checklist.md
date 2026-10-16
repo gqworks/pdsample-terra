@@ -30,7 +30,7 @@ Keep that set intact. Replacing only the ploidy tar, or only the VCF, breaks the
 
 ### Your own Terra panel
 
-If the workspace was created from the GATK-SV featured workspace, the attributes are already there. Import `workflow/terra/PdSample.terra_inputs.json`, or set each input in the Terra Inputs tab to the expression in `gatksv_panel_keys.md`. Sample columns stay `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, and `this.sex`.
+If the workspace was created from the GATK-SV featured workspace, the attributes are already there. Import `workflow/terra/PdSample.terra_inputs.json`, or set each input in the Terra Inputs tab to the expression in `gatksv_panel_keys.md`. Sample columns stay `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, `this.sex`, `this.age_onset`, `this.symptoms`, and `this.ethnicity`.
 
 Panel attributes use the `ref_panel_*` names (`workspace.ref_panel_vcf`, `workspace.ref_panel_ped_file`, `workspace.ref_panel_samples_list`, and the rest of that family). hg38 resource files use the `reference_*` twins (`workspace.reference_fasta`, `workspace.reference_genome_file`, `workspace.reference_empty_file`, and so on). `pesr_exclude_intervals` reads `workspace.reference_pesr_exclude_list`. `qc_definitions` reads `workspace.ref_panel_qc_definitions`.
 
@@ -45,7 +45,7 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 - **Introme image mirrors.** Defaults are the Docker Hub tags in `workflow/wdl/Introme.wdl`. Mirror them to Artifact Registry and override the `*_docker` inputs if Docker Hub pulls are blocked. SpliceAI, Pangolin, and MMSplice have CPU and GPU tags. `introme_use_gpu` selects the GPU tags.
 - **Gauchian image.** `workflow/containers/gauchian/Dockerfile` installs `gauchian==1.0.2`. The default task pip-installs that pin into `python:3.11.11-slim-bookworm`.
 - **Expression, SpliceVault, PRS weights.** File inputs on Assess. Expression and PRS numbers in config stay null until cited, so supplying a table does not by itself change the score.
-- **`age_onset` and `symptoms`.** Optional strings copied into the sample JSON phenotype block.
+- **`age_onset`, `symptoms`, and `ethnicity`.** Optional sample-table columns. When a patient has them, Terra passes them into Assess and `clinical_match` records whether risk variants fit that gene's phenotype profile. Blank cells skip concordance.
 
 ## Already in the repo
 

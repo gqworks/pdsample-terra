@@ -9,7 +9,7 @@ python3 scripts/inputs/build_inputs.py inputs/values inputs/templates/test/GATKS
 
 `inputs/values/ref_panel_1kg.json` supplies the 1KG panel. `inputs/values/resources_hg38.json` supplies the hg38 resource files. The single-sample Terra template (`inputs/templates/terra_workspaces/single_sample/`) writes panel files to `ref_panel_*` workspace attributes and hg38 resources to the `reference_*` twins. `qc_definitions` is the exception: the template sets `ref_panel_qc_definitions` from `resources_hg38.single_sample_qc_definitions`, and that is the file the resolved workflow input uses.
 
-`workflow/terra/PdSample.example.json` stores these `gs://` paths so `womtool validate -i` can type-check them. `workflow/terra/PdSample.terra_inputs.json` is the Terra method configuration: sample fields are `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, and `this.sex`, and each GATK-SV file is `workspace.<key>`. Scalar tuning values that are not workspace data are the literals from the v0.29-beta `GATKSVPipelineSingleSample` test template. Docker inputs are omitted from both JSON files so the v0.29-beta pins in `PdSample.wdl` apply. Do not bind the workspace `*_docker` attributes: a featured GATK-SV workspace can mix image tags (some v0.29-beta, with `sv_pipeline_docker` / `sv_pipeline_qc_docker` at other releases).
+`workflow/terra/PdSample.example.json` stores these `gs://` paths so `womtool validate -i` can type-check them. `workflow/terra/PdSample.terra_inputs.json` is the Terra method configuration: sample fields are `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, `this.sex`, `this.age_onset`, `this.symptoms`, and `this.ethnicity`, and each GATK-SV file is `workspace.<key>`. Scalar tuning values that are not workspace data are the literals from the v0.29-beta `GATKSVPipelineSingleSample` test template. Docker inputs are omitted from both JSON files so the v0.29-beta pins in `PdSample.wdl` apply. Do not bind the workspace `*_docker` attributes: a featured GATK-SV workspace can mix image tags (some v0.29-beta, with `sv_pipeline_docker` / `sv_pipeline_qc_docker` at other releases).
 
 ## Matched panel
 
@@ -23,7 +23,7 @@ Use one panel bundle. Do not pair a cohort `ref_panel_vcf` or ped with the 1KG g
 
 That v2 ploidy tar next to batch `38c65ca4` is the combination v0.29-beta ships in `ref_panel_1kg.json`. It is not a later workspace edit. Swap panels by replacing the whole set of `ref_panel_*` attributes together, and keep `reference_*` on the hg38 resource bundle those models were trained with. The panel has to be built with a GATK-SV version compatible with v0.29-beta.
 
-To point Terra at workspace data instead of the baked-in `gs://` paths, import `PdSample.terra_inputs.json` or set each input in the Terra Inputs tab to the expression in the last column. Sample columns stay on the sample table (`this.sample_id`, `this.bam_or_cram_file`, `this.bai`, `this.sex`).
+To point Terra at workspace data instead of the baked-in `gs://` paths, import `PdSample.terra_inputs.json` or set each input in the Terra Inputs tab to the expression in the last column. Sample columns stay on the sample table (`this.sample_id`, `this.bam_or_cram_file`, `this.bai`, `this.sex`, `this.age_onset`, `this.symptoms`, `this.ethnicity`).
 
 ## Files
 

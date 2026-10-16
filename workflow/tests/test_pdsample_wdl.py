@@ -80,6 +80,16 @@ def test_pdsample_is_the_only_entry_workflow():
     assert '"PdSample.cram": "${this.bam_or_cram_file}"' in terra
     assert '"PdSample.crai": "${this.bai}"' in terra
     assert '"PdSample.sex": "${this.sex}"' in terra
+    assert '"PdSample.age_onset": "${this.age_onset}"' in terra
+    assert '"PdSample.symptoms": "${this.symptoms}"' in terra
+    assert '"PdSample.ethnicity": "${this.ethnicity}"' in terra
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "pheno[Age at onset, symptoms, ancestry] --> assess" in readme
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert "String? ethnicity" in text
+    assert "ethnicity = ethnicity" in text
+    assert "write_json" in tasks
+    assert '"ethnicity": ethnicity_value' in tasks
     assert '"PdSample.sv_ref_panel_vcf": "${workspace.ref_panel_vcf}"' in terra
     assert '"PdSample.sv_empty_file": "${workspace.reference_empty_file}"' in terra
     assert "gs://fc-" not in terra

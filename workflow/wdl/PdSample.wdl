@@ -74,6 +74,7 @@ workflow PdSample {
     File? prs_weights
     String? age_onset
     String? symptoms
+    String? ethnicity
 
     File mt_dict
     File mt_fasta
@@ -551,6 +552,7 @@ workflow PdSample {
       prs_weights = prs_weights,
       age_onset = age_onset,
       symptoms = symptoms,
+      ethnicity = ethnicity,
       pdvar_docker = pdvar_docker,
       pdvar_git_url = pdvar_git_url,
       pdvar_git_commit = pdvar_git_commit

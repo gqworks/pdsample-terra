@@ -95,8 +95,7 @@ def _load_panel(path: Path, cfg: dict) -> pd.DataFrame:
 
 def _phenotype_frame(sample_id: str, sex: str, payload: dict | None) -> pd.DataFrame:
     row = {"sample_id": sample_id, "sex": sex}
-    if payload:
-        row.update({key: value for key, value in payload.items() if key != "sample_id"})
+    row.update(phenotype.clean_phenotype(payload))
     return pd.DataFrame([row])
 
 
@@ -273,6 +272,9 @@ def assess_sample(
     qc["sample_id"] = sample_id
     qc["modules"] = notes
     qc["sv_status"] = sv_status
+    patient_phenotype = phenotype.clean_phenotype(sample.get("phenotype") if isinstance(sample.get("phenotype"), dict) else None)
+    concordance_fields = {key: patient_phenotype[key] for key in ("age_onset", "symptoms", "ethnicity") if key in patient_phenotype}
+    qc["phenotype"] = {"provided": bool(concordance_fields), **concordance_fields}
     if not callset_assessment.empty:
         qc["callsets"] = callset_assessment.to_dict(orient="records")
     if not sv_assessment.empty:
