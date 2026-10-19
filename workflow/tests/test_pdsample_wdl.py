@@ -253,6 +253,36 @@ def test_qc_tasks_size_disk_for_the_full_alignment():
     assert text.count('size(cram, "GiB") * 2 + size(cram_index, "GiB")') >= 5
 
 
+def test_released_alignment_keeps_bam_or_cram_suffix():
+    """Manta 1.6 loads sample.bam.bai or sample.cram.crai from the filename suffix."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    assert 'name = sample_id + ".cram"' not in text
+    assert 'name = sample_id + ".cram.crai"' not in text
+    assert 'Boolean alignment_is_bam = basename(cram, ".bam") + ".bam" == basename(cram)' in text
+    assert 'String released_align_ext = if alignment_is_bam then ".bam" else ".cram"' in text
+    assert 'String released_index_ext = if alignment_is_bam then ".bam.bai" else ".cram.crai"' in text
+    assert "name = sample_id + released_align_ext" in text
+    assert "name = sample_id + released_index_ext" in text
+
+
+def test_mito_leaves_initial_filter_vcf_uncompressed():
+    """SplitMultiAllelics reads the InitialFilter VCF without its index."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    assert "compress_output_vcf = true" not in text
+    assert "compress_output_vcf = false" in text
+
+
+def test_introme_indexes_gtf_as_gff_and_guards_missing_strand():
+    """ESE scoring reads INFO/strand. .gtf.gz is not a tabix preset name."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    assert "tabix -f sorted.annotation.gtf.gz" not in text
+    assert "tabix -f -p gff sorted.annotation.gtf.gz" in text
+    assert "tabix -f -p gff \"$gtf_path\"" in text
+    assert '##INFO=<ID=strand,Number=.,Type=String,Description="GENCODE gene strand">' in text
+    assert "raw_strand = record.info['strand']" in text
+    assert "if raw_strand is None:" in text
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"

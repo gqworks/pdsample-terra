@@ -168,7 +168,8 @@ task DataPreprocessing {
             gunzip -c "$input_gtf" | grep -v '^#' |
                 sort -k1,1 -k4,4n -k5,5n -s
         ) | bgzip > "$gtf_path"
-        tabix -f "$gtf_path"
+        # .gtf.gz is not a tabix preset (.gff.gz is). -p gff uses columns 1, 4, and 5.
+        tabix -f -p gff "$gtf_path"
     fi
     rm -f "$gtf_path.tbi"
     bed_path="~{bed}"
@@ -303,9 +304,11 @@ task VariantInfo {
       exit 1
     fi
     # Copy the GTF into the writable work dir. Cromwell inputs are often read-only,
-    # and tabix writes the index beside the file.
+    # and tabix writes the index beside the file. .gtf.gz is not a tabix preset
+    # (.gff.gz is); without -p gff an older tabix indexes columns 2-3 and vcfanno
+    # never writes INFO/strand.
     cp -L "~{gtf}" sorted.annotation.gtf.gz
-    tabix -f sorted.annotation.gtf.gz
+    tabix -f -p gff sorted.annotation.gtf.gz
     sed "s|REPLACE_gencode_file|${PWD}/sorted.annotation.gtf.gz|" "$toml" > temp.toml
     vcfanno -p $(getconf _NPROCESSORS_ONLN) -lua conf_pre_anno.lua temp.toml ~{vcf} | bgzip > ~{prefix}.variant_info.vcf.gz
     tabix -p vcf ~{prefix}.variant_info.vcf.gz
@@ -341,6 +344,23 @@ task VariantInfo {
       else
         echo "WARNING: introme_filter_rare is set but no gnomAD INFO field is on the VCF. Upstream v2 comments out gnomAD annotation in gencode toml, so the filter is a no-op unless the input already carries gnomAD_PM_AF or a related INFO field. Cohort INFO/AF is not used." >&2
       fi
+    fi
+    # ESE/scoring.py reads INFO/strand. vcfanno is supposed to set it from GTF
+    # column 7. When that header is missing, fill it from gene rows (1-based GTF
+    # to 0-based BED). Existing strand values are left in place.
+    if ! bcftools view -h ~{prefix}.variant_info.vcf.gz | grep -q '^##INFO=<ID=strand,'; then
+      echo "INFO/strand missing after vcfanno; annotating GENCODE gene strand" >&2
+      gunzip -c sorted.annotation.gtf.gz \
+        | awk 'BEGIN{OFS="\t"} $0 !~ /^#/ && $3=="gene" {print $1, $4-1, $5, $7}' \
+        | sort -k1,1 -k2,2n \
+        | bgzip > gene_strand.bed.gz
+      tabix -f -p bed gene_strand.bed.gz
+      printf '%s\n' '##INFO=<ID=strand,Number=.,Type=String,Description="GENCODE gene strand">' > strand.hdr
+      bcftools annotate --threads $(getconf _NPROCESSORS_ONLN) \
+        -a gene_strand.bed.gz -c CHROM,FROM,TO,INFO/strand -h strand.hdr \
+        -Oz -o ~{prefix}.variant_info.stranded.vcf.gz ~{prefix}.variant_info.vcf.gz
+      mv ~{prefix}.variant_info.stranded.vcf.gz ~{prefix}.variant_info.vcf.gz
+      tabix -f -p vcf ~{prefix}.variant_info.vcf.gz
     fi
     gunzip -k ~{prefix}.variant_info.vcf.gz
     bcftools view -h ~{prefix}.variant_info.vcf.gz > ~{prefix}.variant_info.filtered.rmanno.vcf
@@ -641,6 +661,35 @@ task IntromeFunctions {
     python3 AG_check/AG_check.py ~{variant_info_stripped} ref/ref.fa introme_annotate.vcf ~{prefix}.introme_annotate.ag_check.vcf
     bgzip -k ~{prefix}.introme_annotate.ag_check.vcf
     tabix -p vcf ~{prefix}.introme_annotate.ag_check.vcf.gz
+    # Pin d6da48bc reads record.info['strand'] and raises KeyError when the
+    # header has no INFO/strand (or a record has no value). Skip those records.
+    python3 - <<'PY'
+from pathlib import Path
+path = Path("ESE/scoring.py")
+text = path.read_text()
+needle = "record.info['strand']"
+if needle not in text:
+    raise SystemExit("ESE/scoring.py no longer reads INFO/strand; update the guard")
+lines = text.splitlines(keepends=True)
+out = []
+patched = False
+for line in lines:
+    if (not patched) and needle in line and line.lstrip().startswith("strand"):
+        indent = line[:len(line) - len(line.lstrip())]
+        out.append(f"{indent}try:\n")
+        out.append(f"{indent}    raw_strand = record.info['strand']\n")
+        out.append(f"{indent}except KeyError:\n")
+        out.append(f"{indent}    raw_strand = None\n")
+        out.append(f"{indent}if raw_strand is None:\n")
+        out.append(f"{indent}    continue\n")
+        out.append(f"{indent}strand = ';'.join(str(s) for s in raw_strand)\n")
+        patched = True
+    else:
+        out.append(line)
+if not patched:
+    raise SystemExit("ESE/scoring.py strand assignment was not patched")
+path.write_text("".join(out))
+PY
     python3 ESE/scoring.py ~{variant_info_stripped} ./~{prefix}.introme_annotate.ESE.vcf ref/ref.fa
     mv ~{prefix}.introme_annotate.ESE.vcf ~{prefix}.introme_annotate.ESE.tsv
     bgzip -k ~{prefix}.introme_annotate.ESE.tsv
