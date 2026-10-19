@@ -226,6 +226,17 @@ def test_requester_pays_flag_is_a_haplotypecaller_argument():
     assert "HaplotypeCaller \\\n      $rp_arg \\\n" in text
 
 
+def test_mito_and_hc_prefer_original_ref_dict_for_adjacency():
+    """Imported mito (and HC -R) need <fasta>.dict co-localized; renamed reference.dict breaks that."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    assert "File gatk_ref_dict = select_first([ref_dict, select_first(reference_dict_files)])" in text
+    assert text.count("ref_dict = gatk_ref_dict") == 2
+    # GenotypeHardFilter keeps the copied dict and bundles beside -R in-task.
+    assert "call Tasks.GenotypeHardFilter" in text
+    ghf = text.split("call Tasks.GenotypeHardFilter", 1)[1].split("call Tasks.NormPass", 1)[0]
+    assert "ref_dict = select_first(reference_dict_files)," in ghf
+
+
 def test_genotype_hard_filter_bundles_reference_dict_with_fasta():
     """GenotypeGVCFs looks for <ref>.dict next to the FASTA path passed to -R."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
