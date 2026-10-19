@@ -28,7 +28,7 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 | `sv_panel_af` | Allele frequency on the GATK-SV reference panel, when that VCF ran |
 | `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` |
 | `cadd`, `revel`, `spliceai` | Present when VEP plugins or Introme wrote them |
-| `avi_phred`, `avi_raw`, `avi_quantile`, `avi_url` | AlphaGenome Atlas AVI for SNVs when `alphagenome_api_key` was set. Phred 20 is the top 1% of genome-wide SNVs. Empty when the key was unset, the allele is not an SNV, or Atlas had no row |
+| `avi_phred`, `avi_raw`, `avi_quantile`, `avi_url` | AlphaGenome AVI for SNVs from the precomputed table when `avi_table` was set. `avi_raw` and `avi_phred` are copied from the table. `avi_quantile` is derived as `1 - 10^(-avi_phred/10)`, so it is only as precise as the published Phred. Phred 20 is the top 1% of genome-wide SNVs. Empty when `avi_table` was unset, the allele is not an SNV, or the table had no row |
 | `introme_score`, `introme_class` | Introme v2 score and high / moderate / low |
 | `str_locus`, `str_expanded` | ExpansionHunter locus. `str_expanded` is null until a cited repeat cutoff exists |
 | `heteroplasmy` | mtDNA allele fraction when the caller wrote `AF` |
