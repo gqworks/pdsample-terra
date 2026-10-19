@@ -22,7 +22,8 @@ workflow PdSample {
 
     File vep_cache
     String vep_extra_args = ""
-    String alphagenome_api_key = ""
+    File? avi_table
+    File? avi_table_index
     File? gnomad_vcf
     File? gnomad_vcf_index
     File? clinvar_vcf
@@ -314,7 +315,8 @@ workflow PdSample {
     input:
       vcf = NormPass.normalized_vcf,
       annotate_avi_py = FetchRepoAssets.annotate_avi_py,
-      alphagenome_api_key = alphagenome_api_key,
+      avi_table = avi_table,
+      avi_table_index = avi_table_index,
       preemptible = preemptible
   }
   call Tasks.VepAnnotate {

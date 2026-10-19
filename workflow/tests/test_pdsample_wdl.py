@@ -61,7 +61,13 @@ def test_pdsample_is_the_only_entry_workflow():
         assert banned not in text
     assert "gatk-sv/v0.29-beta/wdl/GATKSVPipelineSingleSample.wdl" in text
     assert "gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl" in text
-    assert "alphagenome==0.10.0" in (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    sample_tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert "pysam==0.24.1" in sample_tasks
+    assert "alphagenome==" not in sample_tasks
+    assert "ALPHAGENOME_API_KEY" not in sample_tasks
+    assert "File? avi_table" in text
+    assert "File? avi_table_index" in text
+    assert "alphagenome_api_key" not in text
     assert "AnnotateAvi" in text
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
@@ -74,7 +80,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "raw.githubusercontent.com/gqworks/pdsample-terra/main/" not in example
     assert "ref_panel_1kg_v2-contig-ploidy-model.tar.gz" in example
     assert '"../' not in example
-    assert '"PdSample.alphagenome_api_key": ""' in example
+    assert "alphagenome_api_key" not in example
+    assert "PdSample.avi_table" not in example
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sample_id": "${this.sample_id}"' in terra
     assert '"PdSample.cram": "${this.bam_or_cram_file}"' in terra

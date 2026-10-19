@@ -15,6 +15,8 @@ See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 | `PdSample.vep_cache` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/vep/homo_sapiens_vep_116_GRCh38.tar.gz` | Ensembl VEP cache release 116 | 26 GB (27,644,657,162 bytes) |
 | `PdSample.somalier_sites` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz` | somalier v0.3.5 release notes, chr-prefixed hg38 | 260 KB (265,818 bytes) |
 | `PdSample.introme_gtf` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz` | GENCODE v44 annotation | ~47 MB |
+| `PdSample.avi_table` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz` | AlphaGenome "AVI SNV scores" download, GRCh38, Tabix | 88.5 GB |
+| `PdSample.avi_table_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz.tbi` | Tabix index for that table | small |
 
 `PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are still named `cram` and `crai`). BAM plus `.bai` and CRAM plus `.crai` both work. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
 
@@ -81,6 +83,27 @@ gcloud storage cp sites.hg38.vcf.gz \
 ```
 
 `workflow/scripts/download_resources.sh` also downloads this file into `DEST/somalier/`.
+
+## AlphaGenome AVI SNV table
+
+`AnnotateAvi` looks up PASS SNVs in the precomputed AlphaGenome AVI table with a local Tabix query (`pysam==0.24.1`). It does not call the AlphaGenome Atlas API, so it needs no key and works in workspaces where that API returns HTTP 403 (for example AnVIL).
+
+Source: https://alphagenome.google/downloads, "AVI SNV scores" (Tabix, 88.5 GB, permissive use). The download needs a signed-in browser, so it cannot be fetched with `curl` here. Download it once, then copy the table and its index into the bucket:
+
+```bash
+gcloud storage cp alphagenome_variant_impact_score_snvs.tsv.gz \
+  gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz
+gcloud storage cp alphagenome_variant_impact_score_snvs.tsv.gz.tbi \
+  gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz.tbi
+```
+
+Use the file names you actually downloaded and set `PdSample.avi_table` and `PdSample.avi_table_index` to match. If no index came with the table, build one with `tabix -s 1 -b 2 -e 2 alphagenome_variant_impact_score_snvs.tsv.gz` (the file must be bgzip, not plain gzip). Check the header first:
+
+```bash
+gzip -dc alphagenome_variant_impact_score_snvs.tsv.gz | head -3
+```
+
+The script expects `CHROM POS REF ALT raw_score PHRED` and also accepts common alternatives (for example `avi_score`, `phred_score`). `chr1` and `1` contig names both work. Cromwell copies the whole table into each `AnnotateAvi` task, and the task disk is sized from the table. Leave both inputs unset to skip AVI (`avi: not_assessed`).
 
 ## Terra notebook
 

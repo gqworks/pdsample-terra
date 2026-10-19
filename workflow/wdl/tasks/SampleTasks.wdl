@@ -771,20 +771,29 @@ task AnnotateAvi {
   input {
     File vcf
     File annotate_avi_py
-    String alphagenome_api_key = ""
+    # AlphaGenome "AVI SNV scores" download (bgzipped TSV) and its Tabix index.
+    # Unset writes a header-only table and leaves AVI not_assessed.
+    File? avi_table
+    File? avi_table_index
     String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + 150)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(avi_table, "GiB") + size(avi_table_index, "GiB") + 150)
   command <<<
     set -euo pipefail
-    # The key is read from the environment. It is not written to the TSV.
-    export ALPHAGENOME_API_KEY='~{alphagenome_api_key}'
-    if [[ -n "${ALPHAGENOME_API_KEY}" ]]; then
-      pip install --no-cache-dir "alphagenome==0.10.0"
+    # Local Tabix lookup. No API key and no AlphaGenome network call.
+    table='~{default="" avi_table}'
+    index='~{default="" avi_table_index}'
+    args=()
+    if [[ -n "${table}" ]]; then
+      pip install --no-cache-dir "pysam==0.24.1"
+      args+=(--table "${table}")
+      # Cromwell may localize the index in a different directory than the table.
+      if [[ -n "${index}" ]]; then
+        args+=(--index "${index}")
+      fi
     fi
-    python3 "~{annotate_avi_py}" --vcf "~{vcf}" --out avi.tsv
-    unset ALPHAGENOME_API_KEY
+    python3 "~{annotate_avi_py}" --vcf "~{vcf}" --out avi.tsv ${args[@]+"${args[@]}"}
   >>>
   output {
     File avi_tsv = "avi.tsv"

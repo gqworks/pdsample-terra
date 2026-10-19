@@ -1,9 +1,9 @@
-"""AVI join and the Atlas lookup script, without calling the API."""
+"""AVI join and the local AVI table lookup script."""
 
-import os
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from pdvar.assess import assess_sample
 from pdvar.avi import merge_avi
@@ -11,10 +11,45 @@ from pdvar.config import load_config
 import annotate_avi
 
 
-def test_phred_matches_published_tail_ranks():
-    assert annotate_avi.avi_phred(0.99) == 20
-    assert annotate_avi.avi_phred(0.999) == 30
-    assert annotate_avi.avi_phred(1.0) == 100
+def _vcf(path: Path, rows) -> Path:
+    lines = ["##fileformat=VCFv4.2", "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"]
+    lines += [f"{c}\t{p}\t.\t{r}\t{a}\t.\t{f}\t." for c, p, r, a, f in rows]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+TABLE_ROWS = [
+    ("chr1", 10, "A", "C", "0.10", "5.0"),
+    ("chr1", 10, "A", "G", "1.25", "20.0"),
+    ("chr1", 10, "A", "T", "0.20", "6.0"),
+    ("chr1", 12, "C", "A", "0.30", "7.0"),
+    ("chr1", 12, "C", "G", "2.50", "30.0"),
+    ("chr1", 12, "C", "T", ".", "."),
+    ("chr1", 5000, "G", "A", "0.40", "12.5"),
+    ("chrM", 14, "G", "A", "0.05", "1.0"),
+]
+
+
+def _table(path: Path, rows=TABLE_ROWS, header="#CHROM\tPOS\tREF\tALT\traw_score\tPHRED", bare=False) -> Path:
+    """bgzip + Tabix a small AVI table the way the download is laid out."""
+    import pysam
+
+    plain = path.with_suffix("")
+    lines = [header] if header else []
+    for chrom, pos, ref, alt, raw, phred in rows:
+        name = chrom[3:] if bare else chrom
+        name = "MT" if bare and name == "M" else name
+        lines.append(f"{name}\t{pos}\t{ref}\t{alt}\t{raw}\t{phred}")
+    plain.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    pysam.tabix_compress(str(plain), str(path), force=True)
+    pysam.tabix_index(str(path), seq_col=0, start_col=1, end_col=1, meta_char="#", force=True)
+    return path
+
+
+def test_phred_to_quantile_inverts_published_tail_ranks():
+    assert annotate_avi.phred_to_quantile(20) == 0.99
+    assert annotate_avi.phred_to_quantile(30) == 0.999
+    assert annotate_avi.phred_to_quantile(0) == 0.0
 
 
 def test_atlas_names_are_chr_prefixed():
@@ -49,58 +84,90 @@ def test_iter_snvs_keeps_pass_snvs_only(tmp_path: Path):
     ]
 
 
-def test_empty_key_writes_header_only(tmp_path: Path, monkeypatch):
-    vcf = tmp_path / "sample.vcf"
-    vcf.write_text("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\nchr1\t10\t.\tA\tG\t.\tPASS\t.\n", encoding="utf-8")
+def test_no_table_writes_header_only(tmp_path: Path):
+    vcf = _vcf(tmp_path / "sample.vcf", [("chr1", 10, "A", "G", "PASS")])
     out = tmp_path / "avi.tsv"
-    monkeypatch.delenv("ALPHAGENOME_API_KEY", raising=False)
     assert annotate_avi.main(["--vcf", str(vcf), "--out", str(out)]) == 0
     text = out.read_text(encoding="utf-8")
     assert text.startswith("chrom\tpos\tref\talt\tavi_raw\tavi_quantile\tavi_phred\tavi_url\n")
     assert len(text.splitlines()) == 1
-    assert os.environ.get("ALPHAGENOME_API_KEY", "") == ""
 
 
-class _Cell:
-    def __init__(self, value):
-        self.value = value
-
-    def __getitem__(self, _index):
-        return self.value
-
-
-class _Obs:
-    def __init__(self, variant: str):
-        self._variant = variant
-
-    def __getitem__(self, key):
-        assert key == "variant"
-        return type("Col", (), {"iloc": [self._variant]})()
-
-
-class _Scores:
-    def __init__(self, raw, cdf, variant):
-        self.n_obs = 1
-        self.X = _Cell(raw)
-        self.layers = {"quantiles": _Cell(cdf)}
-        self.obs = _Obs(variant)
-
-    def get(self, key):
-        return self if key == "AVI_SCORE" else None
+def test_lookup_matches_exact_alleles_in_vcf_order(tmp_path: Path):
+    table = _table(tmp_path / "avi.tsv.gz")
+    vcf = _vcf(
+        tmp_path / "sample.vcf",
+        [
+            ("1", 12, "C", "G,T", "PASS"),  # T has no score in the table
+            ("1", 10, "A", "G", "PASS"),
+            ("1", 11, "A", "GC", "PASS"),  # indel, never looked up
+            ("1", 5000, "G", "A", "LowQual"),  # not PASS
+            ("1", 7000, "T", "C", "PASS"),  # absent from the table
+            ("2", 10, "A", "G", "PASS"),  # contig absent from the table
+            ("MT", 14, "G", "A", "PASS"),
+        ],
+    )
+    rows = annotate_avi.lookup_snvs(vcf, table)
+    assert [(r["chrom"], r["pos"], r["ref"], r["alt"]) for r in rows] == [
+        ("chr1", 12, "C", "G"),
+        ("chr1", 10, "A", "G"),
+        ("chrM", 14, "G", "A"),
+    ]
+    assert rows[0]["avi_raw"] == 2.5 and rows[0]["avi_phred"] == 30.0
+    assert rows[0]["avi_quantile"] == 0.999
+    assert rows[1]["avi_raw"] == 1.25 and rows[1]["avi_quantile"] == 0.99
+    assert "q=chr1:10:A>G" in rows[1]["avi_url"]
 
 
-def test_row_rejects_a_different_returned_allele():
-    scores = {"AVI_SCORE": _Scores(1.0, 0.99, "chr1:10:A>T")}
-    assert annotate_avi._row_from_scores("chr1", 10, "A", "G", scores) is None
+def test_merge_gap_does_not_change_results(tmp_path: Path):
+    table = _table(tmp_path / "avi.tsv.gz")
+    vcf = _vcf(
+        tmp_path / "sample.vcf",
+        [("chr1", 10, "A", "G", "PASS"), ("chr1", 12, "C", "G", "PASS"), ("chr1", 5000, "G", "A", "PASS")],
+    )
+    tight = annotate_avi.lookup_snvs(vcf, table, merge_gap=0)
+    wide = annotate_avi.lookup_snvs(vcf, table, merge_gap=100_000)
+    assert tight == wide
+    assert len(tight) == 3
 
 
-def test_row_from_matching_score():
-    scores = {"AVI_SCORE": _Scores(1.25, 0.99, "chr1:10:A>G")}
-    row = annotate_avi._row_from_scores("1", 10, "A", "G", scores)
-    assert row is not None
-    assert row["avi_phred"] == 20
-    assert row["avi_raw"] == 1.25
-    assert row["chrom"] == "chr1"
+def test_bare_contig_table_and_separate_index(tmp_path: Path):
+    table_dir, index_dir = tmp_path / "table", tmp_path / "index"
+    table_dir.mkdir()
+    index_dir.mkdir()
+    table = _table(table_dir / "avi.tsv.gz", bare=True)
+    index = index_dir / "avi.tsv.gz.tbi"
+    (table_dir / "avi.tsv.gz.tbi").rename(index)
+    vcf = _vcf(tmp_path / "sample.vcf", [("chr1", 10, "A", "G", "PASS"), ("chrM", 14, "G", "A", "PASS")])
+    out = tmp_path / "avi.tsv"
+    args = ["--vcf", str(vcf), "--out", str(out), "--table", str(table), "--index", str(index)]
+    assert annotate_avi.main(args) == 0
+    written = pd.read_csv(out, sep="\t")
+    assert list(written["chrom"]) == ["chr1", "chrM"]
+    assert list(written["avi_phred"]) == [20.0, 1.0]
+
+
+def test_header_aliases_and_missing_columns(tmp_path: Path):
+    aliased = _table(tmp_path / "a.tsv.gz", header="#chrom\tpos\tref\talt\tavi_score\tphred_score")
+    vcf = _vcf(tmp_path / "sample.vcf", [("chr1", 10, "A", "G", "PASS")])
+    assert annotate_avi.lookup_snvs(vcf, aliased)[0]["avi_phred"] == 20.0
+    broken = _table(tmp_path / "b.tsv.gz", header="#CHROM\tPOS\tREF\tALT\traw_score\tcadd")
+    with pytest.raises(ValueError, match="phred"):
+        annotate_avi.lookup_snvs(vcf, broken)
+
+
+def test_ref_disagreement_fails_as_build_mismatch(tmp_path: Path):
+    rows = [("chr1", pos, "A", "G", "1.0", "20.0") for pos in range(100, 160)]
+    table = _table(tmp_path / "avi.tsv.gz", rows=rows)
+    vcf = _vcf(tmp_path / "sample.vcf", [("chr1", pos, "C", "G", "PASS") for pos in range(100, 160)])
+    with pytest.raises(ValueError, match="GRCh38"):
+        annotate_avi.lookup_snvs(vcf, table)
+
+
+def test_missing_table_file_is_an_error(tmp_path: Path):
+    vcf = _vcf(tmp_path / "sample.vcf", [("chr1", 10, "A", "G", "PASS")])
+    args = ["--vcf", str(vcf), "--out", str(tmp_path / "o.tsv"), "--table", str(tmp_path / "nope.tsv.gz")]
+    assert annotate_avi.main(args) == 1
 
 
 def test_merge_avi_joins_on_bare_chrom():
