@@ -206,6 +206,11 @@ workflow PdSample {
     }
   }
   Array[File] reference_dict_files = flatten([ProvidedReferenceDict.dict, BuiltReferenceDict.dict])
+  # Prefer the workflow input path so Cromwell co-localizes Homo_sapiens_assembly38.dict
+  # beside the FASTA. CopyReferenceDict renames to reference.dict, which breaks imported
+  # GATK tasks (mito, and HC with plain -R) that look for <fasta_basename>.dict next door.
+  # GenotypeHardFilter still uses reference_dict_files and bundles in-task.
+  File gatk_ref_dict = select_first([ref_dict, select_first(reference_dict_files)])
 
   call Tasks.ExtractCramHeader {
     input:
@@ -280,7 +285,7 @@ workflow PdSample {
       cram_index = crai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      ref_dict = select_first(reference_dict_files),
+      ref_dict = gatk_ref_dict,
       interval_bed = FetchRepoAssets.panel_bed,
       use_intervals = !wgs_small_variants,
       sample_id = sample_id,
@@ -380,7 +385,7 @@ workflow PdSample {
       wgs_aligned_input_bam_or_cram_index = ReleaseCrai.released,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      ref_dict = select_first(reference_dict_files),
+      ref_dict = gatk_ref_dict,
       mt_dict = mt_dict,
       mt_fasta = mt_fasta,
       mt_fasta_index = mt_fasta_index,
