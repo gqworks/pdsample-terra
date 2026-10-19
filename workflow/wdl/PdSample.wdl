@@ -367,17 +367,23 @@ workflow PdSample {
       gauchian_docker = gauchian_docker,
       preemptible = preemptible
   }
+  # Manta 1.6 names the localized alignment sample.bam or sample.cram from this
+  # suffix and loads sample.bam.bai or sample.cram.crai. A BAM renamed to .cram
+  # still carries a .bai, so GetChromDepth reports that the index is not available.
+  Boolean alignment_is_bam = basename(cram, ".bam") + ".bam" == basename(cram)
+  String released_align_ext = if alignment_is_bam then ".bam" else ".cram"
+  String released_index_ext = if alignment_is_bam then ".bam.bai" else ".cram.crai"
   call Tasks.ReleaseAfterQc as ReleaseCram {
     input:
       payload = cram,
       gate = QcGate.gate,
-      name = sample_id + ".cram"
+      name = sample_id + released_align_ext
   }
   call Tasks.ReleaseAfterQc as ReleaseCrai {
     input:
       payload = crai,
       gate = QcGate.gate,
-      name = sample_id + ".cram.crai"
+      name = sample_id + released_index_ext
   }
   call Mitochondria.MitochondriaPipeline as Mito {
     input:
@@ -408,7 +414,11 @@ workflow PdSample {
       control_region_shifted_reference_interval_list = control_region_shifted_reference_interval_list,
       non_control_region_interval_list = non_control_region_interval_list,
       requester_pays_project = requester_pays_project,
-      compress_output_vcf = true,
+      # SplitMultiAllelicsAndRemoveNonPassSites reads InitialFilter's VCF and
+      # does not take its index. GATK rejects that file when it is block-compressed
+      # ("drivingVariantFile ... Try running IndexFeatureFile"). Leave the
+      # upstream default (uncompressed .vcf plus .idx).
+      compress_output_vcf = false,
       preemptible_tries = preemptible
   }
   call GatkSv.GATKSVPipelineSingleSample as GatkSvSingle {
