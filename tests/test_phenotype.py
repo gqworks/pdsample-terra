@@ -12,7 +12,7 @@ from pdvar.phenotype_report import parse_phenotype_report
 from pdvar.report import render_markdown
 
 GP2_REPORT = """\
-GP2ID: APGS_002617 | STUDYCODE_ID: parkinson03684
+GP2ID: TEST_000001 | STUDYCODE_ID: synthetic00001
 Sex: Male | Age at sample collection: 58 | PD status: Yes
 Levodopa: Yes | Age at levodopa start: 57 | Age at diagnosis: NA | Diagnosis type: Neurologist | Age at onset: 56
 
@@ -125,8 +125,8 @@ def test_report_names_a_missing_phenotype_and_lists_risk_rows():
 
 def test_gp2_phenotype_report_sets_onset_match_and_keeps_comorbidities():
     parsed = parse_phenotype_report(GP2_REPORT)
-    assert parsed["gp2_id"] == "APGS_002617"
-    assert parsed["study_id"] == "parkinson03684"
+    assert parsed["gp2_id"] == "TEST_000001"
+    assert parsed["study_id"] == "synthetic00001"
     assert parsed["reported_sex"] == "male"
     assert parsed["pd_status"] == "Yes"
     assert parsed["levodopa"] == "Yes"
@@ -175,7 +175,7 @@ def test_gp2_phenotype_report_sets_onset_match_and_keeps_comorbidities():
     info = clean_phenotype(prepare_phenotype({"report_text": GP2_REPORT}))
     report = render_markdown("S", pd.DataFrame(), pd.DataFrame(), {"modules": {}, "phenotype": {"provided": True, **info}})
     section = report.split("## Phenotype concordance", 1)[1]
-    assert "APGS_002617" in section
+    assert "TEST_000001" in section
     assert "Age at diagnosis: blank." in section
     assert "Comorbidities (high): High blood pressure (age 50); High cholesterol (age 50)." in section
     assert "Comorbidities (lower): constipation (age 48); cold sores (age 12); back problems (age 35); Hearing loss (age 58)." in section
