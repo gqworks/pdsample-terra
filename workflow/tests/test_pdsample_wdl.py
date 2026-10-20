@@ -283,6 +283,31 @@ def test_introme_indexes_gtf_as_gff_and_guards_missing_strand():
     assert "if raw_strand is None:" in text
 
 
+def test_introme_cpu_tools_are_given_a_thread_count():
+    """Neural nets have no CLI thread flag. They read OMP and TensorFlow env vars."""
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    workflow = (ROOT / "workflow" / "wdl" / "Introme.wdl").read_text(encoding="utf-8")
+    assert tasks.count('export TF_NUM_INTRAOP_THREADS="$threads"') == 2
+    assert tasks.count('export OMP_NUM_THREADS="$threads"') >= 4
+    assert 'exec /usr/bin/sort --parallel=${threads}' in tasks
+    assert "Int pangolin_cpu = if use_gpu then 1 else 16" in workflow
+    assert "Int spliceai_cpu = if use_gpu then 1 else 16" in workflow
+    assert "Int mmsplice_cpu = if use_gpu then 1 else 16" in workflow
+    assert "memory_gb = spliceai_mem" in workflow
+    assert "memory_gb = mmsplice_mem" in workflow
+
+
+def test_spliceogen_scratch_is_on_the_task_disk():
+    """RUN.sh writes under /Spliceogen, which is the boot disk unless redirected."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    spliceogen = text.split("task Spliceogen {", 1)[1].split("task IntromeFunctions {", 1)[0]
+    assert 'ln -s "$PWD/scratch/data" /Spliceogen/data' in spliceogen
+    assert 'ln -s "$PWD/scratch/temp" /Spliceogen/temp' in spliceogen
+    assert 'ln -s "$PWD/scratch/output" /Spliceogen/output' in spliceogen
+    assert 'export TMPDIR="$PWD/scratch/temp"' in spliceogen
+    assert "Int memory_gb = 8" in spliceogen
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"

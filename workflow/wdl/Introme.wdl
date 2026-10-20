@@ -62,12 +62,15 @@ workflow Introme {
   String pangolin_docker = if use_gpu then pangolin_gpu_docker else pangolin_cpu_docker
   Int gpu_count_eff = if use_gpu then gpu_count else 0
   Int heavy_preemptible = if use_gpu then 0 else 1
-  # Upstream CPU profile is 8 CPUs / 2 GB for Pangolin and 3 CPUs / 1 GB for Spliceogen.
-  # GCP custom machines need about 0.9 GiB per vCPU, so the CPU path raises those memories.
-  Int pangolin_cpu = if use_gpu then 1 else 8
-  Int pangolin_mem = if use_gpu then 2 else 8
-  Int spliceai_cpu = if use_gpu then 1 else 8
-  Int mmsplice_cpu = if use_gpu then 1 else 8
+  # CPU path gives each neural net 16 cores. TensorFlow and PyTorch use that
+  # count via the thread variables set in the tasks. Memory stays at 1 GiB per
+  # vCPU. The GPU path keeps a single CPU.
+  Int pangolin_cpu = if use_gpu then 1 else 16
+  Int pangolin_mem = if use_gpu then 2 else 16
+  Int spliceai_cpu = if use_gpu then 1 else 16
+  Int spliceai_mem = if use_gpu then 8 else 16
+  Int mmsplice_cpu = if use_gpu then 1 else 16
+  Int mmsplice_mem = if use_gpu then 8 else 16
 
   call Tasks.FetchIntromeAssets {
     input:
@@ -144,7 +147,8 @@ workflow Introme {
       force_rerun_token = force_rerun_token,
       docker = spliceai_docker,
       preemptible = heavy_preemptible,
-      cpu = spliceai_cpu
+      cpu = spliceai_cpu,
+      memory_gb = spliceai_mem
   }
   call Tasks.MMSplice {
     input:
@@ -160,7 +164,8 @@ workflow Introme {
       force_rerun_token = force_rerun_token,
       docker = mmsplice_docker,
       preemptible = heavy_preemptible,
-      cpu = mmsplice_cpu
+      cpu = mmsplice_cpu,
+      memory_gb = mmsplice_mem
   }
   call Tasks.Pangolin {
     input:

@@ -133,7 +133,7 @@ task DataPreprocessing {
     String force_rerun_token = ""
     String docker = "gabyou/data_prepocessing:v2.0"
     Int preemptible = 2
-    Int cpu = 4
+    Int cpu = 8
     Int memory_gb = 8
   }
   String gtf_prefix = if basename(gtf) != basename(gtf, ".gtf.gz") then basename(gtf, ".gtf.gz") else basename(gtf, ".gtf")
@@ -153,11 +153,12 @@ task DataPreprocessing {
     input_gtf="~{gtf}"
     input_vcf="~{vcf}"
     echo $(date +%x_%r) $(bcftools view -H "$input_vcf" | wc -l) 'variants prior to subsetting'
-    bcftools annotate --rename-chrs chrRename.tsv -Ou "$input_vcf" \
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    bcftools annotate --threads "$threads" --rename-chrs chrRename.tsv -Ou "$input_vcf" \
         | bcftools sort -Ou \
-        | bcftools view -t "$CHROMS" -Ou \
-        | bcftools norm -f ref/ref.fa -c e -m-both -Ou \
-        | bcftools norm -d exact -Ou \
+        | bcftools view --threads "$threads" -t "$CHROMS" -Ou \
+        | bcftools norm --threads "$threads" -f ref/ref.fa -c e -m-both -Ou \
+        | bcftools norm --threads "$threads" -d exact -Ou \
         | bcftools sort -Oz -o ~{prefix}.sorted.norm.vcf.gz
     if tabix -f -p gff "$input_gtf"; then
         cp -L "$input_gtf" "$gtf_path"
@@ -220,7 +221,7 @@ task QualityFilter {
     String force_rerun_token = ""
     String docker = "gabyou/data_prepocessing:v2.0"
     Int preemptible = 2
-    Int cpu = 2
+    Int cpu = 4
     Int memory_gb = 4
   }
   Int disk_gb = ceil(size(vcf, "GiB") + 150)
@@ -285,7 +286,7 @@ task VariantInfo {
     String force_rerun_token = ""
     String docker = "gabyou/variant_info:v3.2"
     Int preemptible = 2
-    Int cpu = 4
+    Int cpu = 8
     Int memory_gb = 8
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(gtf, "GiB") + size(assets_tar, "GiB") + 150)
@@ -310,7 +311,8 @@ task VariantInfo {
     cp -L "~{gtf}" sorted.annotation.gtf.gz
     tabix -f -p gff sorted.annotation.gtf.gz
     sed "s|REPLACE_gencode_file|${PWD}/sorted.annotation.gtf.gz|" "$toml" > temp.toml
-    vcfanno -p $(getconf _NPROCESSORS_ONLN) -lua conf_pre_anno.lua temp.toml ~{vcf} | bgzip > ~{prefix}.variant_info.vcf.gz
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    vcfanno -p "$threads" -lua conf_pre_anno.lua temp.toml ~{vcf} | bgzip -@ "$threads" > ~{prefix}.variant_info.vcf.gz
     tabix -p vcf ~{prefix}.variant_info.vcf.gz
     ~{true="FILTER_RARE=1" false="FILTER_RARE=0" filter_rare}
     if [[ "$FILTER_RARE" == "1" ]]; then
@@ -401,8 +403,8 @@ task SpliceAI {
     String force_rerun_token = ""
     String docker = "headoncollusion/spliceai:v1.4-cpu"
     Int preemptible = 1
-    Int cpu = 8
-    Int memory_gb = 8
+    Int cpu = 16
+    Int memory_gb = 16
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + 200)
   Int boot_gb = if use_gpu then 50 else 30
@@ -414,6 +416,13 @@ task SpliceAI {
     ln -s "$(readlink -f ~{ref_fasta_index})" ref/ref.fa.fai
     # Faithful port of nextflow/modules/spliceai/spliceai.nf.
     # Optional spliceai_db_file skips the wget (stage it to avoid the runtime download).
+    # SpliceAI has no thread flag. TensorFlow reads these at startup.
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    export OMP_NUM_THREADS="$threads"
+    export OPENBLAS_NUM_THREADS="$threads"
+    export MKL_NUM_THREADS="$threads"
+    export TF_NUM_INTRAOP_THREADS="$threads"
+    export TF_NUM_INTEROP_THREADS=2
     export TF_FORCE_GPU_ALLOW_GROWTH=true
     db_path="~{spliceai_db_file}"
     if [[ -n "$db_path" ]]; then
@@ -457,8 +466,8 @@ task MMSplice {
     String force_rerun_token = ""
     String docker = "headoncollusion/mmsplice:v2.2-cpu"
     Int preemptible = 1
-    Int cpu = 8
-    Int memory_gb = 8
+    Int cpu = 16
+    Int memory_gb = 16
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + 150)
   Int boot_gb = if use_gpu then 50 else 30
@@ -470,8 +479,15 @@ task MMSplice {
     ln -s "$(readlink -f ~{ref_fasta_index})" ref/ref.fa.fai
     # Faithful port of nextflow/modules/mmsplice/mmsplice.nf.
     # run_mmsplice.py is on PATH inside the image. The repo copy is not mounted.
+    # MMSplice has no thread flag. TensorFlow reads these at startup.
     pwd
     ls
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    export OMP_NUM_THREADS="$threads"
+    export OPENBLAS_NUM_THREADS="$threads"
+    export MKL_NUM_THREADS="$threads"
+    export TF_NUM_INTRAOP_THREADS="$threads"
+    export TF_NUM_INTEROP_THREADS=2
     export TF_FORCE_GPU_ALLOW_GROWTH=true
     run_mmsplice.py --vcf ~{vcf} --fasta ref/ref.fa --gtf ~{gtf} --output ~{prefix}.mmsplice.vcf
   >>>
@@ -507,8 +523,8 @@ task Pangolin {
     String force_rerun_token = ""
     String docker = "headoncollusion/pangolin:v1.3-cpu"
     Int preemptible = 1
-    Int cpu = 8
-    Int memory_gb = 8
+    Int cpu = 16
+    Int memory_gb = 16
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + 200)
   Int boot_gb = if use_gpu then 50 else 30
@@ -520,6 +536,11 @@ task Pangolin {
     ln -s "$(readlink -f ~{ref_fasta_index})" ref/ref.fa.fai
     # Faithful port of nextflow/modules/pangolin/pangolin.nf.
     # The annotation DB is about 300 MB. Pass pangolin_db_file to skip wget.
+    # Pangolin has no thread flag. PyTorch reads OMP_NUM_THREADS at startup.
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    export OMP_NUM_THREADS="$threads"
+    export MKL_NUM_THREADS="$threads"
+    export OPENBLAS_NUM_THREADS="$threads"
     db_path="~{pangolin_db_file}"
     if [[ -n "$db_path" ]]; then
       db="$db_path"
@@ -591,32 +612,59 @@ task Spliceogen {
     String force_rerun_token = ""
     String docker = "headoncollusion/spliceogen:v2.1"
     Int preemptible = 2
-    Int cpu = 3
-    Int memory_gb = 4
+    Int cpu = 8
+    # Upstream asks for 1 GB at 3 CPUs. That is under the GCP custom-machine
+    # floor (~0.9 GiB/vCPU). 8 GiB leaves room for Java and for sorting the GTF.
+    Int memory_gb = 8
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
-    mkdir -p ref
-    ln -s "$(readlink -f ~{ref_fasta})" ref/ref.fa
-    ln -s "$(readlink -f ~{ref_fasta_index})" ref/ref.fa.fai
+    mkdir -p ref scratch/data scratch/temp scratch/output
+    fasta="$(readlink -f ~{ref_fasta})"
+    fai="$(readlink -f ~{ref_fasta_index})"
+    ln -s "$fasta" ref/ref.fa
+    ln -s "$fai" ref/ref.fa.fai
+    # bedtools getfasta looks for <fasta>.fai beside the path passed to -fi.
+    if [[ ! -e "${fasta}.fai" ]]; then
+      ln -s "$fai" "${fasta}.fai"
+    fi
     # Faithful port of nextflow/modules/spliceogen/spliceogen.nf.
-    # Nextflow sets containerOptions '--entrypoint ""'. Cromwell launches with bash,
-    # which replaces the image entrypoint the same way.
-    # Upstream memory is 1 GB at 3 CPUs. That is below the GCP custom-machine
-    # minimum (~0.9 GiB/vCPU), so this task asks for 4 GiB.
-    echo pwd
-    pwd
-    echo ls
-    ls
+    # Cromwell sets the container entrypoint to bash, same as nextflow's
+    # containerOptions '--entrypoint ""'.
+    # RUN.sh writes data/, temp/, output/, and sort spill relative to /Spliceogen.
+    # That tree is on the boot disk. The GENCODE interval file and flanking FASTA
+    # fill it, and Batch then stops the VM before bash can record an exit code
+    # ("The job was stopped before the command finished").
+    rm -rf /Spliceogen/data /Spliceogen/temp /Spliceogen/output
+    ln -s "$PWD/scratch/data" /Spliceogen/data
+    ln -s "$PWD/scratch/temp" /Spliceogen/temp
+    ln -s "$PWD/scratch/output" /Spliceogen/output
+    export TMPDIR="$PWD/scratch/temp"
+    # RUN.sh calls sort with no thread count. A wrapper on PATH adds --parallel.
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    mkdir -p "$PWD/bin"
+    cat > "$PWD/bin/sort" <<EOF
+#!/bin/bash
+exec /usr/bin/sort --parallel=${threads} "\$@"
+EOF
+    chmod +x "$PWD/bin/sort"
+    export PATH="$PWD/bin:$PATH"
     ORIG_DIR="$(pwd)"
     cd /Spliceogen
     ./RUN.sh -input "$(realpath "$ORIG_DIR/~{vcf}")" \
              -fasta "$(realpath "$ORIG_DIR/ref/ref.fa")" \
              -gtf "$(realpath "$ORIG_DIR/~{gtf}")"
     ls output
-    mv output/*_out.txt "$ORIG_DIR/~{prefix}.spliceogen.tsv"
+    shopt -s nullglob
+    outs=(output/*_out.txt)
+    if [[ ${#outs[@]} -eq 0 ]]; then
+      echo "Spliceogen wrote no *_out.txt. output/ contains:" >&2
+      ls -la output >&2
+      exit 1
+    fi
+    mv "${outs[0]}" "$ORIG_DIR/~{prefix}.spliceogen.tsv"
   >>>
   output {
     File spliceogen_tsv = "~{prefix}.spliceogen.tsv"
@@ -641,7 +689,7 @@ task IntromeFunctions {
     String force_rerun_token = ""
     String docker = "headoncollusion/ag_check:v1.6"
     Int preemptible = 2
-    Int cpu = 2
+    Int cpu = 4
     Int memory_gb = 8
   }
   Int disk_gb = ceil(size(variant_info_stripped, "GiB") + size(ref_fasta, "GiB") + size(assets_tar, "GiB") + 150)
@@ -655,6 +703,11 @@ task IntromeFunctions {
     ln -s "$(readlink -f ~{ref_fasta_index})" ref/ref.fa.fai
     # Faithful port of the active (uncommented) body of nextflow/modules/introme_functions.nf.
     # MNV.sh scoring stays commented out upstream.
+    # ESE motif scoring uses NumPy. OpenBLAS reads this at import.
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    export OMP_NUM_THREADS="$threads"
+    export OPENBLAS_NUM_THREADS="$threads"
+    export MKL_NUM_THREADS="$threads"
     echo "Current directory: $(pwd)"
     echo executing ls
     ls
@@ -732,7 +785,7 @@ task SplicingAnno {
     String force_rerun_token = ""
     String docker = "headoncollusion/ag_check:v1.6"
     Int preemptible = 2
-    Int cpu = 4
+    Int cpu = 8
     Int memory_gb = 8
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(spliceai_vcf, "GiB") + size(mmsplice_vcf, "GiB") + size(pangolin_vcf, "GiB") + size(spip_vcf, "GiB") + size(spliceogen_tsv, "GiB") + size(assets_tar, "GiB") + 150)
@@ -750,17 +803,18 @@ task SplicingAnno {
       exit 1
     fi
     echo splicing_anno
-    bgzip -c ~{spliceai_vcf} > spliceai.vcf.gz
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    bgzip -@ "$threads" -c ~{spliceai_vcf} > spliceai.vcf.gz
     tabix -p vcf spliceai.vcf.gz
-    bgzip -c ~{mmsplice_vcf} > mmsplice.vcf.gz
+    bgzip -@ "$threads" -c ~{mmsplice_vcf} > mmsplice.vcf.gz
     tabix -p vcf mmsplice.vcf.gz
-    bgzip -c ~{pangolin_vcf} > pangolin.vcf.gz
+    bgzip -@ "$threads" -c ~{pangolin_vcf} > pangolin.vcf.gz
     tabix -p vcf pangolin.vcf.gz
     cp -L ~{spip_vcf} spip.in.vcf
     sed -i -E 's_(##SPiP output) (v[0-9]+.[0-9]*)_\1=\2_' spip.in.vcf
-    bgzip -c spip.in.vcf > spip.vcf.gz
+    bgzip -@ "$threads" -c spip.in.vcf > spip.vcf.gz
     tabix -p vcf spip.vcf.gz
-    bgzip -c ~{spliceogen_tsv} > spliceogen.tsv.gz
+    bgzip -@ "$threads" -c ~{spliceogen_tsv} > spliceogen.tsv.gz
     tabix -s1 -b2 -e3 spliceogen.tsv.gz
     ln -s ~{ag_check} introme_annotate.ag_check.vcf.gz
     ln -s ~{ag_check_index} introme_annotate.ag_check.vcf.gz.tbi
@@ -770,18 +824,18 @@ task SplicingAnno {
     ls
     vcfanno \
         -base-path ./ \
-        -p $(getconf _NPROCESSORS_ONLN) \
+        -p "$threads" \
         -lua conf_ensemble.lua \
         "$annotate_toml" \
         ~{vcf} > step1.vcf
-    bgzip step1.vcf
+    bgzip -@ "$threads" step1.vcf
     vcfanno \
         -base-path ./ \
-        -p $(getconf _NPROCESSORS_ONLN) \
+        -p "$threads" \
         -lua conf_ensemble.lua \
         tomls/vcfanno_splicing_ensemble.toml \
         step1.vcf.gz > ~{prefix}.highquality.annotated.filtered.ensemblescored.vcf
-    bgzip -k ~{prefix}.highquality.annotated.filtered.ensemblescored.vcf
+    bgzip -@ "$threads" -k ~{prefix}.highquality.annotated.filtered.ensemblescored.vcf
   >>>
   output {
     File splicing_anno_vcf = "~{prefix}.highquality.annotated.filtered.ensemblescored.vcf.gz"
@@ -805,7 +859,7 @@ task EnsembleInfer {
     String force_rerun_token = ""
     String docker = "headoncollusion/ag_check:v1.6"
     Int preemptible = 1
-    Int cpu = 4
+    Int cpu = 8
     Int memory_gb = 16
   }
   Int disk_gb = ceil(size(splicing_anno_vcf, "GiB") + size(assets_tar, "GiB") + 150)
@@ -821,12 +875,15 @@ task EnsembleInfer {
     # Faithful port of nextflow/modules/ensemble.nf process ensemble_infer.
     # main.py imports train.py even in infer mode, so train.py is in the assets tar.
     # ensemble_train itself is not called.
+    threads="$(getconf _NPROCESSORS_ONLN)"
+    export OMP_NUM_THREADS="$threads"
+    export OPENBLAS_NUM_THREADS="$threads"
     python3 ml/main.py infer \
         --model-path models/RandomForest_all_info_introme_train_run_model.pkl \
         --columns-path models/RandomForest_all_info_introme_train_run_columns.json \
         --input-vcf ~{splicing_anno_vcf} \
         --output-tsv ~{prefix}.introme.predictions.tsv
-    bgzip -c ~{prefix}.introme.predictions.tsv > introme.predictions.tsv.gz
+    bgzip -@ "$threads" -c ~{prefix}.introme.predictions.tsv > introme.predictions.tsv.gz
     tabix -S1 -s1 -b2 -e2 introme.predictions.tsv.gz
     introme_col=$(
         zcat introme.predictions.tsv.gz \
@@ -837,10 +894,10 @@ task EnsembleInfer {
     sed "s/__INTROME_COL__/${introme_col}/" tomls/introme.toml > introme.generated.toml
     vcfanno \
         -base-path ./ \
-        -p $(getconf _NPROCESSORS_ONLN) \
+        -p "$threads" \
         introme.generated.toml \
         ~{splicing_anno_vcf} > ~{prefix}.introme.predictions.vcf
-    bgzip ~{prefix}.introme.predictions.vcf
+    bgzip -@ "$threads" ~{prefix}.introme.predictions.vcf
     tabix -p vcf ~{prefix}.introme.predictions.vcf.gz
     # pdvar second-hit lookup needs a gene and per-sample allele counts.
     # ensemble infer drops INFO/gene (commented out of INFO_FIELDS) and sets
