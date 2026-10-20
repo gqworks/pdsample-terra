@@ -253,16 +253,15 @@ def test_qc_tasks_size_disk_for_the_full_alignment():
     assert text.count('size(cram, "GiB") * 2 + size(cram_index, "GiB")') >= 5
 
 
-def test_released_alignment_keeps_bam_or_cram_suffix():
-    """Manta 1.6 loads sample.bam.bai or sample.cram.crai from the filename suffix."""
-    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
-    assert 'name = sample_id + ".cram"' not in text
-    assert 'name = sample_id + ".cram.crai"' not in text
-    assert 'Boolean alignment_is_bam = basename(cram, ".bam") + ".bam" == basename(cram)' in text
-    assert 'String released_align_ext = if alignment_is_bam then ".bam" else ".cram"' in text
-    assert 'String released_index_ext = if alignment_is_bam then ".bam.bai" else ".cram.crai"' in text
-    assert "name = sample_id + released_align_ext" in text
-    assert "name = sample_id + released_index_ext" in text
+def test_sv_alignment_is_staged_from_magic_bytes():
+    """Manta loads sample.cram.crai. A BAM named .cram or a bad index must be rebuilt."""
+    workflow = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert "call Tasks.StageIndexedAlignment as StageAlignment" in workflow
+    assert "bam_or_cram_file = staged_alignment" in workflow
+    assert 'if [[ "$magic" == "CRAM" ]]; then' in tasks
+    assert 'samtools index -@ 4 "$out"' in tasks
+    assert "File staged_alignment = if StageAlignment.kind == \"cram\"" in workflow
 
 
 def test_mito_leaves_initial_filter_vcf_uncompressed():
@@ -306,6 +305,19 @@ def test_spliceogen_scratch_is_on_the_task_disk():
     assert 'ln -s "$PWD/scratch/output" /Spliceogen/output' in spliceogen
     assert 'export TMPDIR="$PWD/scratch/temp"' in spliceogen
     assert "Int memory_gb = 8" in spliceogen
+
+
+def test_gatksv_callers_use_sixteen_cores():
+    """Manta and Wham read cpu_cores. Defaults at v0.29-beta are 8 and 4."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    assert "Float sv_manta_jobs_per_cpu = 1.0" in text
+    assert "Int sv_caller_cpu_cores = 16" in text
+    assert "Float sv_caller_mem_gb = 32.0" in text
+    assert "manta_jobs_per_cpu = sv_manta_jobs_per_cpu" in text
+    assert "runtime_attr_manta = object {" in text
+    assert "runtime_attr_wham = object {" in text
+    assert "cpu_cores: sv_caller_cpu_cores" in text
+    assert "mem_gb: sv_caller_mem_gb" in text
 
 
 def test_runtime_disk_gb_is_integer_ceiled():

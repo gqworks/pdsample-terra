@@ -133,6 +133,13 @@ workflow PdSample {
     Boolean sv_run_vcf_qc = false
     File sv_wgd_scoring_mask
     Int sv_min_svsize = 50
+    # Manta runs one local job per core and accounts 2 GiB to each job.
+    # 16 cores with jobs_per_cpu 1.0 is 16 jobs, so the VM is 32 GiB (2 GiB
+    # per vCPU). The v0.29 default is 8 cores. Wham -x and samtools -@ read
+    # the same core count; Wham's default is 4.
+    Float sv_manta_jobs_per_cpu = 1.0
+    Int sv_caller_cpu_cores = 16
+    Float sv_caller_mem_gb = 32.0
     File sv_contig_ploidy_model_tar
     File sv_gcnv_model_tars_list
     File sv_ref_panel_bincov_matrix
@@ -367,28 +374,28 @@ workflow PdSample {
       gauchian_docker = gauchian_docker,
       preemptible = preemptible
   }
-  # Manta 1.6 names the localized alignment sample.bam or sample.cram from this
-  # suffix and loads sample.bam.bai or sample.cram.crai. A BAM renamed to .cram
-  # still carries a .bai, so GetChromDepth reports that the index is not available.
-  Boolean alignment_is_bam = basename(cram, ".bam") + ".bam" == basename(cram)
-  String released_align_ext = if alignment_is_bam then ".bam" else ".cram"
-  String released_index_ext = if alignment_is_bam then ".bam.bai" else ".cram.crai"
-  call Tasks.ReleaseAfterQc as ReleaseCram {
+  # Manta 1.6 symlinks the alignment to sample.bam or sample.cram from the
+  # filename and then loads sample.bam.bai or sample.cram.crai. A BAM whose
+  # object name ends in .cram, or a .bai stored under a .crai name, makes
+  # GetChromDepth report that the index is not available. StageIndexedAlignment
+  # uses the CRAM magic bytes and rebuilds the index when the supplied one
+  # does not open.
+  call Tasks.StageIndexedAlignment as StageAlignment {
     input:
-      payload = cram,
+      alignment = cram,
+      alignment_index = crai,
+      sample_id = sample_id,
       gate = QcGate.gate,
-      name = sample_id + released_align_ext
+      ref_fasta = ref_fasta,
+      ref_fasta_index = ref_fasta_index,
+      preemptible = preemptible
   }
-  call Tasks.ReleaseAfterQc as ReleaseCrai {
-    input:
-      payload = crai,
-      gate = QcGate.gate,
-      name = sample_id + released_index_ext
-  }
+  File staged_alignment = if StageAlignment.kind == "cram" then StageAlignment.cram_alignment else StageAlignment.bam_alignment
+  File staged_index = if StageAlignment.kind == "cram" then StageAlignment.cram_index else StageAlignment.bam_index
   call Mitochondria.MitochondriaPipeline as Mito {
     input:
-      wgs_aligned_input_bam_or_cram = ReleaseCram.released,
-      wgs_aligned_input_bam_or_cram_index = ReleaseCrai.released,
+      wgs_aligned_input_bam_or_cram = staged_alignment,
+      wgs_aligned_input_bam_or_cram_index = staged_index,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       ref_dict = gatk_ref_dict,
@@ -425,8 +432,8 @@ workflow PdSample {
     input:
       sample_id = sample_id,
       batch = "pd-sample",
-      bam_or_cram_file = ReleaseCram.released,
-      bam_or_cram_index = ReleaseCrai.released,
+      bam_or_cram_file = staged_alignment,
+      bam_or_cram_index = staged_index,
       reference_version = "38",
       ref_samples_list = sv_ref_samples_list,
       ref_ped_file = sv_ref_ped_file,
@@ -453,6 +460,15 @@ workflow PdSample {
       preprocessed_intervals = sv_preprocessed_intervals,
       manta_region_bed = sv_manta_region_bed,
       manta_region_bed_index = sv_manta_region_bed_index,
+      manta_jobs_per_cpu = sv_manta_jobs_per_cpu,
+      runtime_attr_manta = object {
+        cpu_cores: sv_caller_cpu_cores,
+        mem_gb: sv_caller_mem_gb
+      },
+      runtime_attr_wham = object {
+        cpu_cores: sv_caller_cpu_cores,
+        mem_gb: sv_caller_mem_gb
+      },
       sd_locs_vcf = sv_sd_locs_vcf,
       wham_include_list_bed_file = sv_wham_include_list_bed_file,
       run_vcf_qc = sv_run_vcf_qc,
