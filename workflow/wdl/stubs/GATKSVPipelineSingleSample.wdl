@@ -1,5 +1,14 @@
 version 1.0
 
+struct RuntimeAttr {
+  Float? mem_gb
+  Int? cpu_cores
+  Int? disk_gb
+  Int? boot_disk_gb
+  Int? preemptible_tries
+  Int? max_retries
+}
+
 workflow GATKSVPipelineSingleSample {
   meta {
     description: "Offline fallback only. The committed PdSample.wdl imports gatk-sv v0.29-beta. validate_wdl.sh --offline substitutes this file. The default path validates the real import."
@@ -35,6 +44,9 @@ workflow GATKSVPipelineSingleSample {
     File preprocessed_intervals
     File manta_region_bed
     File manta_region_bed_index
+    Float? manta_jobs_per_cpu
+    RuntimeAttr? runtime_attr_manta
+    RuntimeAttr? runtime_attr_wham
     File sd_locs_vcf
     File wham_include_list_bed_file
     Boolean run_vcf_qc

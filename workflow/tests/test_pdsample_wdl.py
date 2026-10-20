@@ -308,6 +308,19 @@ def test_spliceogen_scratch_is_on_the_task_disk():
     assert "Int memory_gb = 8" in spliceogen
 
 
+def test_gatksv_callers_use_sixteen_cores():
+    """Manta and Wham read cpu_cores. Defaults at v0.29-beta are 8 and 4."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    assert "Float sv_manta_jobs_per_cpu = 1.0" in text
+    assert "Int sv_caller_cpu_cores = 16" in text
+    assert "Float sv_caller_mem_gb = 32.0" in text
+    assert "manta_jobs_per_cpu = sv_manta_jobs_per_cpu" in text
+    assert "runtime_attr_manta = object {" in text
+    assert "runtime_attr_wham = object {" in text
+    assert "cpu_cores: sv_caller_cpu_cores" in text
+    assert "mem_gb: sv_caller_mem_gb" in text
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"

@@ -133,6 +133,13 @@ workflow PdSample {
     Boolean sv_run_vcf_qc = false
     File sv_wgd_scoring_mask
     Int sv_min_svsize = 50
+    # Manta runs one local job per core and accounts 2 GiB to each job.
+    # 16 cores with jobs_per_cpu 1.0 is 16 jobs, so the VM is 32 GiB (2 GiB
+    # per vCPU). The v0.29 default is 8 cores. Wham -x and samtools -@ read
+    # the same core count; Wham's default is 4.
+    Float sv_manta_jobs_per_cpu = 1.0
+    Int sv_caller_cpu_cores = 16
+    Float sv_caller_mem_gb = 32.0
     File sv_contig_ploidy_model_tar
     File sv_gcnv_model_tars_list
     File sv_ref_panel_bincov_matrix
@@ -453,6 +460,15 @@ workflow PdSample {
       preprocessed_intervals = sv_preprocessed_intervals,
       manta_region_bed = sv_manta_region_bed,
       manta_region_bed_index = sv_manta_region_bed_index,
+      manta_jobs_per_cpu = sv_manta_jobs_per_cpu,
+      runtime_attr_manta = object {
+        cpu_cores: sv_caller_cpu_cores,
+        mem_gb: sv_caller_mem_gb
+      },
+      runtime_attr_wham = object {
+        cpu_cores: sv_caller_cpu_cores,
+        mem_gb: sv_caller_mem_gb
+      },
       sd_locs_vcf = sv_sd_locs_vcf,
       wham_include_list_bed_file = sv_wham_include_list_bed_file,
       run_vcf_qc = sv_run_vcf_qc,
