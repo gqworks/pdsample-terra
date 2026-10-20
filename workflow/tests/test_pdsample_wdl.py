@@ -261,6 +261,8 @@ def test_sv_alignment_is_staged_from_magic_bytes():
     assert "bam_or_cram_file = staged_alignment" in workflow
     assert 'if [[ "$magic" == "CRAM" ]]; then' in tasks
     assert 'samtools index -@ 4 "$out"' in tasks
+    assert "ln -s ~{ref_fasta} ref/ref.fa" in tasks
+    assert 'ln -s "$fai" "${ref}.fai"' not in tasks
     assert "File staged_alignment = if StageAlignment.kind == \"cram\"" in workflow
 
 
