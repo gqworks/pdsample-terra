@@ -283,6 +283,17 @@ def test_introme_indexes_gtf_as_gff_and_guards_missing_strand():
     assert "if raw_strand is None:" in text
 
 
+def test_spliceogen_scratch_is_on_the_task_disk():
+    """RUN.sh writes under /Spliceogen, which is the boot disk unless redirected."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    spliceogen = text.split("task Spliceogen {", 1)[1].split("task IntromeFunctions {", 1)[0]
+    assert 'ln -s "$PWD/scratch/data" /Spliceogen/data' in spliceogen
+    assert 'ln -s "$PWD/scratch/temp" /Spliceogen/temp' in spliceogen
+    assert 'ln -s "$PWD/scratch/output" /Spliceogen/output' in spliceogen
+    assert 'export TMPDIR="$PWD/scratch/temp"' in spliceogen
+    assert "Int memory_gb = 8" in spliceogen
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"

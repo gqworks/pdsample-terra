@@ -592,31 +592,49 @@ task Spliceogen {
     String docker = "headoncollusion/spliceogen:v2.1"
     Int preemptible = 2
     Int cpu = 3
-    Int memory_gb = 4
+    # Upstream asks for 1 GB at 3 CPUs. That is under the GCP custom-machine
+    # floor (~0.9 GiB/vCPU). 8 GiB leaves room for Java and for sorting the GTF.
+    Int memory_gb = 8
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
-    mkdir -p ref
-    ln -s "$(readlink -f ~{ref_fasta})" ref/ref.fa
-    ln -s "$(readlink -f ~{ref_fasta_index})" ref/ref.fa.fai
+    mkdir -p ref scratch/data scratch/temp scratch/output
+    fasta="$(readlink -f ~{ref_fasta})"
+    fai="$(readlink -f ~{ref_fasta_index})"
+    ln -s "$fasta" ref/ref.fa
+    ln -s "$fai" ref/ref.fa.fai
+    # bedtools getfasta looks for <fasta>.fai beside the path passed to -fi.
+    if [[ ! -e "${fasta}.fai" ]]; then
+      ln -s "$fai" "${fasta}.fai"
+    fi
     # Faithful port of nextflow/modules/spliceogen/spliceogen.nf.
-    # Nextflow sets containerOptions '--entrypoint ""'. Cromwell launches with bash,
-    # which replaces the image entrypoint the same way.
-    # Upstream memory is 1 GB at 3 CPUs. That is below the GCP custom-machine
-    # minimum (~0.9 GiB/vCPU), so this task asks for 4 GiB.
-    echo pwd
-    pwd
-    echo ls
-    ls
+    # Cromwell sets the container entrypoint to bash, same as nextflow's
+    # containerOptions '--entrypoint ""'.
+    # RUN.sh writes data/, temp/, output/, and sort spill relative to /Spliceogen.
+    # That tree is on the boot disk. The GENCODE interval file and flanking FASTA
+    # fill it, and Batch then stops the VM before bash can record an exit code
+    # ("The job was stopped before the command finished").
+    rm -rf /Spliceogen/data /Spliceogen/temp /Spliceogen/output
+    ln -s "$PWD/scratch/data" /Spliceogen/data
+    ln -s "$PWD/scratch/temp" /Spliceogen/temp
+    ln -s "$PWD/scratch/output" /Spliceogen/output
+    export TMPDIR="$PWD/scratch/temp"
     ORIG_DIR="$(pwd)"
     cd /Spliceogen
     ./RUN.sh -input "$(realpath "$ORIG_DIR/~{vcf}")" \
              -fasta "$(realpath "$ORIG_DIR/ref/ref.fa")" \
              -gtf "$(realpath "$ORIG_DIR/~{gtf}")"
     ls output
-    mv output/*_out.txt "$ORIG_DIR/~{prefix}.spliceogen.tsv"
+    shopt -s nullglob
+    outs=(output/*_out.txt)
+    if [[ ${#outs[@]} -eq 0 ]]; then
+      echo "Spliceogen wrote no *_out.txt. output/ contains:" >&2
+      ls -la output >&2
+      exit 1
+    fi
+    mv "${outs[0]}" "$ORIG_DIR/~{prefix}.spliceogen.tsv"
   >>>
   output {
     File spliceogen_tsv = "~{prefix}.spliceogen.tsv"
