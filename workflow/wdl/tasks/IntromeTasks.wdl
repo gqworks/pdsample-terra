@@ -611,25 +611,23 @@ task Spliceogen {
     String prefix = "cohort"
     String force_rerun_token = ""
     String docker = "headoncollusion/spliceogen:v2.1"
-    Int preemptible = 2
-    Int cpu = 8
-    # Upstream asks for 1 GB at 3 CPUs. That is under the GCP custom-machine
-    # floor (~0.9 GiB/vCPU). 8 GiB leaves room for Java and for sorting the GTF.
-    Int memory_gb = 8
+    # Spot preemption and an 8 GiB cgroup both stop the VM before bash can
+    # write an exit code. That is the same Cromwell message as a full boot disk.
+    Int preemptible = 0
+    Int cpu = 4
+    Int memory_gb = 16
   }
   Int disk_gb = ceil(size(vcf, "GiB") + size(ref_fasta, "GiB") + size(gtf, "GiB") + 150)
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
     mkdir -p ref scratch/data scratch/temp scratch/output
-    fasta="$(readlink -f ~{ref_fasta})"
-    fai="$(readlink -f ~{ref_fasta_index})"
-    ln -s "$fasta" ref/ref.fa
-    ln -s "$fai" ref/ref.fa.fai
-    # bedtools getfasta looks for <fasta>.fai beside the path passed to -fi.
-    if [[ ! -e "${fasta}.fai" ]]; then
-      ln -s "$fai" "${fasta}.fai"
-    fi
+    # Keep the FASTA pair in the work dir. The public hg38 FASTA is often a
+    # read-only reference disk, and bedtools looks for <fasta>.fai beside -fi.
+    ln -s ~{ref_fasta} ref/ref.fa
+    ln -s ~{ref_fasta_index} ref/ref.fa.fai
+    # Cap the JVM so a GENCODE pass cannot take the whole cgroup with it.
+    export JAVA_TOOL_OPTIONS="-Xmx8g"
     # Faithful port of nextflow/modules/spliceogen/spliceogen.nf.
     # Cromwell sets the container entrypoint to bash, same as nextflow's
     # containerOptions '--entrypoint ""'.
@@ -654,7 +652,7 @@ EOF
     ORIG_DIR="$(pwd)"
     cd /Spliceogen
     ./RUN.sh -input "$(realpath "$ORIG_DIR/~{vcf}")" \
-             -fasta "$(realpath "$ORIG_DIR/ref/ref.fa")" \
+             -fasta "$ORIG_DIR/ref/ref.fa" \
              -gtf "$(realpath "$ORIG_DIR/~{gtf}")"
     ls output
     shopt -s nullglob
@@ -672,6 +670,7 @@ EOF
   runtime {
     docker: docker
     preemptible: preemptible
+    maxRetries: 1
     memory: "~{memory_gb} GiB"
     disks: "local-disk ~{disk_gb} HDD"
     cpu: cpu
