@@ -1,5 +1,8 @@
 """Phenotype concordance for risk and Mendelian candidates."""
 
+import csv
+from pathlib import Path
+
 import pandas as pd
 
 from pdvar.biomarkers import apply_biomarker_priors
@@ -43,6 +46,7 @@ def test_string_age_matches_gba1_and_flags_genes_without_a_profile():
             {"sample_id": "S", "gene": "GBA1", "inheritance_status": "risk_carrier"},
             {"sample_id": "S", "gene": "PRKN", "inheritance_status": "AR_single_het"},
             {"sample_id": "S", "gene": "SMPD1", "inheritance_status": "risk_carrier"},
+            {"sample_id": "S", "gene": "NOTAPANELGENE", "inheritance_status": "risk_carrier"},
         ],
         {
             "sample_id": "S",
@@ -60,7 +64,9 @@ def test_string_age_matches_gba1_and_flags_genes_without_a_profile():
     assert gba["clinical_match"] == "matched"
     assert out.loc["PRKN", "clinical_match"] == "unmatched"
     assert out.loc["PRKN", "phenotype_score"] == -2
-    assert out.loc["SMPD1", "clinical_match"] == "no_profile"
+    assert bool(out.loc["SMPD1", "ancestry_enriched"]) is True
+    assert out.loc["SMPD1", "clinical_match"] == "matched"
+    assert out.loc["NOTAPANELGENE", "clinical_match"] == "no_profile"
 
 
 def test_blank_phenotype_is_not_assessed_and_sparse_text_is_uninformative():
@@ -173,3 +179,33 @@ def test_gp2_phenotype_report_sets_onset_match_and_keeps_comorbidities():
     assert "Age at diagnosis: blank." in section
     assert "Comorbidities (high): High blood pressure (age 50); High cholesterol (age 50)." in section
     assert "Comorbidities (lower): constipation (age 48); cold sores (age 12); back problems (age 35); Hearing loss (age 58)." in section
+
+
+REPO = Path(__file__).resolve().parents[1]
+PROFILE_FIELDS = {"moi", "onset_range", "key_features", "atypical_features", "enriched_ancestry"}
+
+
+def test_every_panel_gene_has_a_phenotype_profile():
+    profiles = load_config()["gene_phenotypes"]
+    with open(REPO / "resources/panel/monopdaus-gene-inheritance.csv", newline="") as handle:
+        symbols = [row["Symbol"] for row in csv.DictReader(handle)]
+    expected = {("GBA1" if s == "GBA" else s).upper() for s in symbols}
+    assert expected - set(profiles) == set()
+    for gene, profile in profiles.items():
+        assert gene == gene.upper(), gene
+        assert set(profile) <= PROFILE_FIELDS, gene
+        assert {"moi", "key_features", "atypical_features", "enriched_ancestry"} <= set(profile), gene
+        if "onset_range" in profile:
+            lo, hi = profile["onset_range"]
+            assert 0 <= lo <= hi <= 100, gene
+        for field in ("key_features", "atypical_features", "enriched_ancestry"):
+            assert all(isinstance(k, str) and k.strip() for k in profile[field]), (gene, field)
+
+
+def test_profile_without_onset_range_is_never_unmatched_on_age():
+    out = _score(
+        [{"sample_id": "S", "gene": "DNAJC13"}],
+        {"sample_id": "S", "age_onset": "90", "symptoms": "tremor"},
+    )
+    assert out.iloc[0]["clinical_match"] == "uninformative"
+    assert out.iloc[0]["phenotype_score"] == 0

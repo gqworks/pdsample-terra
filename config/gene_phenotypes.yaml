@@ -1,29 +1,42 @@
 # Expected phenotype profile per gene, used for phenotype-genotype concordance.
-# Starter entries from the literature - review and extend alongside the supplied gene panel.
+# Covers every Symbol in resources/panel/monopdaus-gene-inheritance.csv (GBA is keyed as GBA1,
+# C19orf12 as C19ORF12 because lookups upper-case the gene symbol).
+# This is a starter literature synthesis (GeneReviews, OMIM, MDSGene reviews), not a formal
+# systematic review. It must be reviewed by a clinician / movement-disorder expert before the
+# concordance output is used for anything beyond triage. Sources and confidence per gene are in
+# config/gene_phenotypes.SOURCES.md.
 # Fields:
-#   moi:              AD / AR / XL / risk
-#   onset_range:      [min, max] typical age of onset (years)
-#   key_features:     keywords expected in symptom descriptions (case-insensitive match)
+#   moi:              AD / AR / XL / risk / unknown
+#   onset_range:      [min, max] typical age of onset (years) of the neurological presentation,
+#                     including documented later-onset parkinsonism. Omitted when the literature
+#                     gives no usable anchor; onset is then not scored (+2 / -2 never applies).
+#   key_features:     keywords expected in symptom descriptions (case-insensitive substring match)
 #   atypical_features: keywords that, if present, raise suspicion of this gene
 #   enriched_ancestry: ancestries where the gene / specific variants are more common
+#                     (case-insensitive substring of the ethnicity text)
+# Keywords are short substrings so they hit free-text symptom fields. Generic PD words
+# (tremor, gait, dyskinesia) are avoided on differential genes so a typical PD picture with an
+# onset outside the range ends up unmatched rather than matched.
+
+# ---- Mendelian PD with a typical (levodopa-responsive) picture
 
 SNCA:
   moi: AD
-  onset_range: [20, 60]
-  key_features: [dementia, rapid progression, autonomic, hallucinations]
-  atypical_features: [myoclonus]
+  onset_range: [20, 65]
+  key_features: [dementia, cognitive decline, rapid progression, autonomic, hallucinations]
+  atypical_features: [myoclonus, pyramidal]
   enriched_ancestry: []
 
 LRRK2:
   moi: AD
-  onset_range: [40, 80]
+  onset_range: [35, 80]
   key_features: [tremor, levodopa responsive]
   atypical_features: []
-  enriched_ancestry: [Ashkenazi Jewish, North African Berber]
+  enriched_ancestry: [Ashkenazi, North African, Berber, Basque, Chinese]
 
 VPS35:
   moi: AD
-  onset_range: [35, 65]
+  onset_range: [30, 70]
   key_features: [tremor, levodopa responsive]
   atypical_features: []
   enriched_ancestry: []
@@ -49,9 +62,896 @@ PARK7:
   atypical_features: []
   enriched_ancestry: []
 
+CHCHD2:
+  moi: AD
+  onset_range: [35, 70]
+  key_features: [tremor, levodopa responsive]
+  atypical_features: []
+  enriched_ancestry: [Japanese]
+
+RAB32:
+  moi: AD
+  onset_range: [30, 80]
+  key_features: [tremor, levodopa responsive]
+  atypical_features: []
+  enriched_ancestry: []
+
+DAGLB:
+  moi: AR
+  onset_range: [15, 40]
+  key_features: [levodopa responsive, tremor]
+  atypical_features: []
+  enriched_ancestry: []
+
+# ---- Early-onset / atypical parkinsonism (PARK genes with distinctive signs)
+
+ATP13A2:
+  moi: AR
+  onset_range: [10, 30]
+  key_features: [vertical gaze, supranuclear, pyramidal, spasticity, cognitive decline, dementia]
+  atypical_features: [minimyoclonus, hallucinations]
+  enriched_ancestry: []
+
+DNAJC6:
+  moi: AR
+  onset_range: [5, 45]
+  key_features: [pyramidal, spasticity, dysarthria, developmental delay]
+  atypical_features: [seizure, epilepsy, intellectual disability]
+  enriched_ancestry: []
+
+SYNJ1:
+  moi: AR
+  onset_range: [10, 40]
+  key_features: [dystonia, dysarthria, cognitive decline]
+  atypical_features: [seizure, epilepsy, gaze]
+  enriched_ancestry: []
+
+FBXO7:
+  moi: AR
+  onset_range: [10, 30]
+  key_features: [pyramidal, spasticity, hyperreflexia, dyskinesia]
+  atypical_features: [gaze, cognitive decline]
+  enriched_ancestry: []
+
+VPS13C:
+  moi: AR
+  onset_range: [20, 45]
+  key_features: [cognitive decline, dementia, pyramidal, hyperreflexia, dysphagia, rapid progression]
+  atypical_features: [hallucinations]
+  enriched_ancestry: []
+
+PLA2G6:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [dystonia, ataxia, cognitive decline, psychiatric, pyramidal, dyskinesia]
+  atypical_features: [optic atrophy, cerebellar atrophy, iron accumulation, nbia]
+  enriched_ancestry: []
+
+DCTN1:
+  moi: AD
+  onset_range: [35, 70]
+  key_features: [apathy, weight loss]
+  atypical_features: [hypoventilation, respiratory, suicid]
+  enriched_ancestry: []
+
+PSMF1:
+  moi: AR
+  onset_range: [0, 50]
+  key_features: [pyramidal, dysphagia, psychiatric, dyskinesia]
+  atypical_features: [developmental delay, epilepsy, ataxia]
+  enriched_ancestry: []
+
+PTPA:
+  moi: AR
+  onset_range: [10, 30]
+  key_features: [intellectual disability, levodopa responsive]
+  atypical_features: [developmental delay]
+  enriched_ancestry: []
+
+PTRHD1:
+  moi: AR
+  onset_range: [15, 40]
+  key_features: [intellectual disability, pyramidal]
+  atypical_features: [developmental delay]
+  enriched_ancestry: []
+
+RAB39B:
+  moi: XL
+  onset_range: [10, 50]
+  key_features: [intellectual disability, macrocephaly]
+  atypical_features: [autism, seizure]
+  enriched_ancestry: []
+
+ATP6AP2:
+  moi: XL
+  onset_range: [14, 58]
+  key_features: [spasticity, pyramidal, hyperreflexia, scissoring]
+  atypical_features: []
+  enriched_ancestry: []
+
+WDR45:
+  moi: XL
+  onset_range: [0, 40]
+  key_features: [developmental delay, intellectual disability, seizure, dystonia, dementia]
+  atypical_features: [iron accumulation, nbia, stereotyp]
+  enriched_ancestry: []
+
+# ---- Risk genes (moi: risk). Onset is not scored unless the literature gives an anchor.
+
 GBA1:
   moi: risk
   onset_range: [40, 75]
   key_features: [cognitive impairment, dementia, hallucinations, autonomic]
-  atypical_features: []
+  atypical_features: [rem sleep, psychosis]
   enriched_ancestry: [Ashkenazi Jewish]
+
+PSAP:
+  moi: risk
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+SMPD1:
+  moi: risk
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: [Ashkenazi]
+
+TMEM175:
+  moi: risk
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+HEXA:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [weakness, ataxia, psychiatric, dysarthria, psychosis]
+  atypical_features: [motor neuron, tay-sachs, cherry red]
+  enriched_ancestry: [Ashkenazi, French Canadian, Cajun]
+
+# ---- Low-evidence / unreplicated PARK candidates. Kept minimal on purpose: no onset scoring, few or no keywords.
+
+DNAJC13:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+EIF4G1:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+GIGYF2:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+TMEM230:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+RIC3:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+UQCRC1:
+  moi: unknown
+  key_features: []
+  atypical_features: [neuropathy]
+  enriched_ancestry: []
+
+WASL:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+PODXL:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+SOX6:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+NR4A2:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+ANG:
+  moi: unknown
+  key_features: []
+  atypical_features: []
+  enriched_ancestry: []
+
+SCP2:
+  moi: AR
+  key_features: [torticollis, dystonia, neuropathy]
+  atypical_features: [leukoencephalopathy]
+  enriched_ancestry: []
+
+PDE8B:
+  moi: AD
+  key_features: [dysarthria]
+  atypical_features: [striatal]
+  enriched_ancestry: []
+
+ALPL:
+  moi: AD
+  key_features: [fracture, tooth loss]
+  atypical_features: [alkaline phosphatase, chondrocalcinosis]
+  enriched_ancestry: []
+
+# ---- Dystonia, dystonia-parkinsonism and monoamine-neurotransmitter disorders
+
+ANO3:
+  moi: AD
+  onset_range: [5, 45]
+  key_features: [dystonia, head tremor, dysphonia]
+  atypical_features: [myoclonus]
+  enriched_ancestry: []
+
+AOPEP:
+  moi: AR
+  onset_range: [5, 40]
+  key_features: [dystonia, generalized]
+  atypical_features: []
+  enriched_ancestry: []
+
+ATP1A3:
+  moi: AD
+  onset_range: [0, 45]
+  key_features: [dystonia, abrupt onset, dysarthria, dysphagia, bulbar]
+  atypical_features: [hemiplegia, alternating, hearing loss, optic atrophy, areflexia]
+  enriched_ancestry: []
+
+KMT2B:
+  moi: AD
+  onset_range: [0, 25]
+  key_features: [dystonia, dysarthria, developmental delay, intellectual disability, microcephaly]
+  atypical_features: [short stature]
+  enriched_ancestry: []
+
+PRKRA:
+  moi: AR
+  onset_range: [2, 30]
+  key_features: [dystonia, laryngeal, oromandibular, retrocollis]
+  atypical_features: [opisthotonus]
+  enriched_ancestry: []
+
+TUBB4A:
+  moi: AD
+  onset_range: [0, 40]
+  key_features: [dystonia, dysphonia, whisper]
+  atypical_features: [hypomyelination, leukodystrophy, ataxia, spasticity]
+  enriched_ancestry: []
+
+GCH1:
+  moi: AD
+  onset_range: [0, 50]
+  key_features: [dystonia, diurnal, levodopa responsive]
+  atypical_features: []
+  enriched_ancestry: []
+
+TH:
+  moi: AR
+  onset_range: [0, 12]
+  key_features: [dystonia, hypotonia, levodopa responsive, oculogyric, developmental delay]
+  atypical_features: [ptosis]
+  enriched_ancestry: []
+
+SPR:
+  moi: AR
+  onset_range: [0, 10]
+  key_features: [dystonia, hypotonia, oculogyric, diurnal, developmental delay, levodopa responsive]
+  atypical_features: []
+  enriched_ancestry: []
+
+PTS:
+  moi: AR
+  onset_range: [0, 5]
+  key_features: [hypotonia, seizure, developmental delay, microcephaly, dystonia]
+  atypical_features: [phenylalanine]
+  enriched_ancestry: []
+
+QDPR:
+  moi: AR
+  onset_range: [0, 5]
+  key_features: [hypotonia, seizure, developmental delay, microcephaly, dystonia]
+  atypical_features: [phenylalanine]
+  enriched_ancestry: []
+
+DDC:
+  moi: AR
+  onset_range: [0, 2]
+  key_features: [oculogyric, hypotonia, dystonia, developmental delay, ptosis]
+  atypical_features: [sweating]
+  enriched_ancestry: []
+
+DNAJC12:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [dystonia, levodopa responsive, intellectual disability]
+  atypical_features: [phenylalanine]
+  enriched_ancestry: []
+
+SLC6A3:
+  moi: AR
+  onset_range: [0, 30]
+  key_features: [dystonia, hypotonia, oculogyric, chorea]
+  atypical_features: []
+  enriched_ancestry: []
+
+SLC18A2:
+  moi: AR
+  onset_range: [0, 5]
+  key_features: [hypotonia, oculogyric, dystonia, developmental delay]
+  atypical_features: [sweating]
+  enriched_ancestry: []
+
+SLC30A10:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [dystonia, manganese, polycythemia, gait]
+  atypical_features: [cirrhosis, liver]
+  enriched_ancestry: []
+
+SLC39A14:
+  moi: AR
+  onset_range: [0, 15]
+  key_features: [dystonia, manganese]
+  atypical_features: []
+  enriched_ancestry: []
+
+EIF2AK2:
+  moi: AD
+  onset_range: [0, 30]
+  key_features: [dystonia, developmental delay, ataxia, leukoencephalopathy]
+  atypical_features: [regression]
+  enriched_ancestry: []
+
+# ---- NBIA and metal-accumulation disorders
+
+PANK2:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [dystonia, dysarthria, spasticity, psychiatric, tiger]
+  atypical_features: [retinopathy, retinitis, palilalia]
+  enriched_ancestry: []
+
+C19ORF12:
+  moi: AR
+  onset_range: [3, 40]
+  key_features: [spasticity, optic atrophy, dystonia, cognitive decline, psychiatric, neuropathy]
+  atypical_features: [iron accumulation, nbia]
+  enriched_ancestry: []
+
+COASY:
+  moi: AR
+  onset_range: [0, 20]
+  key_features: [dystonia, spasticity, cognitive, developmental delay]
+  atypical_features: [iron accumulation, nbia, neuropathy]
+  enriched_ancestry: []
+
+FA2H:
+  moi: AR
+  onset_range: [0, 15]
+  key_features: [spasticity, ataxia, dystonia, optic atrophy]
+  atypical_features: [leukodystrophy, iron accumulation, nbia]
+  enriched_ancestry: []
+
+FTL:
+  moi: AD
+  onset_range: [15, 60]
+  key_features: [chorea, dystonia, dysarthria, dysphagia, orofacial]
+  atypical_features: [iron accumulation, low ferritin, nbia]
+  enriched_ancestry: []
+
+CP:
+  moi: AR
+  onset_range: [25, 60]
+  key_features: [diabetes, anemia, anaemia, retinal, ataxia, chorea, cognitive]
+  atypical_features: [ceruloplasmin, iron accumulation]
+  enriched_ancestry: []
+
+ATP7B:
+  moi: AR
+  onset_range: [5, 45]
+  key_features: [liver, dystonia, dysarthria, psychiatric, wing-beating]
+  atypical_features: [kayser-fleischer, ceruloplasmin, copper, cirrhosis, hepatitis]
+  enriched_ancestry: []
+
+# ---- Primary familial brain calcification (PFBC)
+
+SLC20A2:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [calcification, fahr, headache, psychiatric, cognitive]
+  atypical_features: []
+  enriched_ancestry: []
+
+PDGFB:
+  moi: AD
+  onset_range: [5, 55]
+  key_features: [calcification, fahr, headache, migraine, psychiatric]
+  atypical_features: []
+  enriched_ancestry: []
+
+PDGFRB:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [calcification, fahr]
+  atypical_features: []
+  enriched_ancestry: []
+
+XPR1:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [calcification, fahr, psychiatric, cognitive]
+  atypical_features: []
+  enriched_ancestry: []
+
+MYORG:
+  moi: AR
+  onset_range: [20, 70]
+  key_features: [calcification, fahr, dysarthria, ataxia, cerebellar]
+  atypical_features: []
+  enriched_ancestry: []
+
+JAM2:
+  moi: AR
+  onset_range: [5, 45]
+  key_features: [calcification, fahr, spasticity, dysarthria]
+  atypical_features: []
+  enriched_ancestry: []
+
+# ---- Differential: Alzheimer, FTD, prion, ALS spectrum
+
+APP:
+  moi: AD
+  onset_range: [30, 65]
+  key_features: [memory, dementia, amnesi, cognitive decline]
+  atypical_features: [angiopathy, haemorrhage, hemorrhage, seizure, myoclonus]
+  enriched_ancestry: []
+
+PSEN1:
+  moi: AD
+  onset_range: [25, 65]
+  key_features: [memory, dementia, cognitive decline]
+  atypical_features: [spastic paraparesis, spasticity, myoclonus, seizure]
+  enriched_ancestry: []
+
+PSEN2:
+  moi: AD
+  onset_range: [40, 80]
+  key_features: [memory, dementia, cognitive decline]
+  atypical_features: [seizure]
+  enriched_ancestry: []
+
+MAPT:
+  moi: AD
+  onset_range: [25, 65]
+  key_features: [behaviour, behavior, disinhibition, apathy, frontotemporal]
+  atypical_features: [supranuclear, gaze palsy, ftd]
+  enriched_ancestry: []
+
+GRN:
+  moi: AD
+  onset_range: [35, 80]
+  key_features: [behaviour, behavior, aphasia, apathy, disinhibition, frontotemporal]
+  atypical_features: [corticobasal, apraxia, ftd]
+  enriched_ancestry: []
+
+PRNP:
+  moi: AD
+  onset_range: [20, 80]
+  key_features: [rapid progression, dementia, myoclonus, ataxia, cognitive decline]
+  atypical_features: [insomnia, prion, creutzfeldt, cjd]
+  enriched_ancestry: []
+
+CHCHD10:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [myopathy, motor neuron, amyotrophic, frontotemporal, ataxia, neuropathy]
+  atypical_features: [ftd]
+  enriched_ancestry: []
+
+FUS:
+  moi: AD
+  onset_range: [15, 60]
+  key_features: [amyotrophic, motor neuron, weakness, fasciculation, bulbar]
+  atypical_features: [frontotemporal, ftd]
+  enriched_ancestry: []
+
+TBK1:
+  moi: AD
+  onset_range: [40, 80]
+  key_features: [amyotrophic, motor neuron, frontotemporal, behaviour, behavior]
+  atypical_features: [fasciculation, ftd]
+  enriched_ancestry: []
+
+SQSTM1:
+  moi: AD
+  onset_range: [40, 80]
+  key_features: [amyotrophic, motor neuron, frontotemporal, paget]
+  atypical_features: [bone pain, ftd]
+  enriched_ancestry: []
+
+VCP:
+  moi: AD
+  onset_range: [30, 70]
+  key_features: [myopathy, weakness, paget, frontotemporal, amyotrophic]
+  atypical_features: [inclusion body, motor neuron, ftd]
+  enriched_ancestry: []
+
+# ---- Differential: ataxia, HSP and neuropathy
+
+AFG3L2:
+  moi: AD
+  onset_range: [10, 60]
+  key_features: [ataxia, ophthalmoparesis, ptosis, dysarthria, nystagmus]
+  atypical_features: [hyperreflexia, optic atrophy]
+  enriched_ancestry: []
+
+PRKCG:
+  moi: AD
+  onset_range: [10, 60]
+  key_features: [ataxia, myoclonus, dysarthria, nystagmus]
+  atypical_features: [dystonia]
+  enriched_ancestry: []
+
+STUB1:
+  moi: AR
+  onset_range: [10, 60]
+  key_features: [ataxia, cognitive, dysarthria, hypogonadism]
+  atypical_features: [chorea, psychiatric]
+  enriched_ancestry: []
+
+SPG11:
+  moi: AR
+  onset_range: [5, 35]
+  key_features: [spasticity, spastic, cognitive, corpus callosum, neuropathy]
+  atypical_features: [lynx, amyotrophic]
+  enriched_ancestry: []
+
+SPG7:
+  moi: AR
+  onset_range: [20, 65]
+  key_features: [spasticity, spastic, ataxia, ptosis, ophthalmoplegia, optic atrophy]
+  atypical_features: []
+  enriched_ancestry: []
+
+ZFYVE26:
+  moi: AR
+  onset_range: [5, 30]
+  key_features: [spasticity, spastic, cognitive, corpus callosum, neuropathy]
+  atypical_features: [retinopathy]
+  enriched_ancestry: []
+
+KIF5A:
+  moi: AD
+  onset_range: [5, 60]
+  key_features: [spasticity, spastic, neuropathy, amyotrophic, motor neuron]
+  atypical_features: []
+  enriched_ancestry: []
+
+PNPLA6:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [ataxia, spasticity, hypogonadism, chorioretinal, retinal]
+  atypical_features: [neuropathy]
+  enriched_ancestry: []
+
+FIG4:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [neuropathy, weakness, charcot-marie-tooth, cmt]
+  atypical_features: [amyotrophic, motor neuron]
+  enriched_ancestry: []
+
+SLC25A46:
+  moi: AR
+  onset_range: [0, 30]
+  key_features: [optic atrophy, neuropathy, ataxia]
+  atypical_features: [cerebellar]
+  enriched_ancestry: []
+
+FLVCR1:
+  moi: AR
+  onset_range: [0, 30]
+  key_features: [ataxia, retinitis, sensory neuropathy, posterior column]
+  atypical_features: [anemia, anaemia]
+  enriched_ancestry: []
+
+# ---- Differential: mitochondrial disease
+
+POLG:
+  moi: AR
+  onset_range: [10, 60]
+  key_features: [ophthalmoplegia, ptosis, neuropathy, ataxia, seizure, epilepsy]
+  atypical_features: [liver, myopathy, lactic]
+  enriched_ancestry: []
+
+TWNK:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [ophthalmoplegia, ptosis, myopathy, exercise intolerance]
+  atypical_features: [neuropathy, ataxia]
+  enriched_ancestry: []
+
+SLC25A4:
+  moi: AD
+  onset_range: [20, 60]
+  key_features: [ophthalmoplegia, ptosis, myopathy]
+  atypical_features: [psychiatric, cardiomyopathy]
+  enriched_ancestry: []
+
+OPA1:
+  moi: AD
+  onset_range: [0, 50]
+  key_features: [optic atrophy, vision loss, visual loss, hearing loss, ophthalmoplegia]
+  atypical_features: [ataxia, neuropathy, myopathy]
+  enriched_ancestry: []
+
+OPA3:
+  moi: AD
+  onset_range: [0, 40]
+  key_features: [optic atrophy, cataract, ataxia, chorea, spasticity]
+  atypical_features: [methylglutacon]
+  enriched_ancestry: []
+
+SERAC1:
+  moi: AR
+  onset_range: [0, 15]
+  key_features: [hearing loss, deafness, dystonia, developmental delay]
+  atypical_features: [methylglutacon, hypoglyc, liver]
+  enriched_ancestry: []
+
+WARS2:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [developmental delay, intellectual disability]
+  atypical_features: [lactic, seizure]
+  enriched_ancestry: []
+
+# ---- Differential: lysosomal, metabolic and leukodystrophy
+
+ARSA:
+  moi: AR
+  onset_range: [0, 60]
+  key_features: [psychiatric, cognitive decline, spasticity, neuropathy, leukodystrophy, white matter]
+  atypical_features: [gallbladder]
+  enriched_ancestry: []
+
+CLN3:
+  moi: AR
+  onset_range: [3, 15]
+  key_features: [vision loss, visual loss, retinopathy, seizure, cognitive decline, dementia]
+  atypical_features: [behaviour, behavior]
+  enriched_ancestry: []
+
+DNAJC5:
+  moi: AD
+  onset_range: [20, 50]
+  key_features: [seizure, myoclonus, dementia, cognitive decline]
+  atypical_features: [epilepsy, ataxia]
+  enriched_ancestry: []
+
+TPP1:
+  moi: AR
+  onset_range: [1, 10]
+  key_features: [seizure, epilepsy, ataxia, regression, myoclonus, vision loss]
+  atypical_features: []
+  enriched_ancestry: []
+
+GLB1:
+  moi: AR
+  onset_range: [0, 30]
+  key_features: [dystonia, dysarthria, short stature, skeletal]
+  atypical_features: [cherry red, cardiomyopathy]
+  enriched_ancestry: []
+
+NPC1:
+  moi: AR
+  onset_range: [0, 60]
+  key_features: [vertical gaze, supranuclear, ataxia, cataplexy, dystonia, psychiatric, cognitive decline]
+  atypical_features: [splenomegaly, gelastic]
+  enriched_ancestry: []
+
+NPC2:
+  moi: AR
+  onset_range: [0, 60]
+  key_features: [vertical gaze, supranuclear, ataxia, cataplexy, dystonia, psychiatric, cognitive decline]
+  atypical_features: [splenomegaly, gelastic]
+  enriched_ancestry: []
+
+LYST:
+  moi: AR
+  onset_range: [15, 50]
+  key_features: [albinism, neuropathy, ataxia, cognitive, spasticity]
+  atypical_features: [recurrent infection, bleeding, silvery]
+  enriched_ancestry: []
+
+CYP27A1:
+  moi: AR
+  onset_range: [10, 50]
+  key_features: [xanthoma, cataract, diarrh, ataxia, spasticity, cognitive, psychiatric]
+  atypical_features: [tendon]
+  enriched_ancestry: []
+
+CSF1R:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [cognitive decline, dementia, behaviour, behavior, psychiatric, white matter, leukoencephalopathy, spasticity]
+  atypical_features: [calcification, seizure, corpus callosum]
+  enriched_ancestry: []
+
+POLR3A:
+  moi: AR
+  onset_range: [0, 40]
+  key_features: [ataxia, hypomyelination, hypodontia, hypogonadism, spasticity, dental]
+  atypical_features: [myopia]
+  enriched_ancestry: []
+
+SLC19A3:
+  moi: AR
+  onset_range: [0, 30]
+  key_features: [encephalopathy, dystonia, seizure, dysarthria, ophthalmoplegia]
+  atypical_features: [thiamine, biotin]
+  enriched_ancestry: []
+
+VPS13A:
+  moi: AR
+  onset_range: [15, 50]
+  key_features: [chorea, orofacial, tongue, lip biting, seizure, psychiatric, neuropathy]
+  atypical_features: [acanthocyt, creatine kinase]
+  enriched_ancestry: []
+
+VAC14:
+  moi: AR
+  onset_range: [0, 15]
+  key_features: [dystonia, regression, striatal]
+  atypical_features: []
+  enriched_ancestry: []
+
+PGK1:
+  moi: XL
+  onset_range: [0, 30]
+  key_features: [hemolytic, haemolytic, anemia, anaemia, myopathy, rhabdomyolysis, exercise intolerance, seizure, intellectual disability]
+  atypical_features: []
+  enriched_ancestry: []
+
+ADAR:
+  moi: AD
+  onset_range: [0, 15]
+  key_features: [dystonia, striatal, regression, spasticity, chilblain]
+  atypical_features: [calcification, dyschromatosis]
+  enriched_ancestry: []
+
+# ---- Differential: neurodevelopmental and epilepsy genes. onset_range spans the neurological presentation and documented later parkinsonism.
+
+DHDDS:
+  moi: AD
+  onset_range: [0, 35]
+  key_features: [developmental delay, intellectual disability, seizure, epilepsy, myoclonus]
+  atypical_features: [retinitis]
+  enriched_ancestry: []
+
+FOXG1:
+  moi: AD
+  onset_range: [0, 5]
+  key_features: [microcephaly, dyskinesia, chorea, developmental delay, seizure]
+  atypical_features: [corpus callosum]
+  enriched_ancestry: []
+
+FRRS1L:
+  moi: AR
+  onset_range: [0, 5]
+  key_features: [seizure, epilepsy, chorea, developmental delay, regression]
+  atypical_features: []
+  enriched_ancestry: []
+
+HIVEP2:
+  moi: AD
+  onset_range: [0, 10]
+  key_features: [intellectual disability, developmental delay, hypotonia]
+  atypical_features: [dystonia]
+  enriched_ancestry: []
+
+MECP2:
+  moi: XL
+  onset_range: [0, 40]
+  key_features: [regression, stereotyp, hand wringing, seizure, intellectual disability]
+  atypical_features: [breathing]
+  enriched_ancestry: []
+
+NAA15:
+  moi: AD
+  onset_range: [0, 10]
+  key_features: [intellectual disability, developmental delay, autism]
+  atypical_features: []
+  enriched_ancestry: []
+
+NUS1:
+  moi: AD
+  onset_range: [0, 45]
+  key_features: [myoclonus, intellectual disability, developmental delay, seizure]
+  atypical_features: [ataxia]
+  enriched_ancestry: []
+
+PPP2R5D:
+  moi: AD
+  onset_range: [0, 45]
+  key_features: [intellectual disability, macrocephaly, developmental delay]
+  atypical_features: [autism]
+  enriched_ancestry: []
+
+SCN1A:
+  moi: AD
+  onset_range: [0, 45]
+  key_features: [seizure, febrile, epilepsy, developmental delay]
+  atypical_features: [ataxia]
+  enriched_ancestry: []
+
+SLC9A6:
+  moi: XL
+  onset_range: [0, 40]
+  key_features: [intellectual disability, ataxia, seizure, microcephaly, epilepsy]
+  atypical_features: [regression]
+  enriched_ancestry: []
+
+STXBP1:
+  moi: AD
+  onset_range: [0, 45]
+  key_features: [seizure, epilepsy, intellectual disability, developmental delay]
+  atypical_features: [ataxia]
+  enriched_ancestry: []
+
+TBC1D24:
+  moi: AR
+  onset_range: [0, 20]
+  key_features: [seizure, epilepsy, hearing loss, deafness, myoclonus]
+  atypical_features: [onychodystrophy]
+  enriched_ancestry: []
+
+UBTF:
+  moi: AD
+  onset_range: [0, 15]
+  key_features: [regression, developmental delay, dystonia, cerebellar atrophy, ataxia]
+  atypical_features: []
+  enriched_ancestry: []
+
+EPM2A:
+  moi: AR
+  onset_range: [8, 20]
+  key_features: [myoclonus, seizure, epilepsy, cognitive decline]
+  atypical_features: [occipital]
+  enriched_ancestry: []
+
+NHLRC1:
+  moi: AR
+  onset_range: [8, 25]
+  key_features: [myoclonus, seizure, epilepsy, cognitive decline]
+  atypical_features: [occipital]
+  enriched_ancestry: []
+
+DCAF17:
+  moi: AR
+  onset_range: [10, 30]
+  key_features: [hypogonadism, alopecia, diabetes, hearing loss, dystonia]
+  atypical_features: [intellectual disability]
+  enriched_ancestry: [Saudi]
