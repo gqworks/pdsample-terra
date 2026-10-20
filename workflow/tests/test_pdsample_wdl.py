@@ -283,6 +283,20 @@ def test_introme_indexes_gtf_as_gff_and_guards_missing_strand():
     assert "if raw_strand is None:" in text
 
 
+def test_introme_cpu_tools_are_given_a_thread_count():
+    """Neural nets have no CLI thread flag. They read OMP and TensorFlow env vars."""
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    workflow = (ROOT / "workflow" / "wdl" / "Introme.wdl").read_text(encoding="utf-8")
+    assert tasks.count('export TF_NUM_INTRAOP_THREADS="$threads"') == 2
+    assert tasks.count('export OMP_NUM_THREADS="$threads"') >= 4
+    assert 'exec /usr/bin/sort --parallel=${threads}' in tasks
+    assert "Int pangolin_cpu = if use_gpu then 1 else 16" in workflow
+    assert "Int spliceai_cpu = if use_gpu then 1 else 16" in workflow
+    assert "Int mmsplice_cpu = if use_gpu then 1 else 16" in workflow
+    assert "memory_gb = spliceai_mem" in workflow
+    assert "memory_gb = mmsplice_mem" in workflow
+
+
 def test_spliceogen_scratch_is_on_the_task_disk():
     """RUN.sh writes under /Spliceogen, which is the boot disk unless redirected."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
