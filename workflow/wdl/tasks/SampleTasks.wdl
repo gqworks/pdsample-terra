@@ -744,6 +744,114 @@ task Gauchian {
   }
 }
 
+task StageIndexedAlignment {
+  input {
+    File alignment
+    File alignment_index
+    String sample_id
+    File gate
+    File ref_fasta
+    File ref_fasta_index
+    String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+    Int preemptible = 3
+  }
+  # A hardlink stays on the input disk. A cross-filesystem copy needs a second copy.
+  Int disk_gb = ceil(size(alignment, "GiB") * 2 + size(alignment_index, "GiB") + size(ref_fasta, "GiB") + 50)
+  command <<<
+    set -euo pipefail
+    wc -c ~{gate} >/dev/null
+    align_in="~{alignment}"
+    index_in="~{alignment_index}"
+    ref="~{ref_fasta}"
+    fai="~{ref_fasta_index}"
+    if [[ ! -e "${ref}.fai" ]]; then
+      ln -s "$fai" "${ref}.fai"
+    fi
+    # CRAM files start with the ASCII magic "CRAM". A BAM is BGZF and does not.
+    # The Terra filename is not a reliable type: a BAM named .cram makes Manta
+    # look for sample.cram.crai and GetChromDepth then reports that no index exists.
+    magic="$(head -c 4 "$align_in" || true)"
+    if [[ "$magic" == "CRAM" ]]; then
+      kind="cram"
+    else
+      kind="bam"
+    fi
+    printf '%s' "$kind" > kind.txt
+    out="~{sample_id}.${kind}"
+    ln "$align_in" "$out" || cp -a "$align_in" "$out"
+    if [[ "$kind" == "cram" ]]; then
+      ln "$index_in" "${out}.crai" || cp -a "$index_in" "${out}.crai"
+      index_path="${out}.crai"
+    else
+      ln "$index_in" "${out}.bai" || cp -a "$index_in" "${out}.bai"
+      index_path="${out}.bai"
+    fi
+    # A region count forces htslib to open the sibling index. Header-only reads do not.
+    # CRAM header reads need the reference. A bad sibling index can make even
+    # the header read fail, so drop that index and try once more before giving up.
+    read_header() {
+      if [[ "$kind" == "cram" ]]; then
+        samtools view -T "$ref" -H "$out"
+      else
+        samtools view -H "$out"
+      fi
+    }
+    set +e
+    header_text="$(read_header 2>header.err)"
+    header_rc=$?
+    set -e
+    if [[ "$header_rc" -ne 0 ]]; then
+      echo "Header read failed; dropping the supplied index and retrying" >&2
+      cat header.err >&2
+      rm -f "$index_path"
+      header_text="$(read_header)"
+    fi
+    contig="$(printf '%s\n' "$header_text" | awk '/^@SQ/{sub(/^SN:/,"",$2); print $2; exit}')"
+    if [[ -z "$contig" ]]; then
+      echo "Alignment has no @SQ records" >&2
+      exit 1
+    fi
+    if [[ "$kind" == "cram" ]]; then
+      if ! samtools view -T "$ref" -c "$out" "${contig}:1-2" >/dev/null 2>index_check.txt; then
+        echo "Supplied index cannot be used with ${out}; rebuilding" >&2
+        cat index_check.txt >&2
+        rm -f "$index_path"
+        samtools index -@ 4 "$out"
+      fi
+    else
+      if ! samtools view -c "$out" "${contig}:1-2" >/dev/null 2>index_check.txt; then
+        echo "Supplied index cannot be used with ${out}; rebuilding" >&2
+        cat index_check.txt >&2
+        rm -f "$index_path"
+        samtools index -@ 4 "$out"
+      fi
+    fi
+    # WDL declares both pairs. The unused pair is a placeholder; the workflow
+    # selects the pair named by kind.txt.
+    if [[ "$kind" == "cram" ]]; then
+      printf 'placeholder\n' > "~{sample_id}.bam"
+      printf 'placeholder\n' > "~{sample_id}.bam.bai"
+    else
+      printf 'placeholder\n' > "~{sample_id}.cram"
+      printf 'placeholder\n' > "~{sample_id}.cram.crai"
+    fi
+  >>>
+  output {
+    String kind = read_string("kind.txt")
+    File cram_alignment = "~{sample_id}.cram"
+    File cram_index = "~{sample_id}.cram.crai"
+    File bam_alignment = "~{sample_id}.bam"
+    File bam_index = "~{sample_id}.bam.bai"
+  }
+  runtime {
+    docker: samtools_docker
+    preemptible: preemptible
+    memory: "8 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 4
+  }
+}
+
 task ReleaseAfterQc {
   input {
     File payload
