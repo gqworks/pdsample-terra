@@ -755,18 +755,20 @@ task StageIndexedAlignment {
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     Int preemptible = 3
   }
-  # A hardlink stays on the input disk. A cross-filesystem copy needs a second copy.
-  Int disk_gb = ceil(size(alignment, "GiB") * 2 + size(alignment_index, "GiB") + size(ref_fasta, "GiB") + 50)
+  # Localization writes one full copy of the BAM or CRAM. A failed hardlink
+  # falls back to cp, which needs a second copy, plus a little room for the index.
+  Int disk_gb = ceil(size(alignment, "GiB") * 3 + size(alignment_index, "GiB") + size(ref_fasta, "GiB") + 100)
   command <<<
     set -euo pipefail
     wc -c ~{gate} >/dev/null
     align_in="~{alignment}"
     index_in="~{alignment_index}"
-    ref="~{ref_fasta}"
-    fai="~{ref_fasta_index}"
-    if [[ ! -e "${ref}.fai" ]]; then
-      ln -s "$fai" "${ref}.fai"
-    fi
+    # The hg38 FASTA is often a read-only reference disk. samtools -T looks for
+    # <fasta>.fai beside that path, and a symlink there fails with EROFS.
+    mkdir -p ref
+    ln -s ~{ref_fasta} ref/ref.fa
+    ln -s ~{ref_fasta_index} ref/ref.fa.fai
+    ref="ref/ref.fa"
     # CRAM files start with the ASCII magic "CRAM". A BAM is BGZF and does not.
     # The Terra filename is not a reliable type: a BAM named .cram makes Manta
     # look for sample.cram.crai and GetChromDepth then reports that no index exists.

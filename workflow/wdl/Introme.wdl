@@ -204,7 +204,7 @@ workflow Introme {
       prefix = prefix,
       force_rerun_token = force_rerun_token,
       docker = spliceogen_docker,
-      preemptible = preemptible
+      preemptible = 0
   }
   call Tasks.IntromeFunctions {
     input:

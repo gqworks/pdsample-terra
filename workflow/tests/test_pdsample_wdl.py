@@ -261,6 +261,8 @@ def test_sv_alignment_is_staged_from_magic_bytes():
     assert "bam_or_cram_file = staged_alignment" in workflow
     assert 'if [[ "$magic" == "CRAM" ]]; then' in tasks
     assert 'samtools index -@ 4 "$out"' in tasks
+    assert "ln -s ~{ref_fasta} ref/ref.fa" in tasks
+    assert 'ln -s "$fai" "${ref}.fai"' not in tasks
     assert "File staged_alignment = if StageAlignment.kind == \"cram\"" in workflow
 
 
@@ -304,7 +306,10 @@ def test_spliceogen_scratch_is_on_the_task_disk():
     assert 'ln -s "$PWD/scratch/temp" /Spliceogen/temp' in spliceogen
     assert 'ln -s "$PWD/scratch/output" /Spliceogen/output' in spliceogen
     assert 'export TMPDIR="$PWD/scratch/temp"' in spliceogen
-    assert "Int memory_gb = 8" in spliceogen
+    assert "Int preemptible = 0" in spliceogen
+    assert "Int memory_gb = 16" in spliceogen
+    assert 'export JAVA_TOOL_OPTIONS="-Xmx8g"' in spliceogen
+    assert '-fasta "$ORIG_DIR/ref/ref.fa"' in spliceogen
 
 
 def test_gatksv_callers_use_sixteen_cores():
