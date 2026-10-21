@@ -649,11 +649,19 @@ exec /usr/bin/sort --parallel=${threads} "\$@"
 EOF
     chmod +x "$PWD/bin/sort"
     export PATH="$PWD/bin:$PATH"
+    # Resolve inputs before cd. Cromwell File paths are often absolute
+    # (/cromwell_root/...); "$ORIG_DIR/~{vcf}" would then become a nonexistent
+    # double path and realpath would fail before RUN.sh starts. That aborts the
+    # tool stage and leaves SpliceAI/Pangolin/MMSplice queued-but-never-sent.
     ORIG_DIR="$(pwd)"
+    VCF_PATH="$(realpath ~{vcf})"
+    GTF_PATH="$(realpath ~{gtf})"
+    FASTA_PATH="$ORIG_DIR/ref/ref.fa"
+    echo "spliceogen inputs: vcf=${VCF_PATH} gtf=${GTF_PATH} fasta=${FASTA_PATH}" >&2
     cd /Spliceogen
-    ./RUN.sh -input "$(realpath "$ORIG_DIR/~{vcf}")" \
-             -fasta "$ORIG_DIR/ref/ref.fa" \
-             -gtf "$(realpath "$ORIG_DIR/~{gtf}")"
+    ./RUN.sh -input "$VCF_PATH" \
+             -fasta "$FASTA_PATH" \
+             -gtf "$GTF_PATH"
     ls output
     shopt -s nullglob
     outs=(output/*_out.txt)
