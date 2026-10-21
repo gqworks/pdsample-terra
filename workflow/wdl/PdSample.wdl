@@ -3,11 +3,11 @@ version 1.0
 import "tasks/SampleTasks.wdl" as Tasks
 import "Introme.wdl" as IntromeWf
 import "https://raw.githubusercontent.com/broadinstitute/gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl" as Mitochondria
-import "https://raw.githubusercontent.com/broadinstitute/gatk-sv/v0.29-beta/wdl/GATKSVPipelineSingleSample.wdl" as GatkSv
+import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai), including required GATK-SV v0.29-beta. A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs are not supported."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai), including required GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs are not supported."
   }
   input {
     String sample_id
@@ -101,19 +101,23 @@ workflow PdSample {
     File non_control_region_interval_list
 
     String sv_manta_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/manta:2023-09-14-v0.28.3-beta-3f22f94d"
-    String sv_scramble_docker = "us.gcr.io/broad-dsde-methods/markw/scramble:mw-scramble-99af4c50"
-    String sv_wham_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/wham:2024-01-24-v0.28.4-beta-9debd6d7"
-    String sv_sv_base_mini_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-base-mini:2024-01-24-v0.28.4-beta-9debd6d7"
-    String sv_sv_base_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-base:2024-01-24-v0.28.4-beta-9debd6d7"
-    String sv_sv_pipeline_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-pipeline:2024-08-19-v0.28.5-beta-84a0627d"
-    String sv_sv_pipeline_qc_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-pipeline:2024-08-19-v0.28.5-beta-84a0627d"
+    String sv_scramble_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/scramble:2024-10-25-v0.29-beta-5ea22a52"
+    String sv_wham_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/wham:2024-10-25-v0.29-beta-5ea22a52"
+    String sv_sv_base_mini_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-base-mini:2024-10-25-v0.29-beta-5ea22a52"
+    String sv_sv_base_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-base:2024-10-25-v0.29-beta-5ea22a52"
+    String sv_sv_pipeline_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-pipeline:2025-10-02-v1.1-483973d6"
+    String sv_sv_pipeline_qc_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-pipeline:2025-10-02-v1.1-483973d6"
     String sv_linux_docker = "marketplace.gcr.io/google/ubuntu1804"
-    String sv_cnmops_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/cnmops:2024-06-04-v0.28.5-beta-a8dfecba"
-    String sv_gatk_docker = "us.gcr.io/broad-dsde-methods/eph/gatk:2024-07-02-4.6.0.0-1-g4af2b49e9-NIGHTLY-SNAPSHOT"
+    String sv_cnmops_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/cnmops:2025-09-02-v1.0.5-f091af0b"
+    String sv_gatk_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/gatk:2025-05-20-4.6.2.0-4-g1facd911e-NIGHTLY-SNAPSHOT"
     String sv_condense_counts_docker = "us.gcr.io/broad-dsde-methods/tsharpe/gatk:4.2.6.1-57-g9e03432"
     String sv_genomes_in_the_cloud_docker = "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.3.2-1510681135"
-    String sv_samtools_cloud_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/samtools-cloud:2024-01-24-v0.28.4-beta-9debd6d7"
+    String sv_samtools_cloud_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/samtools-cloud:2024-10-25-v0.29-beta-5ea22a52"
     String sv_cloud_sdk_docker = "google/cloud-sdk"
+    String sv_gq_recalibrator_gatk_docker = "us.gcr.io/broad-dsde-methods/markw/gatk:mw-tb-form-sv-filter-training-data-eb62a3"
+    # v1.1.1 defaults: Scramble on, MELT off (MELT is deprecated).
+    Boolean sv_use_melt = false
+    Boolean sv_use_scramble = true
     File sv_ref_samples_list
     File sv_ref_ped_file
     File sv_genome_file
@@ -135,7 +139,7 @@ workflow PdSample {
     Int sv_min_svsize = 50
     # Manta runs one local job per core and accounts 2 GiB to each job.
     # 16 cores with jobs_per_cpu 1.0 is 16 jobs, so the VM is 32 GiB (2 GiB
-    # per vCPU). The v0.29 default is 8 cores. Wham -x and samtools -@ read
+    # per vCPU). Upstream default is 8 cores. Wham -x and samtools -@ read
     # the same core count; Wham's default is 4.
     Float sv_manta_jobs_per_cpu = 1.0
     Int sv_caller_cpu_cores = 16
@@ -151,11 +155,11 @@ workflow PdSample {
     File sv_cnmops_exclude_list
     Int sv_matrix_qc_distance = 1000000
     File sv_ref_std_manta_vcf_tar
+    File sv_ref_std_scramble_vcf_tar
     File sv_ref_std_wham_vcf_tar
     File sv_ref_panel_del_bed
     File sv_ref_panel_dup_bed
     File sv_depth_exclude_list
-    File sv_empty_file
     Float sv_depth_exclude_overlap_fraction = 0.5
     Float sv_depth_interval_overlap = 0.8
     File sv_pesr_exclude_intervals
@@ -186,6 +190,35 @@ workflow PdSample {
     File sv_noncoding_bed
     Int sv_annotation_sv_per_shard = 5000
     File sv_qc_definitions
+    File sv_clustering_config_part1
+    File sv_clustering_config_part2
+    File sv_stratification_config_part1
+    File sv_stratification_config_part2
+    File sv_gq_recalibrator_model_file
+    Array[File] sv_clustering_track_bed_files = [
+      "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/hg38.SimpRep.sorted.pad_100.merged.bed",
+      "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/hg38.SegDup.sorted.merged.bed",
+      "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/hg38.RM.sorted.merged.bed"
+    ]
+    Array[String] sv_clustering_track_names = ["SR", "SD", "RM"]
+    Array[File] sv_genome_tracks = [
+      "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/ucsc-genome-tracks/hg38-RepeatMasker.bed.gz",
+      "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/ucsc-genome-tracks/hg38-Segmental-Dups.bed.gz",
+      "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/ucsc-genome-tracks/hg38-Simple-Repeats.bed.gz",
+      "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/ucsc-genome-tracks/hg38_umap_s100.bed.gz",
+      "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/ucsc-genome-tracks/hg38_umap_s24.bed.gz"
+    ]
+    Array[String] sv_recalibrate_gq_args = [
+      "--keep-homvar false",
+      "--keep-homref true",
+      "--keep-multiallelic true",
+      "--skip-genotype-filtering true",
+      "--min-samples-to-estimate-allele-frequency -1"
+    ]
+    String sv_sl_filter_args = "--gq-scale-factor 1.012072 --upper-sl-cap 1500 --lower-sl-cap -1000 --sl-shift 300"
+    File sv_hervk_reference = "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/HERVK.sorted.bed.gz"
+    File sv_line1_reference = "gs://gatk-sv-resources-public/hg38/v0/sv-resources/resources/v1/LINE1.sorted.bed.gz"
+    Int sv_refine_complex_n_per_split = 15000
 
     Int preemptible = 3
     String hc_gatk_docker = "us.gcr.io/broad-gatk/gatk:4.6.1.0"
@@ -431,6 +464,8 @@ workflow PdSample {
       bam_or_cram_file = ReleaseBam.released,
       bam_or_cram_index = ReleaseBai.released,
       reference_version = "38",
+      use_melt = sv_use_melt,
+      use_scramble = sv_use_scramble,
       ref_samples_list = sv_ref_samples_list,
       ref_ped_file = sv_ref_ped_file,
       genome_file = sv_genome_file,
@@ -453,6 +488,7 @@ workflow PdSample {
       genomes_in_the_cloud_docker = sv_genomes_in_the_cloud_docker,
       samtools_cloud_docker = sv_samtools_cloud_docker,
       cloud_sdk_docker = sv_cloud_sdk_docker,
+      gq_recalibrator_gatk_docker = sv_gq_recalibrator_gatk_docker,
       preprocessed_intervals = sv_preprocessed_intervals,
       manta_region_bed = sv_manta_region_bed,
       manta_region_bed_index = sv_manta_region_bed_index,
@@ -481,11 +517,11 @@ workflow PdSample {
       cnmops_exclude_list = sv_cnmops_exclude_list,
       matrix_qc_distance = sv_matrix_qc_distance,
       ref_std_manta_vcf_tar = sv_ref_std_manta_vcf_tar,
+      ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar,
       ref_std_wham_vcf_tar = sv_ref_std_wham_vcf_tar,
       ref_panel_del_bed = sv_ref_panel_del_bed,
       ref_panel_dup_bed = sv_ref_panel_dup_bed,
       depth_exclude_list = sv_depth_exclude_list,
-      empty_file = sv_empty_file,
       depth_exclude_overlap_fraction = sv_depth_exclude_overlap_fraction,
       depth_interval_overlap = sv_depth_interval_overlap,
       pesr_exclude_intervals = sv_pesr_exclude_intervals,
@@ -516,6 +552,19 @@ workflow PdSample {
       noncoding_bed = sv_noncoding_bed,
       annotation_sv_per_shard = sv_annotation_sv_per_shard,
       qc_definitions = sv_qc_definitions,
+      clustering_config_part1 = sv_clustering_config_part1,
+      clustering_config_part2 = sv_clustering_config_part2,
+      stratification_config_part1 = sv_stratification_config_part1,
+      stratification_config_part2 = sv_stratification_config_part2,
+      clustering_track_bed_files = sv_clustering_track_bed_files,
+      clustering_track_names = sv_clustering_track_names,
+      gq_recalibrator_model_file = sv_gq_recalibrator_model_file,
+      genome_tracks = sv_genome_tracks,
+      recalibrate_gq_args = sv_recalibrate_gq_args,
+      sl_filter_args = sv_sl_filter_args,
+      HERVK_reference = sv_hervk_reference,
+      LINE1_reference = sv_line1_reference,
+      refine_complex_n_per_split = sv_refine_complex_n_per_split,
       manta_docker = sv_manta_docker,
       scramble_docker = sv_scramble_docker,
       wham_docker = sv_wham_docker
