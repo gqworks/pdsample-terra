@@ -2,7 +2,7 @@
 
 `PdSample.example.json` and `PdSample.terra_inputs.json` point at public `gs://` objects wherever an anonymous copy exists. The inputs below do not. Their values stay `gs://YOUR_WORKSPACE_BUCKET/...`. Replace `YOUR_WORKSPACE_BUCKET` with the Terra workspace bucket when you launch. Do not commit a real bucket name, sample id, or billing project.
 
-Mitochondria references, the GRCh38 FASTA, VerifyBamID 2.0.3 SVD files (vendored under `workflow/assets/verifybamid/`), panel/config/scripts bundled with the Dockstore workflow, and the GATK-SV v0.29-beta public resources are not staged here. Terra GCP Batch only localizes `gs://` (and DRS) `File` inputs, not `https://` URLs.
+Mitochondria references, the GRCh38 FASTA, VerifyBamID 2.0.3 SVD files (vendored under `workflow/assets/verifybamid/`), panel/config/scripts bundled with the Dockstore workflow, and the GATK-SV v1.1.1 public resources are not staged here. Terra GCP Batch only localizes `gs://` (and DRS) `File` inputs, not `https://` URLs.
 
 See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 

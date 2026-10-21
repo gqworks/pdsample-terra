@@ -59,7 +59,10 @@ def test_pdsample_is_the_only_entry_workflow():
         "sep(",
     ):
         assert banned not in text
-    assert "gatk-sv/v0.29-beta/wdl/GATKSVPipelineSingleSample.wdl" in text
+    assert 'import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl"' in text
+    assert "gatk-sv/v1.1.1/wdl/" in (
+        ROOT / "workflow" / "wdl" / "vendor" / "gatk-sv" / "GATKSVPipelineSingleSample.wdl"
+    ).read_text(encoding="utf-8")
     assert "gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl" in text
     sample_tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert "pysam==0.24.1" in sample_tasks
@@ -78,7 +81,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "SYNTHETIC_SAMPLE" in example
     assert "gs://fc-" not in example
     assert "raw.githubusercontent.com/gqworks/pdsample-terra/main/" not in example
-    assert "ref_panel_1kg_v2-contig-ploidy-model.tar.gz" in example
+    assert "gatk-sv-ref-panel-1kg-v1-0-1" in example
+    assert "PdSample.sv_ref_std_scramble_vcf_tar" in example
+    assert "PdSample.sv_empty_file" not in example
     assert '"../' not in example
     assert "alphagenome_api_key" not in example
     assert "PdSample.avi_table" not in example
@@ -101,7 +106,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "write_json" in tasks
     assert '"ethnicity": ethnicity_value' in tasks
     assert '"PdSample.sv_ref_panel_vcf": "${workspace.ref_panel_vcf}"' in terra
-    assert '"PdSample.sv_empty_file": "${workspace.reference_empty_file}"' in terra
+    assert '"PdSample.sv_ref_std_scramble_vcf_tar": "${workspace.ref_panel_std_scramble_vcf_tar}"' in terra
+    assert "sv_empty_file" not in terra
     assert "gs://fc-" not in terra
     assert "workspace.sv_pipeline_docker" not in terra
     assert "workspace.manta_docker" not in terra
@@ -326,7 +332,7 @@ def test_spliceogen_scratch_is_on_the_task_disk():
 
 
 def test_gatksv_callers_use_sixteen_cores():
-    """Manta and Wham read cpu_cores. Defaults at v0.29-beta are 8 and 4."""
+    """Manta and Wham read cpu_cores. Upstream defaults are lower."""
     text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     assert "Float sv_manta_jobs_per_cpu = 1.0" in text
     assert "Int sv_caller_cpu_cores = 16" in text
@@ -336,6 +342,27 @@ def test_gatksv_callers_use_sixteen_cores():
     assert "runtime_attr_wham = object {" in text
     assert "cpu_cores: sv_caller_cpu_cores" in text
     assert "mem_gb: sv_caller_mem_gb" in text
+
+
+def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
+    """Dockstore SingleSamplePipeline v1.1.1: Scramble on, MELT off, new panel inputs."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    vendor = (
+        ROOT / "workflow" / "wdl" / "vendor" / "gatk-sv" / "GATKSVPipelineSingleSample.wdl"
+    ).read_text(encoding="utf-8")
+    assert "Boolean sv_use_melt = false" in text
+    assert "Boolean sv_use_scramble = true" in text
+    assert "use_melt = sv_use_melt" in text
+    assert "use_scramble = sv_use_scramble" in text
+    assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
+    assert "gq_recalibrator_model_file = sv_gq_recalibrator_model_file" in text
+    assert "sl_filter_args = sv_sl_filter_args" in text
+    assert "HERVK_reference = sv_hervk_reference" in text
+    assert "LINE1_reference = sv_line1_reference" in text
+    assert "refine_complex_n_per_split = sv_refine_complex_n_per_split" in text
+    assert "empty_file" not in text
+    assert "HERVK_reference=HERVK_reference" in vendor
+    assert "n_per_split=refine_complex_n_per_split" in vendor
 
 
 def test_runtime_disk_gb_is_integer_ceiled():

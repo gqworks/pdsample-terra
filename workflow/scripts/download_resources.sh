@@ -50,10 +50,11 @@ GENCODE v44 GTF (Introme):
 ExpansionHunter catalog is vendored at workflow/assets/expansionhunter_pd.hg38.json
 (19 loci copied from ExpansionHunter v5.0.0 hg38 variant_catalog.json).
 
-GATK-SV v0.29-beta is required. Public hg38 and 1KG paths are already in
+GATK-SV v1.1.1 is required. Public hg38 and 1KG paths are already in
 workflow/terra/PdSample.example.json (resolved from that tag's ref_panel_1kg.json
-and resources_hg38.json). Terra attribute expressions are in
-workflow/terra/PdSample.terra_inputs.json. This script does not download the panel.
+under gatk-sv-ref-panel-1kg-v1-0-1 and resources_hg38.json). Terra attribute
+expressions are in workflow/terra/PdSample.terra_inputs.json. This script does
+not download the panel.
 
 Mitochondria references for MitochondriaPipeline 4.7.0.0 are already the public
 gs://gcp-public-data--broad-references/hg38/v0/chrM/ objects in the example JSON
