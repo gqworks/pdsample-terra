@@ -13,7 +13,7 @@ The default path runs `womtool validate` on the committed files. PdSample import
 - `workflow/wdl/vendor/gatk-sv/GATKSVPipelineSingleSample.wdl` (gatk-sv **v1.1.1** with absolute nested HTTP imports and HERVK/LINE1/`n_per_split` pass-throughs)
 - `https://raw.githubusercontent.com/broadinstitute/gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl`
 
-`miniwdl check` uses that same tree. It substitutes `stubs/MitochondriaPipeline.wdl` because upstream `AlignAndCall.wdl` multiplies an optional `Int?` and miniwdl rejects that. `nvidiaDriverVersion` is a Cromwell runtime attribute; miniwdl warns that it does not know the key.
+`miniwdl check` uses that same tree. It substitutes `stubs/MitochondriaPipeline.wdl` because upstream `AlignAndCall.wdl` multiplies an optional `Int?` and miniwdl rejects that. `gcp` is how the Introme GPU tasks pass `gpuCount`, `gpuType`, and `nvidiaDriverVersion` to Cromwell. miniwdl warns that it does not know the `gcp` key. That warning is expected and does not fail the check. The object is empty unless `use_gpu` is true, because Cromwell rejects `gpuCount: 0` while creating the job and never starts a VM.
 
 `bash workflow/scripts/validate_wdl.sh --offline` replaces the vendored GATK-SV import and the mitochondria import with `workflow/wdl/stubs/`. It is not the Dockstore or Terra check.
 

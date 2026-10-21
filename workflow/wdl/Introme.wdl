@@ -60,6 +60,9 @@ workflow Introme {
   String spliceai_docker = if use_gpu then spliceai_gpu_docker else spliceai_cpu_docker
   String mmsplice_docker = if use_gpu then mmsplice_gpu_docker else mmsplice_cpu_docker
   String pangolin_docker = if use_gpu then pangolin_gpu_docker else pangolin_cpu_docker
+  # Passed through even when use_gpu is false. The tasks attach a GPU only when
+  # use_gpu is true and this count is positive. A literal 0 in the runtime block
+  # is rejected by GCP Batch before the job is submitted.
   Int gpu_count_eff = if use_gpu then gpu_count else 0
   Int heavy_preemptible = if use_gpu then 0 else 1
   # CPU path gives each neural net 16 cores. TensorFlow and PyTorch use that
