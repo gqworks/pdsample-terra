@@ -755,20 +755,18 @@ task StageIndexedAlignment {
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     Int preemptible = 3
   }
-  # Localization writes one full copy of the BAM or CRAM. A failed hardlink
-  # falls back to cp, which needs a second copy, plus a little room for the index.
-  Int disk_gb = ceil(size(alignment, "GiB") * 3 + size(alignment_index, "GiB") + size(ref_fasta, "GiB") + 100)
+  # A hardlink stays on the input disk. A cross-filesystem copy needs a second copy.
+  Int disk_gb = ceil(size(alignment, "GiB") * 2 + size(alignment_index, "GiB") + size(ref_fasta, "GiB") + 50)
   command <<<
     set -euo pipefail
     wc -c ~{gate} >/dev/null
     align_in="~{alignment}"
     index_in="~{alignment_index}"
-    # The hg38 FASTA is often a read-only reference disk. samtools -T looks for
-    # <fasta>.fai beside that path, and a symlink there fails with EROFS.
-    mkdir -p ref
-    ln -s ~{ref_fasta} ref/ref.fa
-    ln -s ~{ref_fasta_index} ref/ref.fa.fai
-    ref="ref/ref.fa"
+    ref="~{ref_fasta}"
+    fai="~{ref_fasta_index}"
+    if [[ ! -e "${ref}.fai" ]]; then
+      ln -s "$fai" "${ref}.fai"
+    fi
     # CRAM files start with the ASCII magic "CRAM". A BAM is BGZF and does not.
     # The Terra filename is not a reliable type: a BAM named .cram makes Manta
     # look for sample.cram.crai and GetChromDepth then reports that no index exists.
@@ -828,22 +826,15 @@ task StageIndexedAlignment {
         samtools index -@ 4 "$out"
       fi
     fi
-    # WDL declares both pairs. The unused pair is a placeholder; the workflow
-    # selects the pair named by kind.txt.
-    if [[ "$kind" == "cram" ]]; then
-      printf 'placeholder\n' > "~{sample_id}.bam"
-      printf 'placeholder\n' > "~{sample_id}.bam.bai"
-    else
-      printf 'placeholder\n' > "~{sample_id}.cram"
-      printf 'placeholder\n' > "~{sample_id}.cram.crai"
-    fi
+    # Only the detected pair is a File output. Declaring both .bam and .cram
+    # made Cromwell delocalize a missing placeholder (e.g. .cram for a BAM sample).
+    printf '%s' "$out" > alignment_path.txt
+    printf '%s' "$index_path" > index_path.txt
   >>>
   output {
     String kind = read_string("kind.txt")
-    File cram_alignment = "~{sample_id}.cram"
-    File cram_index = "~{sample_id}.cram.crai"
-    File bam_alignment = "~{sample_id}.bam"
-    File bam_index = "~{sample_id}.bam.bai"
+    File staged_alignment = read_string("alignment_path.txt")
+    File staged_index = read_string("index_path.txt")
   }
   runtime {
     docker: samtools_docker

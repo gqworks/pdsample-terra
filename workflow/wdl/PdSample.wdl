@@ -390,8 +390,8 @@ workflow PdSample {
       ref_fasta_index = ref_fasta_index,
       preemptible = preemptible
   }
-  File staged_alignment = if StageAlignment.kind == "cram" then StageAlignment.cram_alignment else StageAlignment.bam_alignment
-  File staged_index = if StageAlignment.kind == "cram" then StageAlignment.cram_index else StageAlignment.bam_index
+  File staged_alignment = StageAlignment.staged_alignment
+  File staged_index = StageAlignment.staged_index
   call Mitochondria.MitochondriaPipeline as Mito {
     input:
       wgs_aligned_input_bam_or_cram = staged_alignment,
