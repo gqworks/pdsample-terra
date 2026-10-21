@@ -315,7 +315,14 @@ def test_spliceogen_scratch_is_on_the_task_disk():
     assert "Int preemptible = 0" in spliceogen
     assert "Int memory_gb = 16" in spliceogen
     assert 'export JAVA_TOOL_OPTIONS="-Xmx8g"' in spliceogen
-    assert '-fasta "$ORIG_DIR/ref/ref.fa"' in spliceogen
+    assert 'VCF_PATH="$(realpath ~{vcf})"' in spliceogen
+    assert 'GTF_PATH="$(realpath ~{gtf})"' in spliceogen
+    assert 'FASTA_PATH="$ORIG_DIR/ref/ref.fa"' in spliceogen
+    assert '-input "$VCF_PATH"' in spliceogen
+    assert '-fasta "$FASTA_PATH"' in spliceogen
+    assert '-gtf "$GTF_PATH"' in spliceogen
+    assert 'realpath "$ORIG_DIR/~{vcf}"' not in spliceogen
+    assert 'realpath "$ORIG_DIR/~{gtf}"' not in spliceogen
 
 
 def test_gatksv_callers_use_sixteen_cores():
