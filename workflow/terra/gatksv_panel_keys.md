@@ -124,3 +124,5 @@ Leave these unset in Terra so `PdSample.wdl` keeps the v0.29-beta `inputs/values
 | `sv_cloud_sdk_docker` | `cloud_sdk_docker` | `google/cloud-sdk` |
 
 Optional v0.29-beta inputs that `PdSample` does not pass (`chr_x`, `chr_y`, `external_af_ref_bed`, `external_af_ref_bed_prefix`, `AnnotateVcf.par_bed`, `contig_ploidy_priors`, `seed_cutoffs`, `ref_std_melt_vcf_tar`, `max_ref_panel_carrier_freq`, `clean_vcf_random_seed`) keep the upstream defaults. `HERVK_reference`, `LINE1_reference`, clustering and stratification configs, and the GQ recalibrator model are not inputs of `GATKSVPipelineSingleSample` at this tag.
+
+`PdSample` sets `use_melt = false` (`sv_use_melt`). Upstream defaults `use_melt` to true, but this method does not supply `melt_docker`, a case MELT VCF, or `ref_std_melt_vcf_tar`. Leaving the default on makes `select_first([case_melt_vcf, GatherSampleEvidence.melt_vcf])` fail with two empty values. Turn `sv_use_melt` on only after wiring those MELT inputs.

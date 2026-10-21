@@ -103,6 +103,10 @@ workflow PdSample {
     String sv_manta_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/manta:2023-09-14-v0.28.3-beta-3f22f94d"
     String sv_scramble_docker = "us.gcr.io/broad-dsde-methods/markw/scramble:mw-scramble-99af4c50"
     String sv_wham_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/wham:2024-01-24-v0.28.4-beta-9debd6d7"
+    # GATKSVPipelineSingleSample defaults use_melt=true. We do not pass melt_docker,
+    # case_melt_vcf, or ref_std_melt_vcf_tar, so leave MELT off or select_first on
+    # melt_vcfs_ fails with two empty optionals.
+    Boolean sv_use_melt = false
     String sv_sv_base_mini_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-base-mini:2024-01-24-v0.28.4-beta-9debd6d7"
     String sv_sv_base_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-base:2024-01-24-v0.28.4-beta-9debd6d7"
     String sv_sv_pipeline_docker = "us.gcr.io/broad-dsde-methods/gatk-sv/sv-pipeline:2024-08-19-v0.28.5-beta-84a0627d"
@@ -518,7 +522,8 @@ workflow PdSample {
       qc_definitions = sv_qc_definitions,
       manta_docker = sv_manta_docker,
       scramble_docker = sv_scramble_docker,
-      wham_docker = sv_wham_docker
+      wham_docker = sv_wham_docker,
+      use_melt = sv_use_melt
     }
   call IntromeWf.Introme as Introme {
     input:

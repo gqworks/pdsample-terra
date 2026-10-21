@@ -338,6 +338,16 @@ def test_gatksv_callers_use_sixteen_cores():
     assert "mem_gb: sv_caller_mem_gb" in text
 
 
+def test_gatksv_disables_melt_without_melt_inputs():
+    """use_melt defaults true upstream; without melt_docker the melt_vcfs_ select_first dies."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    assert "Boolean sv_use_melt = false" in text
+    assert "use_melt = sv_use_melt" in text
+    assert "melt_docker =" not in text
+    assert "case_melt_vcf =" not in text
+    assert "ref_std_melt_vcf_tar =" not in text
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"
