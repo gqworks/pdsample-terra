@@ -446,9 +446,16 @@ task SpliceAI {
     disks: "local-disk ~{disk_gb} HDD"
     cpu: cpu
     bootDiskSizeGb: boot_gb
-    gpuCount: gpu_count
-    gpuType: gpu_type
-    nvidiaDriverVersion: nvidia_driver_version
+    # Cromwell GCP Batch treats a present gpuCount as a request for a positive
+    # number of GPUs. gpuCount: 0 fails while the job actor is created, before
+    # a VM exists, so the task never gets a stderr log. Terra then rewrites the
+    # sibling "Will not start job" errors as "queued but never sent". The gcp
+    # object is omitted from the runtime map unless a GPU was actually requested.
+    gcp: if (use_gpu && gpu_count > 0) then object {
+      gpuCount: gpu_count,
+      gpuType: gpu_type,
+      nvidiaDriverVersion: nvidia_driver_version
+    } else object {}
   }
 }
 
@@ -501,9 +508,12 @@ task MMSplice {
     disks: "local-disk ~{disk_gb} HDD"
     cpu: cpu
     bootDiskSizeGb: boot_gb
-    gpuCount: gpu_count
-    gpuType: gpu_type
-    nvidiaDriverVersion: nvidia_driver_version
+    # See SpliceAI: gpuCount 0 is rejected before the VM starts.
+    gcp: if (use_gpu && gpu_count > 0) then object {
+      gpuCount: gpu_count,
+      gpuType: gpu_type,
+      nvidiaDriverVersion: nvidia_driver_version
+    } else object {}
   }
 }
 
@@ -560,9 +570,12 @@ task Pangolin {
     disks: "local-disk ~{disk_gb} HDD"
     cpu: cpu
     bootDiskSizeGb: boot_gb
-    gpuCount: gpu_count
-    gpuType: gpu_type
-    nvidiaDriverVersion: nvidia_driver_version
+    # See SpliceAI: gpuCount 0 is rejected before the VM starts.
+    gcp: if (use_gpu && gpu_count > 0) then object {
+      gpuCount: gpu_count,
+      gpuType: gpu_type,
+      nvidiaDriverVersion: nvidia_driver_version
+    } else object {}
   }
 }
 

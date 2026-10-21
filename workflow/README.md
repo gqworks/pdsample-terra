@@ -16,7 +16,7 @@ and
 
 `https://raw.githubusercontent.com/broadinstitute/gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl`.
 
-`miniwdl check` uses that same GATK-SV import. It substitutes `stubs/MitochondriaPipeline.wdl` because upstream `AlignAndCall.wdl` multiplies an optional `Int?` and miniwdl rejects that. `womtool validate` of the real mitochondria import succeeds, including as a sub-workflow. `nvidiaDriverVersion` is a Cromwell runtime attribute; miniwdl warns that it does not know the key. That warning is expected on the Introme GPU path and does not fail the check.
+`miniwdl check` uses that same GATK-SV import. It substitutes `stubs/MitochondriaPipeline.wdl` because upstream `AlignAndCall.wdl` multiplies an optional `Int?` and miniwdl rejects that. `womtool validate` of the real mitochondria import succeeds, including as a sub-workflow. `gcp` is how the Introme GPU tasks pass `gpuCount`, `gpuType`, and `nvidiaDriverVersion` to Cromwell. miniwdl warns that it does not know the `gcp` key. That warning is expected and does not fail the check. The object is empty unless `use_gpu` is true, because Cromwell rejects `gpuCount: 0` while creating the job and never starts a VM.
 
 `bash workflow/scripts/validate_wdl.sh --offline` is the only path that replaces the GATK-SV import with `stubs/GATKSVPipelineSingleSample.wdl`. Use it when GitHub is unreachable. It is not the Dockstore or Terra check.
 

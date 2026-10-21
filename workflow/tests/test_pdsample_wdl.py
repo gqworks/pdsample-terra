@@ -290,6 +290,27 @@ def test_introme_indexes_gtf_as_gff_and_guards_missing_strand():
     assert "if raw_strand is None:" in text
 
 
+def test_introme_gpu_attributes_are_absent_unless_a_gpu_is_requested():
+    """gpuCount: 0 fails in the GCP Batch job actor, before any stderr exists."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    assert "gpuCount: gpu_count" not in text.split("gcp:", 1)[0]
+    for name, nxt in (
+        ("SpliceAI", "MMSplice"),
+        ("MMSplice", "Pangolin"),
+        ("Pangolin", "Spip"),
+    ):
+        block = text.split(f"task {name} {{", 1)[1].split(f"task {nxt} {{", 1)[0]
+        runtime = block.split("runtime {", 1)[1]
+        assert "\n    gpuCount:" not in runtime
+        assert "\n    gpuType:" not in runtime
+        assert "\n    nvidiaDriverVersion:" not in runtime
+        assert "if (use_gpu && gpu_count > 0) then object {" in runtime
+        assert "gpuCount: gpu_count," in runtime
+        assert "gpuType: gpu_type," in runtime
+        assert "nvidiaDriverVersion: nvidia_driver_version" in runtime
+        assert "} else object {}" in runtime
+
+
 def test_introme_cpu_tools_are_given_a_thread_count():
     """Neural nets have no CLI thread flag. They read OMP and TensorFlow env vars."""
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
