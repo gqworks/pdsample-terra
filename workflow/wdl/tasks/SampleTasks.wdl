@@ -1,22 +1,22 @@
 version 1.0
 
-# Tasks for one fresh CRAM. No header discovery and no cached callset reuse.
+# Tasks for one BAM (+ .bai). CRAM inputs are not supported.
 
-task ExtractCramHeader {
+task ExtractBamHeader {
   input {
-    File cram
-    File cram_index
+    File bam
+    File bam_index
     String sample_id
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + 100)
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + 100)
   command <<<
     set -euo pipefail
-    samtools view -H ~{cram} > ~{sample_id}.cram.header.txt
+    samtools view -H ~{bam} > ~{sample_id}.bam.header.txt
   >>>
   output {
-    File header = "~{sample_id}.cram.header.txt"
+    File header = "~{sample_id}.bam.header.txt"
   }
   runtime {
     docker: samtools_docker
@@ -131,7 +131,7 @@ PY
 
 task CheckReference {
   input {
-    File cram_header
+    File bam_header
     File reference_dict
     File check_reference_py
     String sample_id
@@ -139,7 +139,7 @@ task CheckReference {
   }
   command <<<
     set -euo pipefail
-    python3 ~{check_reference_py} --cram-header ~{cram_header} --reference-dict ~{reference_dict} --out ~{sample_id}.reference.json
+    python3 ~{check_reference_py} --bam-header ~{bam_header} --reference-dict ~{reference_dict} --out ~{sample_id}.reference.json
   >>>
   output {
     File report = "~{sample_id}.reference.json"
@@ -154,8 +154,8 @@ task CheckReference {
 
 task VerifyBamID {
   input {
-    File cram
-    File cram_index
+    File bam
+    File bam_index
     File ref_fasta
     File ref_fasta_index
     File svd_ud
@@ -167,23 +167,15 @@ task VerifyBamID {
     String verifybamid_docker = "quay.io/biocontainers/verifybamid2:2.0.3--hc004090_0"
     Int preemptible = 3
   }
-  # Cromwell copies the whole BAM or CRAM and the reference onto this disk.
-  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
+  # Cromwell copies the whole BAM and the reference onto this disk.
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
-    align="~{cram}"
-    index="~{cram_index}"
+    align="~{bam}"
+    index="~{bam_index}"
     if [[ "$align" != gs://* && -e "$index" ]]; then
-      case "$align" in
-        *.bam)
-          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
-          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
-          ;;
-        *.cram)
-          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
-          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
-          ;;
-      esac
+      [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+      [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
     fi
     wc -c ~{reference_report} >/dev/null
     mkdir -p svd
@@ -191,7 +183,7 @@ task VerifyBamID {
     cp "~{svd_v}" svd/resource.V
     cp "~{svd_bed}" svd/resource.bed
     cp "~{svd_mu}" svd/resource.mu
-    verifybamid2 --BamFile ~{cram} --Reference ~{ref_fasta} --SVDPrefix svd/resource --Output ~{sample_id}
+    verifybamid2 --BamFile ~{bam} --Reference ~{ref_fasta} --SVDPrefix svd/resource --Output ~{sample_id}
   >>>
   output {
     File self_sm = "~{sample_id}.selfSM"
@@ -207,8 +199,8 @@ task VerifyBamID {
 
 task SomalierCheck {
   input {
-    File cram
-    File cram_index
+    File bam
+    File bam_index
     File ref_fasta
     File ref_fasta_index
     File sites
@@ -217,26 +209,18 @@ task SomalierCheck {
     String somalier_docker = "quay.io/biocontainers/somalier:0.3.5--h5205c93_0"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
-    align="~{cram}"
-    index="~{cram_index}"
+    align="~{bam}"
+    index="~{bam_index}"
     if [[ "$align" != gs://* && -e "$index" ]]; then
-      case "$align" in
-        *.bam)
-          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
-          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
-          ;;
-        *.cram)
-          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
-          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
-          ;;
-      esac
+      [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+      [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
     fi
     wc -c ~{reference_report} >/dev/null
     mkdir -p extract
-    somalier extract -d extract --sites ~{sites} -f ~{ref_fasta} ~{cram}
+    somalier extract -d extract --sites ~{sites} -f ~{ref_fasta} ~{bam}
     extract_file=$(find extract -name '*.somalier' | head -1)
     test -n "$extract_file"
     # One extract has no pairs. somalier relate still writes the sample's sex fields.
@@ -262,8 +246,8 @@ task SomalierCheck {
 
 task Mosdepth {
   input {
-    File cram
-    File cram_index
+    File bam
+    File bam_index
     File ref_fasta
     File ref_fasta_index
     File bed
@@ -273,25 +257,17 @@ task Mosdepth {
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
-    align="~{cram}"
-    index="~{cram_index}"
+    align="~{bam}"
+    index="~{bam_index}"
     if [[ "$align" != gs://* && -e "$index" ]]; then
-      case "$align" in
-        *.bam)
-          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
-          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
-          ;;
-        *.cram)
-          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
-          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
-          ;;
-      esac
+      [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+      [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
     fi
     wc -c ~{reference_report} >/dev/null
-    mosdepth -t ~{threads} -n -f ~{ref_fasta} --thresholds 1,10,20,30 --by ~{bed} ~{sample_id} ~{cram}
+    mosdepth -t ~{threads} -n -f ~{ref_fasta} --thresholds 1,10,20,30 --by ~{bed} ~{sample_id} ~{bam}
   >>>
   output {
     File summary = "~{sample_id}.mosdepth.summary.txt"
@@ -354,8 +330,8 @@ task QcGate {
 
 task HaplotypeCaller {
   input {
-    File cram
-    File cram_index
+    File bam
+    File bam_index
     File ref_fasta
     File ref_fasta_index
     File ref_dict
@@ -368,7 +344,7 @@ task HaplotypeCaller {
     Int preemptible = 3
     Int memory_mb = 32768
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 3 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_dict, "GiB") + 250)
+  Int disk_gb = ceil(size(bam, "GiB") * 3 + size(bam_index, "GiB") + size(ref_fasta, "GiB") + size(ref_dict, "GiB") + 250)
   String rp = select_first([requester_pays_project, ""])
   command <<<
     set -euo pipefail
@@ -394,7 +370,7 @@ task HaplotypeCaller {
       HaplotypeCaller \
       $rp_arg \
       -R ~{ref_fasta} \
-      -I ~{cram} \
+      -I ~{bam} \
       "${interval_args[@]}" \
       -O ~{sample_id}.g.vcf.gz \
       -G StandardAnnotation -G StandardHCAnnotation -G AS_StandardAnnotation \
@@ -414,8 +390,8 @@ task HaplotypeCaller {
     bootDiskSizeGb: 15
   }
   parameter_meta {
-    cram: { localization_optional: true }
-    cram_index: { localization_optional: true }
+    bam: { localization_optional: true }
+    bam_index: { localization_optional: true }
     ref_fasta: { localization_optional: true }
     ref_fasta_index: { localization_optional: true }
     ref_dict: { localization_optional: true }
@@ -630,8 +606,8 @@ task LiftGnomadInfo {
 
 task ExpansionHunter {
   input {
-    File cram
-    File cram_index
+    File bam
+    File bam_index
     File ref_fasta
     File ref_fasta_index
     File catalog
@@ -642,22 +618,14 @@ task ExpansionHunter {
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
-    align="~{cram}"
-    index="~{cram_index}"
+    align="~{bam}"
+    index="~{bam_index}"
     if [[ "$align" != gs://* && -e "$index" ]]; then
-      case "$align" in
-        *.bam)
-          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
-          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
-          ;;
-        *.cram)
-          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
-          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
-          ;;
-      esac
+      [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+      [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
     fi
     wc -c ~{qc_gate} >/dev/null
     sex_args=()
@@ -665,7 +633,7 @@ task ExpansionHunter {
       sex_args=(--sex "~{sex}")
     fi
     ExpansionHunter \
-      --reads ~{cram} \
+      --reads ~{bam} \
       --reference ~{ref_fasta} \
       --variant-catalog ~{catalog} \
       --output-prefix ~{sample_id} \
@@ -690,8 +658,8 @@ task ExpansionHunter {
 
 task Gauchian {
   input {
-    File cram
-    File cram_index
+    File bam
+    File bam_index
     File ref_fasta
     File ref_fasta_index
     String sample_id
@@ -700,28 +668,20 @@ task Gauchian {
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(cram, "GiB") * 2 + size(cram_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
   command <<<
     set -euo pipefail
-    align="~{cram}"
-    index="~{cram_index}"
+    align="~{bam}"
+    index="~{bam_index}"
     if [[ "$align" != gs://* && -e "$index" ]]; then
-      case "$align" in
-        *.bam)
-          [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
-          [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
-          ;;
-        *.cram)
-          [[ -e "${align}.crai" ]] || ln -s "$index" "${align}.crai"
-          [[ -e "${align%.cram}.crai" ]] || ln -s "$index" "${align%.cram}.crai"
-          ;;
-      esac
+      [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+      [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
     fi
     wc -c ~{qc_gate} >/dev/null
     if ! command -v gauchian >/dev/null; then
       pip install --no-cache-dir gauchian==1.0.2
     fi
-    echo "~{cram}" > manifest.txt
+    echo "~{bam}" > manifest.txt
     mkdir -p out
     gauchian --manifest manifest.txt --genome 38 --prefix ~{sample_id} --outDir out --threads ~{threads} --reference ~{ref_fasta}
     json=$(find out -name '*.json' -print -quit)
@@ -741,116 +701,6 @@ task Gauchian {
     memory: "8 GiB"
     disks: "local-disk ~{disk_gb} HDD"
     cpu: threads
-  }
-}
-
-task StageIndexedAlignment {
-  input {
-    File alignment
-    File alignment_index
-    String sample_id
-    File gate
-    File ref_fasta
-    File ref_fasta_index
-    String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
-    Int preemptible = 3
-  }
-  # Localization writes one full copy of the BAM or CRAM. A failed hardlink
-  # falls back to cp, which needs a second copy, plus a little room for the index.
-  Int disk_gb = ceil(size(alignment, "GiB") * 3 + size(alignment_index, "GiB") + size(ref_fasta, "GiB") + 100)
-  command <<<
-    set -euo pipefail
-    wc -c ~{gate} >/dev/null
-    align_in="~{alignment}"
-    index_in="~{alignment_index}"
-    # The hg38 FASTA is often a read-only reference disk. samtools -T looks for
-    # <fasta>.fai beside that path, and a symlink there fails with EROFS.
-    mkdir -p ref
-    ln -s ~{ref_fasta} ref/ref.fa
-    ln -s ~{ref_fasta_index} ref/ref.fa.fai
-    ref="ref/ref.fa"
-    # CRAM files start with the ASCII magic "CRAM". A BAM is BGZF and does not.
-    # The Terra filename is not a reliable type: a BAM named .cram makes Manta
-    # look for sample.cram.crai and GetChromDepth then reports that no index exists.
-    magic="$(head -c 4 "$align_in" || true)"
-    if [[ "$magic" == "CRAM" ]]; then
-      kind="cram"
-    else
-      kind="bam"
-    fi
-    printf '%s' "$kind" > kind.txt
-    out="~{sample_id}.${kind}"
-    ln "$align_in" "$out" || cp -a "$align_in" "$out"
-    if [[ "$kind" == "cram" ]]; then
-      ln "$index_in" "${out}.crai" || cp -a "$index_in" "${out}.crai"
-      index_path="${out}.crai"
-    else
-      ln "$index_in" "${out}.bai" || cp -a "$index_in" "${out}.bai"
-      index_path="${out}.bai"
-    fi
-    # A region count forces htslib to open the sibling index. Header-only reads do not.
-    # CRAM header reads need the reference. A bad sibling index can make even
-    # the header read fail, so drop that index and try once more before giving up.
-    read_header() {
-      if [[ "$kind" == "cram" ]]; then
-        samtools view -T "$ref" -H "$out"
-      else
-        samtools view -H "$out"
-      fi
-    }
-    set +e
-    header_text="$(read_header 2>header.err)"
-    header_rc=$?
-    set -e
-    if [[ "$header_rc" -ne 0 ]]; then
-      echo "Header read failed; dropping the supplied index and retrying" >&2
-      cat header.err >&2
-      rm -f "$index_path"
-      header_text="$(read_header)"
-    fi
-    contig="$(printf '%s\n' "$header_text" | awk '/^@SQ/{sub(/^SN:/,"",$2); print $2; exit}')"
-    if [[ -z "$contig" ]]; then
-      echo "Alignment has no @SQ records" >&2
-      exit 1
-    fi
-    if [[ "$kind" == "cram" ]]; then
-      if ! samtools view -T "$ref" -c "$out" "${contig}:1-2" >/dev/null 2>index_check.txt; then
-        echo "Supplied index cannot be used with ${out}; rebuilding" >&2
-        cat index_check.txt >&2
-        rm -f "$index_path"
-        samtools index -@ 4 "$out"
-      fi
-    else
-      if ! samtools view -c "$out" "${contig}:1-2" >/dev/null 2>index_check.txt; then
-        echo "Supplied index cannot be used with ${out}; rebuilding" >&2
-        cat index_check.txt >&2
-        rm -f "$index_path"
-        samtools index -@ 4 "$out"
-      fi
-    fi
-    # WDL declares both pairs. The unused pair is a placeholder; the workflow
-    # selects the pair named by kind.txt.
-    if [[ "$kind" == "cram" ]]; then
-      printf 'placeholder\n' > "~{sample_id}.bam"
-      printf 'placeholder\n' > "~{sample_id}.bam.bai"
-    else
-      printf 'placeholder\n' > "~{sample_id}.cram"
-      printf 'placeholder\n' > "~{sample_id}.cram.crai"
-    fi
-  >>>
-  output {
-    String kind = read_string("kind.txt")
-    File cram_alignment = "~{sample_id}.cram"
-    File cram_index = "~{sample_id}.cram.crai"
-    File bam_alignment = "~{sample_id}.bam"
-    File bam_index = "~{sample_id}.bam.bai"
-  }
-  runtime {
-    docker: samtools_docker
-    preemptible: preemptible
-    memory: "8 GiB"
-    disks: "local-disk ~{disk_gb} HDD"
-    cpu: 4
   }
 }
 

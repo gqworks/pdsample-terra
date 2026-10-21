@@ -40,8 +40,8 @@ STAGED = {
     "PdSample.introme_gtf": "gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz",
 }
 EXAMPLE_SAMPLE = {
-    "PdSample.cram": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam",
-    "PdSample.crai": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai",
+    "PdSample.bam": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam",
+    "PdSample.bai": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai",
 }
 
 
@@ -84,8 +84,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "PdSample.avi_table" not in example
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sample_id": "${this.sample_id}"' in terra
-    assert '"PdSample.cram": "${this.bam_or_cram_file}"' in terra
-    assert '"PdSample.crai": "${this.bai}"' in terra
+    assert '"PdSample.bam": "${this.bam_or_cram_file}"' in terra
+    assert '"PdSample.bai": "${this.bai}"' in terra
     assert '"PdSample.sex": "${this.sex}"' in terra
     assert '"PdSample.age_onset": "${this.age_onset}"' in terra
     assert '"PdSample.symptoms": "${this.symptoms}"' in terra
@@ -140,9 +140,9 @@ def test_json_placeholders_are_public_or_documented():
         assert example[key] == value
         assert value in staging
         assert key in staging
-    assert terra["PdSample.cram"] == "${this.bam_or_cram_file}"
-    assert terra["PdSample.crai"] == "${this.bai}"
-    assert "YOUR_WORKSPACE_BUCKET" not in terra["PdSample.cram"]
+    assert terra["PdSample.bam"] == "${this.bam_or_cram_file}"
+    assert terra["PdSample.bai"] == "${this.bai}"
+    assert "YOUR_WORKSPACE_BUCKET" not in terra["PdSample.bam"]
 
 
 def test_wdl_file_defaults_are_not_relative_paths():
@@ -249,21 +249,27 @@ def test_genotype_hard_filter_bundles_reference_dict_with_fasta():
 def test_qc_tasks_size_disk_for_the_full_alignment():
     """Tasks that copy the BAM must budget the whole file, its index, and headroom."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
-    assert 'size(cram, "GiB") * 0.2' not in text
-    assert text.count('size(cram, "GiB") * 2 + size(cram_index, "GiB")') >= 5
+    assert 'size(bam, "GiB") * 0.2' not in text
+    assert text.count('size(bam, "GiB") * 2 + size(bam_index, "GiB")') >= 5
 
 
-def test_sv_alignment_is_staged_from_magic_bytes():
-    """Manta loads sample.cram.crai. A BAM named .cram or a bad index must be rebuilt."""
+def test_sv_alignment_is_released_as_bam_after_qc():
+    """Manta 1.6 needs a .bam filename so it loads sample.bam.bai. BAM-only inputs."""
     workflow = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
-    assert "call Tasks.StageIndexedAlignment as StageAlignment" in workflow
-    assert "bam_or_cram_file = staged_alignment" in workflow
-    assert 'if [[ "$magic" == "CRAM" ]]; then' in tasks
-    assert 'samtools index -@ 4 "$out"' in tasks
-    assert "ln -s ~{ref_fasta} ref/ref.fa" in tasks
-    assert 'ln -s "$fai" "${ref}.fai"' not in tasks
-    assert "File staged_alignment = if StageAlignment.kind == \"cram\"" in workflow
+    assert "task StageIndexedAlignment" not in tasks
+    assert "StageIndexedAlignment" not in workflow
+    assert "call Tasks.ReleaseAfterQc as ReleaseBam" in workflow
+    assert "call Tasks.ReleaseAfterQc as ReleaseBai" in workflow
+    assert 'name = sample_id + ".bam"' in workflow
+    assert 'name = sample_id + ".bam.bai"' in workflow
+    assert "bam_or_cram_file = ReleaseBam.released" in workflow
+    assert "bam_or_cram_index = ReleaseBai.released" in workflow
+    assert "File bam" in workflow
+    assert "File bai" in workflow
+    assert "File cram" not in workflow
+    assert "task ExtractBamHeader" in tasks
+    assert "*.cram)" not in tasks
 
 
 def test_mito_leaves_initial_filter_vcf_uncompressed():

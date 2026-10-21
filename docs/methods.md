@@ -1,6 +1,6 @@
 # Methods
 
-`PdSample` interprets one genome. Every call is made from that sample's CRAM. Scores are additive points from `config/config.yaml`. They are a triage rank in the style of ACMG evidence categories, and they are not an ACMG/AMP classification.
+`PdSample` interprets one genome. Every call is made from that sample's BAM. Scores are additive points from `config/config.yaml`. They are a triage rank in the style of ACMG evidence categories, and they are not an ACMG/AMP classification.
 
 ## Callers
 

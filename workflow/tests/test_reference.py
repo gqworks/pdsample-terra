@@ -1,4 +1,4 @@
-"""CRAM header versus reference dictionary."""
+"""BAM header versus reference dictionary."""
 
 from check_reference import compare_headers
 
