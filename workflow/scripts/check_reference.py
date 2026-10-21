@@ -67,12 +67,21 @@ def compare_headers(bam_header: str, reference_dict: str) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--bam-header", required=True, help="samtools view -H output")
+    # BAM-only workflow passes --bam-header. Keep --cram-header as a hidden
+    # alias so a call-cached FetchRepoAssets that still has a pre-BAM-only
+    # script, or an older CheckReference command line, does not hard-fail.
+    header = parser.add_mutually_exclusive_group(required=True)
+    header.add_argument("--bam-header", dest="header_path", help="samtools view -H output")
+    header.add_argument(
+        "--cram-header",
+        dest="header_path",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--reference-dict", required=True, help="samtools dict / Picard dict output")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     report = compare_headers(
-        open(args.bam_header, encoding="utf-8", errors="replace").read(),
+        open(args.header_path, encoding="utf-8", errors="replace").read(),
         open(args.reference_dict, encoding="utf-8", errors="replace").read(),
     )
     with open(args.out, "w", encoding="utf-8") as handle:
