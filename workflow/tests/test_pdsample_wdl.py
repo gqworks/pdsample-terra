@@ -270,7 +270,15 @@ def test_sv_alignment_is_staged_from_magic_bytes():
     assert 'size(alignment, "GiB") * 3' not in stage
     assert "ref_fasta: { localization_optional: true }" in stage
     assert "preemptible = 0" in workflow.split("call Tasks.StageIndexedAlignment as StageAlignment", 1)[1].split("call Mitochondria", 1)[0]
-    assert "File staged_alignment = if StageAlignment.kind == \"cram\"" in workflow
+    # Only the detected BAM or CRAM pair is a File output. Dual placeholders made
+    # Cromwell require a missing .cram when the sample was BAM.
+    assert 'File staged_alignment = read_string("alignment_path.txt")' in stage
+    assert 'File staged_index = read_string("index_path.txt")' in stage
+    assert "File cram_alignment" not in stage
+    assert "File bam_alignment" not in stage
+    assert "File staged_alignment = StageAlignment.staged_alignment" in workflow
+    assert "File staged_index = StageAlignment.staged_index" in workflow
+    assert 'printf \'placeholder' not in stage
 
 
 def test_mito_leaves_initial_filter_vcf_uncompressed():

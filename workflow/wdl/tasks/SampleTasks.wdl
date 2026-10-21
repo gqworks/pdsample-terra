@@ -846,25 +846,19 @@ task StageIndexedAlignment {
         samtools index -@ 4 "$out"
       fi
     fi
-    # WDL declares both pairs. The unused pair is a placeholder; the workflow
-    # selects the pair named by kind.txt.
-    if [[ "$kind" == "cram" ]]; then
-      printf 'placeholder\n' > "~{sample_id}.bam"
-      printf 'placeholder\n' > "~{sample_id}.bam.bai"
-    else
-      printf 'placeholder\n' > "~{sample_id}.cram"
-      printf 'placeholder\n' > "~{sample_id}.cram.crai"
-    fi
+    # Emit only the real pair. Declaring both .bam and .cram File outputs made
+    # Cromwell delocalize a placeholder .cram that was missing for BAM samples
+    # ("Required file output '...cram' does not exist").
+    printf '%s' "$out" > alignment_path.txt
+    printf '%s' "$index_path" > index_path.txt
     ls -la "$out" "$index_path" >&2
     df -h . >&2 || true
     echo "StageIndexedAlignment done $(date -u +%Y-%m-%dT%H:%M:%SZ)" >&2
   >>>
   output {
     String kind = read_string("kind.txt")
-    File cram_alignment = "~{sample_id}.cram"
-    File cram_index = "~{sample_id}.cram.crai"
-    File bam_alignment = "~{sample_id}.bam"
-    File bam_index = "~{sample_id}.bam.bai"
+    File staged_alignment = read_string("alignment_path.txt")
+    File staged_index = read_string("index_path.txt")
   }
   runtime {
     docker: samtools_docker
