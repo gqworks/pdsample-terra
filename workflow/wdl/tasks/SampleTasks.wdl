@@ -753,13 +753,17 @@ task StageIndexedAlignment {
     File ref_fasta
     File ref_fasta_index
     String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
-    Int preemptible = 3
+    # WGS BAM localization alone can run for hours. Spot preemption surfaces as
+    # Cromwell "stopped before the command finished" with no task stderr.
+    Int preemptible = 0
   }
-  # Localization writes one full copy of the BAM or CRAM. A failed hardlink
-  # falls back to cp, which needs a second copy, plus a little room for the index.
-  Int disk_gb = ceil(size(alignment, "GiB") * 3 + size(alignment_index, "GiB") + size(ref_fasta, "GiB") + 100)
+  # One localization copy of the alignment plus index rebuild headroom. Never
+  # budget a second full copy: hardlink/symlink only (no cp of the BAM/CRAM).
+  Int disk_gb = ceil(size(alignment, "GiB") + size(alignment_index, "GiB") + 100)
   command <<<
     set -euo pipefail
+    echo "StageIndexedAlignment start $(date -u +%Y-%m-%dT%H:%M:%SZ)" >&2
+    df -h . >&2 || true
     wc -c ~{gate} >/dev/null
     align_in="~{alignment}"
     index_in="~{alignment_index}"
@@ -779,13 +783,27 @@ task StageIndexedAlignment {
       kind="bam"
     fi
     printf '%s' "$kind" > kind.txt
+    echo "Detected kind=${kind} magic=$(printf '%q' "$magic") align_in=${align_in}" >&2
     out="~{sample_id}.${kind}"
-    ln "$align_in" "$out" || cp -a "$align_in" "$out"
+    # Prefer an inode link. Fall back to a symlink. Never cp a WGS BAM/CRAM:
+    # that second full copy fills the disk and stretches the preemptible window.
+    link_or_symlink() {
+      local src="$1"
+      local dest="$2"
+      if ln "$src" "$dest" 2>/link_err.txt; then
+        echo "hardlink ${dest} -> ${src}" >&2
+        return 0
+      fi
+      echo "hardlink failed for ${dest}: $(cat /link_err.txt)" >&2
+      ln -s "$src" "$dest"
+      echo "symlink ${dest} -> ${src}" >&2
+    }
+    link_or_symlink "$align_in" "$out"
     if [[ "$kind" == "cram" ]]; then
-      ln "$index_in" "${out}.crai" || cp -a "$index_in" "${out}.crai"
+      link_or_symlink "$index_in" "${out}.crai"
       index_path="${out}.crai"
     else
-      ln "$index_in" "${out}.bai" || cp -a "$index_in" "${out}.bai"
+      link_or_symlink "$index_in" "${out}.bai"
       index_path="${out}.bai"
     fi
     # A region count forces htslib to open the sibling index. Header-only reads do not.
@@ -837,6 +855,9 @@ task StageIndexedAlignment {
       printf 'placeholder\n' > "~{sample_id}.cram"
       printf 'placeholder\n' > "~{sample_id}.cram.crai"
     fi
+    ls -la "$out" "$index_path" >&2
+    df -h . >&2 || true
+    echo "StageIndexedAlignment done $(date -u +%Y-%m-%dT%H:%M:%SZ)" >&2
   >>>
   output {
     String kind = read_string("kind.txt")
@@ -848,9 +869,15 @@ task StageIndexedAlignment {
   runtime {
     docker: samtools_docker
     preemptible: preemptible
+    maxRetries: 1
     memory: "8 GiB"
     disks: "local-disk ~{disk_gb} HDD"
     cpu: 4
+  }
+  parameter_meta {
+    # Public hg38 lives on a read-only reference disk; do not re-copy it.
+    ref_fasta: { localization_optional: true }
+    ref_fasta_index: { localization_optional: true }
   }
 }
 

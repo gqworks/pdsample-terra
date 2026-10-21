@@ -257,12 +257,19 @@ def test_sv_alignment_is_staged_from_magic_bytes():
     """Manta loads sample.cram.crai. A BAM named .cram or a bad index must be rebuilt."""
     workflow = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    stage = tasks.split("task StageIndexedAlignment {", 1)[1].split("task ReleaseAfterQc {", 1)[0]
     assert "call Tasks.StageIndexedAlignment as StageAlignment" in workflow
     assert "bam_or_cram_file = staged_alignment" in workflow
-    assert 'if [[ "$magic" == "CRAM" ]]; then' in tasks
-    assert 'samtools index -@ 4 "$out"' in tasks
-    assert "ln -s ~{ref_fasta} ref/ref.fa" in tasks
-    assert 'ln -s "$fai" "${ref}.fai"' not in tasks
+    assert 'if [[ "$magic" == "CRAM" ]]; then' in stage
+    assert 'samtools index -@ 4 "$out"' in stage
+    assert "ln -s ~{ref_fasta} ref/ref.fa" in stage
+    assert 'ln -s "$fai" "${ref}.fai"' not in stage
+    assert 'cp -a "$align_in"' not in stage
+    assert "link_or_symlink" in stage
+    assert 'Int preemptible = 0' in stage
+    assert 'size(alignment, "GiB") * 3' not in stage
+    assert "ref_fasta: { localization_optional: true }" in stage
+    assert "preemptible = 0" in workflow.split("call Tasks.StageIndexedAlignment as StageAlignment", 1)[1].split("call Mitochondria", 1)[0]
     assert "File staged_alignment = if StageAlignment.kind == \"cram\"" in workflow
 
 

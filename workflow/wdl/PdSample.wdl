@@ -388,7 +388,8 @@ workflow PdSample {
       gate = QcGate.gate,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
-      preemptible = preemptible
+      # Stay off spot VMs: localizing a WGS BAM for rename/index check is slow.
+      preemptible = 0
   }
   File staged_alignment = if StageAlignment.kind == "cram" then StageAlignment.cram_alignment else StageAlignment.bam_alignment
   File staged_index = if StageAlignment.kind == "cram" then StageAlignment.cram_index else StageAlignment.bam_index
