@@ -179,7 +179,7 @@ def build_summary(
         },
         "reference": {
             "ok": bool(reference_doc.get("ok", True)) if reference_doc else None,
-            "cram_contigs": reference_doc.get("cram_contigs"),
+            "bam_contigs": reference_doc.get("bam_contigs", reference_doc.get("cram_contigs")),
             "reference_contigs": reference_doc.get("reference_contigs"),
         },
         "relatedness": "not_run",

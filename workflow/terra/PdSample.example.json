@@ -1,7 +1,7 @@
 {
   "PdSample.sample_id": "SYNTHETIC_SAMPLE",
-  "PdSample.cram": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam",
-  "PdSample.crai": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai",
+  "PdSample.bam": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam",
+  "PdSample.bai": "gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai",
   "PdSample.sex": "",
   "PdSample.age_onset": "",
   "PdSample.symptoms": "",

@@ -1,10 +1,10 @@
 # Per-sample Parkinson's variant assessment
 
-One Terra sample row goes in as a BAM or CRAM. `PdSample` calls every required tool from that alignment, annotates the small-variant VCF, and writes a ranked candidate list for that person. A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow.
+One Terra sample row goes in as a BAM (+ `.bai`). `PdSample` calls every required tool from that alignment, annotates the small-variant VCF, and writes a ranked candidate list for that person. A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow. CRAM inputs are not supported.
 
 ```mermaid
 flowchart TD
-  cram[BAM or CRAM plus reference] --> check[Reference check]
+  bam[BAM plus reference] --> check[Reference check]
   check --> qc[VerifyBamID2, somalier sex, mosdepth]
   qc --> hc[HaplotypeCaller GVCF]
   hc --> gt[GenotypeGVCFs and hard filters]
@@ -35,7 +35,7 @@ Register the repository root. `.dockstore.yml` publishes one workflow:
 | --- | --- | --- |
 | `PdSample` | `/workflow/wdl/PdSample.wdl` | `/workflow/terra/PdSample.example.json` |
 
-Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, `bai`, `sex`, `age_onset`, `symptoms`, `ethnicity`, and `phenotype_report` to the sample table (method inputs are still named `cram` and `crai` in the WDL). Put reference and resource files on the workspace data table or in the method configuration.
+Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, `bai`, `sex`, `age_onset`, `symptoms`, `ethnicity`, and `phenotype_report` to the sample table (WDL inputs are `bam` and `bai`; the sample column may still be named `bam_or_cram_file`, but the object must be a BAM). Put reference and resource files on the workspace data table or in the method configuration.
 
 Broad hg38 paths under `gs://gcp-public-data--broad-references` are requester pays. On submit, enable **Use reference disks** and set workflow option `google_project` to your billing GCP project (`workflow/terra/PdSample.workflow_options.example.json`). Set `PdSample.requester_pays_project` to that same project. See [`docs/setup_checklist.md`](docs/setup_checklist.md).
 
@@ -46,8 +46,8 @@ Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https:
 | Column | Required | Meaning |
 | --- | --- | --- |
 | `sample_id` | yes | Identifier written into outputs. Use a synthetic id in examples. |
-| `bam_or_cram_file` | yes | Aligned GRCh38 BAM or CRAM for this row. |
-| `bai` | yes | BAM index (`.bai`) or CRAM index (`.crai`). |
+| `bam_or_cram_file` | yes | Aligned GRCh38 BAM for this row (`.bam` only). |
+| `bai` | yes | BAM index (`.bai`). |
 | `sex` | no | `male` or `female`. Blank, `unspecified`, or anything else is inferred from somalier, then from the X heterozygosity rate. |
 | `age_onset` | no | Age at onset in years. Blank skips onset concordance. A numeric string is accepted. |
 | `symptoms` | no | Free-text clinical features. Keywords are matched to each gene profile in `config/gene_phenotypes.yaml` (for example dementia, tremor, dystonia, levodopa responsive, hallucinations, autonomic). |
@@ -118,7 +118,7 @@ To run without a custom image, leave `pdvar_docker` at `python:3.11.11-slim-book
 
 The default interval list keeps HaplotypeCaller, VEP, and Introme on the panel gene spans. Whole-genome small-variant calling (`wgs_small_variants`) and a full GATK-SV reference-panel run dominate cost. Introme's SpliceAI, MMSplice, and Pangolin tasks are the next largest CPU (or GPU) block. ExpansionHunter, Gauchian, VerifyBamID2, somalier, and mosdepth are small beside those. The mitochondria workflow realigns chrM. There is no joint genotyping and no VQSR.
 
-`ReleaseAfterQc` hardlinks the CRAM after the QC gate so the imported mitochondria and GATK-SV workflows do not start early. The task disk is twice the CRAM size so a cross-filesystem copy can finish when a hardlink is unavailable.
+`ReleaseAfterQc` hardlinks the BAM and `.bai` after the QC gate (as `sample_id.bam` / `sample_id.bam.bai`) so the imported mitochondria and GATK-SV workflows do not start early. The task disk is twice the BAM size so a cross-filesystem copy can finish when a hardlink is unavailable.
 
 ## Local assessment
 

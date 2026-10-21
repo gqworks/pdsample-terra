@@ -7,12 +7,12 @@ import "https://raw.githubusercontent.com/broadinstitute/gatk-sv/v0.29-beta/wdl/
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from the CRAM, including required GATK-SV v0.29-beta. A cohort is a Terra sample_set that launches this workflow once per row."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai), including required GATK-SV v0.29-beta. A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs are not supported."
   }
   input {
     String sample_id
-    File cram
-    File crai
+    File bam
+    File bai
     String sex = ""
 
     File ref_fasta
@@ -219,16 +219,16 @@ workflow PdSample {
   # GenotypeHardFilter still uses reference_dict_files and bundles in-task.
   File gatk_ref_dict = select_first([ref_dict, select_first(reference_dict_files)])
 
-  call Tasks.ExtractCramHeader {
+  call Tasks.ExtractBamHeader {
     input:
-      cram = cram,
-      cram_index = crai,
+      bam = bam,
+      bam_index = bai,
       sample_id = sample_id,
       preemptible = preemptible
   }
   call Tasks.CheckReference {
     input:
-      cram_header = ExtractCramHeader.header,
+      bam_header = ExtractBamHeader.header,
       reference_dict = select_first(reference_dict_files),
       check_reference_py = FetchRepoAssets.check_reference_py,
       sample_id = sample_id,
@@ -236,8 +236,8 @@ workflow PdSample {
   }
   call Tasks.VerifyBamID {
     input:
-      cram = cram,
-      cram_index = crai,
+      bam = bam,
+      bam_index = bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       svd_ud = FetchRepoAssets.verifybamid_ud,
@@ -250,8 +250,8 @@ workflow PdSample {
   }
   call Tasks.SomalierCheck {
     input:
-      cram = cram,
-      cram_index = crai,
+      bam = bam,
+      bam_index = bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       sites = somalier_sites,
@@ -261,8 +261,8 @@ workflow PdSample {
   }
   call Tasks.Mosdepth {
     input:
-      cram = cram,
-      cram_index = crai,
+      bam = bam,
+      bam_index = bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       bed = FetchRepoAssets.panel_bed,
@@ -288,8 +288,8 @@ workflow PdSample {
   }
   call Tasks.HaplotypeCaller {
     input:
-      cram = cram,
-      cram_index = crai,
+      bam = bam,
+      bam_index = bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       ref_dict = gatk_ref_dict,
@@ -353,8 +353,8 @@ workflow PdSample {
   }
   call Tasks.ExpansionHunter {
     input:
-      cram = cram,
-      cram_index = crai,
+      bam = bam,
+      bam_index = bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       catalog = FetchRepoAssets.eh_catalog,
@@ -365,8 +365,8 @@ workflow PdSample {
   }
   call Tasks.Gauchian {
     input:
-      cram = cram,
-      cram_index = crai,
+      bam = bam,
+      bam_index = bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       sample_id = sample_id,
@@ -374,28 +374,24 @@ workflow PdSample {
       gauchian_docker = gauchian_docker,
       preemptible = preemptible
   }
-  # Manta 1.6 symlinks the alignment to sample.bam or sample.cram from the
-  # filename and then loads sample.bam.bai or sample.cram.crai. A BAM whose
-  # object name ends in .cram, or a .bai stored under a .crai name, makes
-  # GetChromDepth report that the index is not available. StageIndexedAlignment
-  # uses the CRAM magic bytes and rebuilds the index when the supplied one
-  # does not open.
-  call Tasks.StageIndexedAlignment as StageAlignment {
+  # Gate mito / GATK-SV on QC. Always release as .bam / .bam.bai so Manta 1.6
+  # symlinks sample.bam + sample.bam.bai (CRAM inputs are not supported).
+  call Tasks.ReleaseAfterQc as ReleaseBam {
     input:
-      alignment = cram,
-      alignment_index = crai,
-      sample_id = sample_id,
+      payload = bam,
       gate = QcGate.gate,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      preemptible = preemptible
+      name = sample_id + ".bam"
   }
-  File staged_alignment = if StageAlignment.kind == "cram" then StageAlignment.cram_alignment else StageAlignment.bam_alignment
-  File staged_index = if StageAlignment.kind == "cram" then StageAlignment.cram_index else StageAlignment.bam_index
+  call Tasks.ReleaseAfterQc as ReleaseBai {
+    input:
+      payload = bai,
+      gate = QcGate.gate,
+      name = sample_id + ".bam.bai"
+  }
   call Mitochondria.MitochondriaPipeline as Mito {
     input:
-      wgs_aligned_input_bam_or_cram = staged_alignment,
-      wgs_aligned_input_bam_or_cram_index = staged_index,
+      wgs_aligned_input_bam_or_cram = ReleaseBam.released,
+      wgs_aligned_input_bam_or_cram_index = ReleaseBai.released,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       ref_dict = gatk_ref_dict,
@@ -432,8 +428,8 @@ workflow PdSample {
     input:
       sample_id = sample_id,
       batch = "pd-sample",
-      bam_or_cram_file = staged_alignment,
-      bam_or_cram_index = staged_index,
+      bam_or_cram_file = ReleaseBam.released,
+      bam_or_cram_index = ReleaseBai.released,
       reference_version = "38",
       ref_samples_list = sv_ref_samples_list,
       ref_ped_file = sv_ref_ped_file,
