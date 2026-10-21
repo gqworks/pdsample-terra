@@ -38,7 +38,7 @@ The public `ref_panel_1kg` bundle already mixes a 1KG v2 contig-ploidy model tar
 
 | Step | Image | Version |
 | --- | --- | --- |
-| CRAM header | `quay.io/biocontainers/samtools:1.24--h9dcdb79_1` | samtools 1.24 |
+| BAM header | `quay.io/biocontainers/samtools:1.24--h9dcdb79_1` | samtools 1.24 |
 | Reference dict, HaplotypeCaller, hard filters | `us.gcr.io/broad-gatk/gatk:4.6.1.0` | GATK 4.6.1.0 |
 | Reference check, QC summary | `python:3.11.11-slim-bookworm` | stdlib scripts |
 | VerifyBamID2 | `quay.io/biocontainers/verifybamid2:2.0.3--hc004090_0` | 2.0.3 |

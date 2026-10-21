@@ -269,7 +269,14 @@ def test_sv_alignment_is_released_as_bam_after_qc():
     assert "File bai" in workflow
     assert "File cram" not in workflow
     assert "task ExtractBamHeader" in tasks
+    assert "task ExtractCramHeader" not in tasks
     assert "*.cram)" not in tasks
+    assert "--bam-header ~{bam_header}" in tasks
+    assert "--cram-header ~{cram_header}" not in tasks
+    assert "assets_bundle_id=bam-only-check-reference-v1" in tasks
+    assert "File bam_header" in tasks
+    assert "File cram_header" not in tasks
+
 
 
 def test_mito_leaves_initial_filter_vcf_uncompressed():

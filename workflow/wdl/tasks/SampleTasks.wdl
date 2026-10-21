@@ -79,6 +79,11 @@ task FetchRepoAssets {
   }
   command <<<
     set -euo pipefail
+    # Bump this when scripts under workflow/scripts/ change while git_commit
+    # stays at the floating value "main". Cromwell call-caches this task on
+    # the command text; without a bump, an old check_reference.py (still
+    # requiring --cram-header) can be reused against BAM-only CheckReference.
+    echo "assets_bundle_id=bam-only-check-reference-v1" >&2
     python3 - <<'PY'
 import urllib.request
 
