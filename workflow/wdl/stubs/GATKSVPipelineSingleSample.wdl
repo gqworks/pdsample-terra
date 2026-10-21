@@ -11,14 +11,21 @@ struct RuntimeAttr {
 
 workflow GATKSVPipelineSingleSample {
   meta {
-    description: "Offline fallback only. The committed PdSample.wdl imports gatk-sv v0.29-beta. validate_wdl.sh --offline substitutes this file. The default path validates the real import."
+    description: "Offline fallback only. The committed PdSample.wdl imports a vendored gatk-sv v1.1.1 GATKSVPipelineSingleSample with absolute nested imports. validate_wdl.sh --offline substitutes this file. The default path validates the real vendor import."
   }
   input {
     String sample_id
     String batch
     File bam_or_cram_file
     File bam_or_cram_index
-    String reference_version
+    String? reference_version
+    Boolean use_melt = false
+    Boolean use_scramble = true
+    Boolean use_manta = true
+    Boolean use_wham = true
+    File HERVK_reference
+    File LINE1_reference
+    Int refine_complex_n_per_split = 15000
     File ref_samples_list
     File ref_ped_file
     File genome_file
@@ -41,6 +48,7 @@ workflow GATKSVPipelineSingleSample {
     String genomes_in_the_cloud_docker
     String samtools_cloud_docker
     String cloud_sdk_docker
+    String gq_recalibrator_gatk_docker
     File preprocessed_intervals
     File manta_region_bed
     File manta_region_bed_index
@@ -63,11 +71,11 @@ workflow GATKSVPipelineSingleSample {
     File cnmops_exclude_list
     Int matrix_qc_distance
     File ref_std_manta_vcf_tar
+    File? ref_std_scramble_vcf_tar
     File ref_std_wham_vcf_tar
     File ref_panel_del_bed
     File ref_panel_dup_bed
     File depth_exclude_list
-    File empty_file
     Float depth_exclude_overlap_fraction
     Float depth_interval_overlap
     File pesr_exclude_intervals
@@ -98,6 +106,16 @@ workflow GATKSVPipelineSingleSample {
     File noncoding_bed
     Int annotation_sv_per_shard
     File qc_definitions
+    File clustering_config_part1
+    File clustering_config_part2
+    File stratification_config_part1
+    File stratification_config_part2
+    Array[File] clustering_track_bed_files
+    Array[String] clustering_track_names
+    File gq_recalibrator_model_file
+    Array[File] genome_tracks = []
+    Array[String] recalibrate_gq_args = []
+    String sl_filter_args
     String manta_docker
     String scramble_docker
     String wham_docker

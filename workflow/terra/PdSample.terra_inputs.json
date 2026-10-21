@@ -86,7 +86,6 @@
   "PdSample.sv_mei_bed": "${workspace.reference_mei_bed}",
   "PdSample.sv_protein_coding_gtf": "${workspace.reference_protein_coding_gtf}",
   "PdSample.sv_noncoding_bed": "${workspace.reference_noncoding_bed}",
-  "PdSample.sv_empty_file": "${workspace.reference_empty_file}",
   "PdSample.sv_run_vcf_qc": false,
   "PdSample.sv_min_svsize": 50,
   "PdSample.sv_ref_copy_number_autosomal_contigs": "${workspace.reference_copy_number_autosomal_contigs}",
@@ -105,5 +104,11 @@
   "PdSample.sv_clean_vcf_samples_per_clean_vcf_step2_shard": 100,
   "PdSample.sv_clean_vcf5_records_per_shard": 5000,
   "PdSample.sv_clean_vcf1b_records_per_shard": 10000,
-  "PdSample.sv_annotation_sv_per_shard": 5000
+  "PdSample.sv_annotation_sv_per_shard": 5000,
+  "PdSample.sv_ref_std_scramble_vcf_tar": "${workspace.ref_panel_std_scramble_vcf_tar}",
+  "PdSample.sv_clustering_config_part1": "${workspace.clustering_config_part1}",
+  "PdSample.sv_clustering_config_part2": "${workspace.clustering_config_part2}",
+  "PdSample.sv_stratification_config_part1": "${workspace.stratification_config_part1}",
+  "PdSample.sv_stratification_config_part2": "${workspace.stratification_config_part2}",
+  "PdSample.sv_gq_recalibrator_model_file": "${workspace.recalibrate_gq_model_file}"
 }
