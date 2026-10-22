@@ -9,10 +9,10 @@ version 1.0
 #   data_preprocessing, quality_filter  gabyou/data_prepocessing:v2.0
 #   variant_info                        gabyou/variant_info:v3.2
 #   spliceai                            headoncollusion/spliceai:v1.4-cpu
-#   mmsplice                            headoncollusion/mmsplice:v2.2-cpu
+#   mmsplice                            headoncollusion/mmsplice:v2.1-cpu
 #   pangolin                            headoncollusion/pangolin:v1.3-cpu
 #   spip                                headoncollusion/spip:v1.1
-#   spliceogen                          headoncollusion/spliceogen:v2.1
+#   spliceogen                          headoncollusion/spliceogen:v2.0
 #   introme_functions, splicing_anno,
 #   ensemble_infer                      headoncollusion/ag_check:v1.6
 
@@ -471,7 +471,7 @@ task MMSplice {
     Int gpu_count = 0
     String nvidia_driver_version = "535.183.01"
     String force_rerun_token = ""
-    String docker = "headoncollusion/mmsplice:v2.2-cpu"
+    String docker = "headoncollusion/mmsplice:v2.1-cpu"
     Int preemptible = 1
     Int cpu = 16
     Int memory_gb = 16
@@ -623,7 +623,7 @@ task Spliceogen {
     File gtf
     String prefix = "cohort"
     String force_rerun_token = ""
-    String docker = "headoncollusion/spliceogen:v2.1"
+    String docker = "headoncollusion/spliceogen:v2.0"
     # Spot preemption and an 8 GiB cgroup both stop the VM before bash can
     # write an exit code. That is the same Cromwell message as a full boot disk.
     Int preemptible = 0

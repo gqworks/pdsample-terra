@@ -45,12 +45,17 @@ workflow Introme {
     String variant_info_docker = "gabyou/variant_info:v3.2"
     String spliceai_cpu_docker = "headoncollusion/spliceai:v1.4-cpu"
     String spliceai_gpu_docker = "headoncollusion/spliceai:v1.4-gpu"
-    String mmsplice_cpu_docker = "headoncollusion/mmsplice:v2.2-cpu"
-    String mmsplice_gpu_docker = "headoncollusion/mmsplice:v2.2-gpu"
+    # v2.2-cpu and v2.2-gpu are labels in the pinned Dockerfiles and were never
+    # pushed. Batch then fails the pull before the command starts, so there is
+    # no stderr. v2.1 is the same image with mode 744 on run_mmsplice.py.
+    String mmsplice_cpu_docker = "headoncollusion/mmsplice:v2.1-cpu"
+    String mmsplice_gpu_docker = "headoncollusion/mmsplice:v2.1-gpu"
     String pangolin_cpu_docker = "headoncollusion/pangolin:v1.3-cpu"
     String pangolin_gpu_docker = "headoncollusion/pangolin:v1.3-gpu"
     String spip_docker = "headoncollusion/spip:v1.1"
-    String spliceogen_docker = "headoncollusion/spliceogen:v2.1"
+    # v2.1 was never pushed. v2.0 is the same image without the precreated
+    # data/temp/output dirs; this WDL creates those itself.
+    String spliceogen_docker = "headoncollusion/spliceogen:v2.0"
     String introme_functions_docker = "headoncollusion/ag_check:v1.6"
     String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 2
