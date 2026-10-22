@@ -45,10 +45,10 @@ GATK-SV is a required call. Panel and resource `File` inputs are required `PdSam
 | Introme preprocessing | `gabyou/data_prepocessing:v2.0` | upstream tag, including the image-name spelling |
 | VariantInfo | `gabyou/variant_info:v3.2` | v3.2 |
 | SpliceAI | `headoncollusion/spliceai:v1.4-cpu` or `v1.4-gpu` | v1.4 |
-| MMSplice | `headoncollusion/mmsplice:v2.2-cpu` or `v2.2-gpu` | v2.2 |
+| MMSplice | `headoncollusion/mmsplice:v2.1-cpu` or `v2.1-gpu` | v2.1 (v2.2 was never published) |
 | Pangolin | `headoncollusion/pangolin:v1.3-cpu` or `v1.3-gpu` | v1.3 |
 | SPiP | `headoncollusion/spip:v1.1` | v1.1 |
-| Spliceogen | `headoncollusion/spliceogen:v2.1` | v2.1 |
+| Spliceogen | `headoncollusion/spliceogen:v2.0` | v2.0 (v2.1 was never published) |
 | Introme functions / anno / infer | `headoncollusion/ag_check:v1.6` | v1.6 |
 | Introme asset fetch | `python:3.11.11-slim-bookworm` | archive `d6da48bc` |
 | Assess | `python:3.11.11-slim-bookworm` or your `pdvar` image | git commit or the Dockerfile |
