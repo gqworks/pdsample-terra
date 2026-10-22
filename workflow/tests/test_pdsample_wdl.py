@@ -296,6 +296,21 @@ def test_introme_indexes_gtf_as_gff_and_guards_missing_strand():
     assert "if raw_strand is None:" in text
 
 
+def test_introme_docker_tags_are_published():
+    """Unpublished tags fail the Batch pull before the command, so Terra has no log."""
+    introme = (ROOT / "workflow" / "wdl" / "Introme.wdl").read_text(encoding="utf-8")
+    sample = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    for text in (introme, sample, tasks):
+        assert "mmsplice:v2.2" not in text
+        assert "spliceogen:v2.1" not in text
+    assert 'mmsplice_cpu_docker = "headoncollusion/mmsplice:v2.1-cpu"' in introme
+    assert 'mmsplice_gpu_docker = "headoncollusion/mmsplice:v2.1-gpu"' in introme
+    assert 'spliceogen_docker = "headoncollusion/spliceogen:v2.0"' in introme
+    assert 'mmsplice_cpu_docker = "headoncollusion/mmsplice:v2.1-cpu"' in sample
+    assert 'spliceogen_docker = "headoncollusion/spliceogen:v2.0"' in sample
+
+
 def test_introme_gpu_attributes_are_absent_unless_a_gpu_is_requested():
     """gpuCount: 0 fails in the GCP Batch job actor, before any stderr exists."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
