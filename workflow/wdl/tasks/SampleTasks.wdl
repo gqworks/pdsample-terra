@@ -87,6 +87,7 @@ pairs = [
     ("workflow/scripts/check_reference.py", "check_reference.py"),
     ("workflow/scripts/qc_summary.py", "qc_summary.py"),
     ("workflow/scripts/annotate_avi.py", "annotate_avi.py"),
+    ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
     ("resources/panel/monopdaus-genes.grch38.bed", "genes.bed"),
@@ -108,6 +109,7 @@ PY
     File check_reference_py = "check_reference.py"
     File qc_summary_py = "qc_summary.py"
     File annotate_avi_py = "annotate_avi.py"
+    File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
     File panel_csv = "panel.csv"
     File gene_bed = "genes.bed"
