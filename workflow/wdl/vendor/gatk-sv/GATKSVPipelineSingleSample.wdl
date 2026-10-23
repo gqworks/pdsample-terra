@@ -310,6 +310,9 @@ workflow GATKSVPipelineSingleSample {
     Float pesr_interval_overlap
     Int pesr_breakend_window
     String? pesr_clustering_algorithm
+    # Orders same-chromosome BNDs before SVCluster. The image copy leaves
+    # END2 before POS, and GATK then exits 3 on every contig that has one.
+    File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
 
     File? baseline_depth_vcf_cluster_batch
     File? baseline_manta_vcf_cluster_batch
@@ -915,6 +918,12 @@ workflow GATKSVPipelineSingleSample {
       runtime_attr_override=runtime_attr_depth_merge_pre_clusterbatch
   }
 
+  # Upstream SVCluster defaults to max_retries: 1. A deterministic GATK exit 3
+  # then burns another full contig scatter before the workflow fails.
+  RuntimeAttr svcluster_fail_fast = object {
+    max_retries: 0
+  }
+
   call clusterbatch.ClusterBatch {
     input:
       manta_vcf_tar=merged_manta_vcf_tar,
@@ -941,6 +950,7 @@ workflow GATKSVPipelineSingleSample {
       pesr_interval_overlap=pesr_interval_overlap,
       pesr_breakend_window=pesr_breakend_window,
       pesr_clustering_algorithm=pesr_clustering_algorithm,
+      svtk_to_gatk_script=svtk_to_gatk_script,
       run_module_metrics=run_clusterbatch_metrics,
       linux_docker=linux_docker,
       baseline_depth_vcf=baseline_depth_vcf_cluster_batch,
@@ -955,16 +965,16 @@ workflow GATKSVPipelineSingleSample {
       runtime_attr_ids_from_vcf_list=runtime_attr_ids_from_vcf_list_cluster_batch,
       runtime_attr_create_ploidy=runtime_attr_create_ploidy_cluster_batch,
       runtime_attr_prepare_pesr_vcfs=runtime_attr_prepare_pesr_vcfs_cluster_batch,
-      runtime_attr_svcluster_manta=runtime_attr_svcluster_manta_cluster_batch,
-      runtime_attr_svcluster_melt=runtime_attr_svcluster_melt_cluster_batch,
-      runtime_attr_svcluster_wham=runtime_attr_svcluster_wham_cluster_batch,
-      runtime_attr_svcluster_scramble=runtime_attr_svcluster_scramble_cluster_batch,
+      runtime_attr_svcluster_manta=select_first([runtime_attr_svcluster_manta_cluster_batch, svcluster_fail_fast]),
+      runtime_attr_svcluster_melt=select_first([runtime_attr_svcluster_melt_cluster_batch, svcluster_fail_fast]),
+      runtime_attr_svcluster_wham=select_first([runtime_attr_svcluster_wham_cluster_batch, svcluster_fail_fast]),
+      runtime_attr_svcluster_scramble=select_first([runtime_attr_svcluster_scramble_cluster_batch, svcluster_fail_fast]),
       runtime_override_concat_vcfs_pesr=runtime_override_concat_vcfs_pesr_cluster_batch,
       runtime_attr_gatk_to_svtk_vcf_pesr=runtime_attr_gatk_to_svtk_vcf_pesr_cluster_batch,
       runtime_attr_scatter_bed=runtime_attr_scatter_bed_cluster_batch,
       runtime_attr_cnv_bed_to_gatk_vcf=runtime_attr_cnv_bed_to_gatk_vcf_cluster_batch,
       runtime_attr_exclude_intervals_depth=runtime_attr_exclude_intervals_depth_cluster_batch,
-      runtime_attr_svcluster_depth=runtime_attr_svcluster_depth_cluster_batch,
+      runtime_attr_svcluster_depth=select_first([runtime_attr_svcluster_depth_cluster_batch, svcluster_fail_fast]),
       runtime_attr_gatk_to_svtk_vcf_depth=runtime_attr_gatk_to_svtk_vcf_depth_cluster_batch,
       runtime_override_concat_vcfs_depth=runtime_override_concat_vcfs_depth_cluster_batch,
       runtime_attr_exclude_intervals_pesr=runtime_attr_exclude_intervals_pesr_cluster_batch
