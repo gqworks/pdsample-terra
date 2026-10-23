@@ -74,7 +74,7 @@ workflow Introme {
   # count via the thread variables set in the tasks. Memory stays at 1 GiB per
   # vCPU. The GPU path keeps a single CPU.
   Int pangolin_cpu = if use_gpu then 1 else 16
-  Int pangolin_mem = if use_gpu then 2 else 16
+  Int pangolin_mem = if use_gpu then 8 else 16
   Int spliceai_cpu = if use_gpu then 1 else 16
   Int spliceai_mem = if use_gpu then 8 else 16
   Int mmsplice_cpu = if use_gpu then 1 else 16
