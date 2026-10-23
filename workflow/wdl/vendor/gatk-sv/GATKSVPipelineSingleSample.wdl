@@ -310,6 +310,9 @@ workflow GATKSVPipelineSingleSample {
     Float pesr_interval_overlap
     Int pesr_breakend_window
     String? pesr_clustering_algorithm
+    # Orders same-chromosome BNDs before SVCluster. The image copy leaves
+    # END2 before POS, and GATK then exits 3 on every contig that has one.
+    File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
 
     File? baseline_depth_vcf_cluster_batch
     File? baseline_manta_vcf_cluster_batch
@@ -941,6 +944,7 @@ workflow GATKSVPipelineSingleSample {
       pesr_interval_overlap=pesr_interval_overlap,
       pesr_breakend_window=pesr_breakend_window,
       pesr_clustering_algorithm=pesr_clustering_algorithm,
+      svtk_to_gatk_script=svtk_to_gatk_script,
       run_module_metrics=run_clusterbatch_metrics,
       linux_docker=linux_docker,
       baseline_depth_vcf=baseline_depth_vcf_cluster_batch,

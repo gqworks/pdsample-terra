@@ -396,6 +396,8 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert "HERVK_reference = sv_hervk_reference" in text
     assert "LINE1_reference = sv_line1_reference" in text
     assert "refine_complex_n_per_split = sv_refine_complex_n_per_split" in text
+    assert 'File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"' in vendor
+    assert "svtk_to_gatk_script=svtk_to_gatk_script" in vendor
     assert "empty_file" not in text
     assert "HERVK_reference=HERVK_reference" in vendor
     assert "n_per_split=refine_complex_n_per_split" in vendor
