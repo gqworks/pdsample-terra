@@ -396,13 +396,21 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert "HERVK_reference = sv_hervk_reference" in text
     assert "LINE1_reference = sv_line1_reference" in text
     assert "refine_complex_n_per_split = sv_refine_complex_n_per_split" in text
-    assert 'File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"' in vendor
+    assert "File svtk_to_gatk_script" in vendor
+    assert 'File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"' not in vendor
     assert "svtk_to_gatk_script=svtk_to_gatk_script" in vendor
+    assert "svtk_to_gatk_script = FetchRepoAssets.svtk_to_gatk_script" in text
     assert "max_retries: 0" in vendor
     assert "runtime_attr_svcluster_manta=select_first([runtime_attr_svcluster_manta_cluster_batch, svcluster_fail_fast])" in vendor
     assert "empty_file" not in text
     assert "HERVK_reference=HERVK_reference" in vendor
     assert "n_per_split=refine_complex_n_per_split" in vendor
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert (
+        '("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", '
+        '"format_svtk_vcf_for_gatk.py")'
+    ) in tasks
+    assert 'File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"' in tasks
 
 
 def test_runtime_disk_gb_is_integer_ceiled():

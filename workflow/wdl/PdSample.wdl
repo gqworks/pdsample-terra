@@ -565,6 +565,7 @@ workflow PdSample {
       HERVK_reference = sv_hervk_reference,
       LINE1_reference = sv_line1_reference,
       refine_complex_n_per_split = sv_refine_complex_n_per_split,
+      svtk_to_gatk_script = FetchRepoAssets.svtk_to_gatk_script,
       manta_docker = sv_manta_docker,
       scramble_docker = sv_scramble_docker,
       wham_docker = sv_wham_docker

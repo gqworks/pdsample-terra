@@ -312,7 +312,9 @@ workflow GATKSVPipelineSingleSample {
     String? pesr_clustering_algorithm
     # Orders same-chromosome BNDs before SVCluster. The image copy leaves
     # END2 before POS, and GATK then exits 3 on every contig that has one.
-    File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
+    # Must be a GCS-localized File (Terra has no local/HTTP File FS). PdSample
+    # supplies this via FetchRepoAssets.
+    File svtk_to_gatk_script
 
     File? baseline_depth_vcf_cluster_batch
     File? baseline_manta_vcf_cluster_batch
