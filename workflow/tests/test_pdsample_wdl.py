@@ -346,6 +346,16 @@ def test_introme_cpu_tools_are_given_a_thread_count():
     assert "memory_gb = mmsplice_mem" in workflow
 
 
+def test_ensemble_infer_avoids_pipefail_sigpipe_on_header_read():
+    """zcat|head under pipefail exits 141 on large TSVs before introme.commit.txt."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    ensemble = text.split("task EnsembleInfer {", 1)[1]
+    assert "zcat introme.predictions.tsv.gz" not in ensemble
+    assert "| head -1" not in ensemble
+    assert 'header.index("introme_score") + 1' in ensemble
+    assert 'printf \'%s\\n\' "~{commit_sha}" > introme.commit.txt' in ensemble
+
+
 def test_spliceogen_scratch_is_on_the_task_disk():
     """RUN.sh writes under /Spliceogen, which is the boot disk unless redirected."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")

@@ -905,12 +905,22 @@ task EnsembleInfer {
         --output-tsv ~{prefix}.introme.predictions.tsv
     bgzip -@ "$threads" -c ~{prefix}.introme.predictions.tsv > introme.predictions.tsv.gz
     tabix -S1 -s1 -b2 -e2 introme.predictions.tsv.gz
-    introme_col=$(
-        zcat introme.predictions.tsv.gz \
-        | head -1 \
-        | tr '\t' '\n' \
-        | awk '$0 == "introme_score" {print NR; exit}'
-    )
+    # Do not use `zcat | head` under pipefail: on a large TSV, zcat gets SIGPIPE
+    # (exit 141) when head closes early, the task dies before introme.commit.txt,
+    # and delocalization reports that required output as missing.
+    introme_col="$(python3 - <<'PY'
+import gzip
+import sys
+
+with gzip.open("introme.predictions.tsv.gz", "rt", encoding="utf-8", newline="") as handle:
+    header = handle.readline().rstrip("\n").split("\t")
+try:
+    print(header.index("introme_score") + 1)
+except ValueError:
+    sys.stderr.write("introme_score column missing from ensemble TSV header: %r\n" % (header,))
+    sys.exit(1)
+PY
+)"
     sed "s/__INTROME_COL__/${introme_col}/" tomls/introme.toml > introme.generated.toml
     vcfanno \
         -base-path ./ \
