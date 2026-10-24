@@ -73,3 +73,21 @@ def test_load_contig_order_from_genome_file(tmp_path):
     genome = tmp_path / "genome.file"
     genome.write_text("chr1\t248956422\nchr2\t242193529\nchr10\t133797422\n", encoding="utf-8")
     assert fmt.load_contig_order(genome) == {"chr1": 0, "chr2": 1, "chr10": 2}
+
+
+def test_breakend_past_contig_end_is_invalid():
+    """Matches Terra stderr: Invalid position chr21:51906854 (chr21 is ~46.7Mb)."""
+    fmt = _load()
+    lengths = {"chr1": 248956422, "chr21": 46709983}
+    assert fmt.breakend_coords_valid("chr1", 51912448, "chr21", 51906854, lengths) is False
+    assert fmt.breakend_coords_valid("chr1", 51912448, "chr21", 40000000, lengths) is True
+    assert fmt.position_on_contig("chr21", 51906854, lengths) is False
+
+
+def test_load_contig_lengths_from_genome_file(tmp_path):
+    fmt = _load()
+    genome = tmp_path / "genome.file"
+    genome.write_text("chr1\t248956422\nchr21\t46709983\n", encoding="utf-8")
+    order, lengths = fmt.load_contig_table(genome)
+    assert order == {"chr1": 0, "chr21": 1}
+    assert lengths == {"chr1": 248956422, "chr21": 46709983}

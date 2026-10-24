@@ -101,15 +101,40 @@ def rescale_gq(record):
                 record.samples[sample][gq_field] = floor(record.samples[sample][gq_field] / 10)
 
 
-def load_contig_order(path):
-    """Map contig name -> index from a fasta.fai or cut -f1,2 genome.file."""
+def load_contig_table(path):
+    """Contig order and lengths from fasta.fai or cut -f1,2 genome.file."""
     order = {}
+    lengths = {}
     with open(path, "r") as handle:
         for index, line in enumerate(handle):
-            contig = line.split("\t", 1)[0].strip()
-            if contig:
-                order[contig] = index
-    return order
+            parts = line.rstrip("\n").split("\t")
+            contig = parts[0].strip()
+            if not contig:
+                continue
+            order[contig] = index
+            if len(parts) > 1 and parts[1].strip().isdigit():
+                lengths[contig] = int(parts[1])
+    return order, lengths
+
+
+def load_contig_order(path):
+    """Map contig name -> index from a fasta.fai or cut -f1,2 genome.file."""
+    return load_contig_table(path)[0]
+
+
+def position_on_contig(chrom, pos, contig_lengths):
+    """True when chrom is known and 1 <= pos <= contig length."""
+    if not contig_lengths or chrom not in contig_lengths:
+        return True
+    pos = int(pos)
+    return 1 <= pos <= contig_lengths[chrom]
+
+
+def breakend_coords_valid(chrom, pos, chr2, end2, contig_lengths):
+    """GATK SVCallRecord.validatePosition rejects mates past the contig end."""
+    return position_on_contig(chrom, pos, contig_lengths) and position_on_contig(
+        chr2, end2, contig_lengths
+    )
 
 
 def normalize_strands(strands):
@@ -207,8 +232,9 @@ def convert(record: pysam.VariantRecord,
             bothside_pass_vid_set: Set[Text],
             background_fail_vid_set: Set[Text],
             add_sr_pos: bool,
-            contig_order: Optional[Dict[Text, int]] = None
-            ) -> Tuple[pysam.VariantRecord, Optional[Dict[Text, Any]]]:
+            contig_order: Optional[Dict[Text, int]] = None,
+            contig_lengths: Optional[Dict[Text, int]] = None
+            ) -> Tuple[Optional[pysam.VariantRecord], Optional[Dict[Text, Any]]]:
     """
     Converts a record from svtk to gatk style. This includes updating END/END2 and adding
     necessary fields such as ECN.
@@ -279,6 +305,12 @@ def convert(record: pysam.VariantRecord,
             record.info.pop('CHR2')
         if 'END2' in record.info:
             record.info.pop('END2')
+    # Manta DEL/DUP/INV often keep CHR2/STRANDS. GATK ignores them for these
+    # types, but drop them so collapse attributes cannot resurrect a bad mate.
+    if svtype in ('DEL', 'DUP', 'INV', 'CNV'):
+        for key in ('CHR2', 'END2'):
+            if key in record.info:
+                record.info.pop(key)
     # Delete empty INFO fields (GATK does not like "." for non-String types)
     keys = record.info.keys()
     for k in keys:
@@ -317,6 +349,15 @@ def convert(record: pysam.VariantRecord,
             record.ref,
             contig_order or {},
         )
+        if not breakend_coords_valid(chrom, pos, chr2, end2, contig_lengths or {}):
+            # Observed on Terra: SVCluster CanonicalSVCollapser dies with
+            # IllegalArgumentException: Invalid position chr21:51906854 when a
+            # BND mate coordinate exceeds the contig length (chr21 is ~46.7Mb).
+            sys.stderr.write(
+                "Skipping %s %s with out-of-range breakend %s:%s / %s:%s\n"
+                % (svtype, record.id, chrom, pos, chr2, end2)
+            )
+            return None, None
         alleles = (record.ref, alt if alt is not None else record.alts[0])
         record.info["CHR2"] = chr2
         record.info["END2"] = int(end2)
@@ -336,6 +377,17 @@ def convert(record: pysam.VariantRecord,
             record.stop = int(pos)
             if alt is not None:
                 record.alts = (alt,)
+    elif contig_lengths:
+        # Non-breakends: POS/END must also lie on the contig.
+        end = int(record.stop)
+        if not position_on_contig(record.contig, record.pos, contig_lengths) or not position_on_contig(
+            record.contig, end, contig_lengths
+        ):
+            sys.stderr.write(
+                "Skipping %s %s with out-of-range interval %s:%s-%s\n"
+                % (svtype, record.id, record.contig, record.pos, end)
+            )
+            return None, None
     return record, reloc
 
 
@@ -375,9 +427,10 @@ def _process(vcf_in: pysam.VariantFile,
     background_fail_vid_set = parse_last_column(arguments.background_fail_list)
 
     contig_order = {}
+    contig_lengths = {}
     contig_fai = getattr(arguments, "contig_fai", None) or "genome.file"
     if contig_fai and os.path.exists(contig_fai):
-        contig_order = load_contig_order(contig_fai)
+        contig_order, contig_lengths = load_contig_table(contig_fai)
 
     for record in vcf_in:
         out, reloc = convert(record=record, bnd_end_dict=bnd_end_dict,
@@ -385,7 +438,10 @@ def _process(vcf_in: pysam.VariantFile,
                              bothside_pass_vid_set=bothside_pass_vid_set,
                              background_fail_vid_set=background_fail_vid_set,
                              add_sr_pos=arguments.add_sr_pos,
-                             contig_order=contig_order)
+                             contig_order=contig_order,
+                             contig_lengths=contig_lengths)
+        if out is None:
+            continue
         if reloc is not None:
             out = remint_breakend_record(
                 vcf_out,
