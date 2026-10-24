@@ -1,11 +1,12 @@
 #!/bin/env python
 
 import argparse
+import os
 import pysam
 import sys
 import gzip
 from math import floor
-from typing import Any, List, Text, Dict, Optional, Set
+from typing import Any, List, Text, Dict, Optional, Set, Tuple
 
 GQ_FIELDS = ["GQ", "PE_GQ", "SR_GQ", "RD_GQ"]
 
@@ -100,33 +101,104 @@ def rescale_gq(record):
                 record.samples[sample][gq_field] = floor(record.samples[sample][gq_field] / 10)
 
 
-def order_same_chrom_breakend(pos, end2, strands, ref, chrom):
-    """Put the earlier same-chromosome breakend at POS.
+def load_contig_order(path):
+    """Map contig name -> index from a fasta.fai or cut -f1,2 genome.file."""
+    order = {}
+    with open(path, "r") as handle:
+        for index, line in enumerate(handle):
+            contig = line.split("\t", 1)[0].strip()
+            if contig:
+                order[contig] = index
+    return order
 
-    GATK SVCluster compares the two breakends in reference order and exits 3
-    (IllegalArgumentException: End precedes start) when END2 is before POS.
-    v1.1.1 standardization keeps that mate coordinate in END2 and sets END=POS.
-    Swapping the ends and STRANDS preserves the breakpoint and satisfies SVCluster.
-    Returns pos, end2, strands, and a rebuilt ALT, or None for ALT when unchanged.
+
+def normalize_strands(strands):
+    if strands is None:
+        return None
+    if isinstance(strands, (tuple, list)):
+        strands = strands[0] if strands else None
+    if strands is None:
+        return None
+    return str(strands)
+
+
+def breakend_key(chrom, pos, contig_order):
+    """Sort key matching GATK IntervalUtils.compareLocatables on 1-bp intervals."""
+    if contig_order and chrom in contig_order:
+        return (0, contig_order[chrom], int(pos))
+    # Fallback when genome.file is missing: keep unknown contigs after known ones.
+    return (1, str(chrom), int(pos))
+
+
+def order_breakends(chrom, pos, chr2, end2, strands, ref, contig_order):
+    """Ensure (chrom, pos) <= (chr2, end2) in dictionary order.
+
+    GATK SVCallRecord rejects any non-CPX variant where position B precedes A
+    (IllegalArgumentException: End precedes start), including inter-chromosomal
+    BNDs whose mate contig sorts earlier than CHROM. PreparePESRVcfs writes
+    genome.file before invoking this script; use that contig order when present.
+    Returns chrom, pos, chr2, end2, strands, alt (alt is None when unchanged).
     """
-    if end2 >= pos:
-        return pos, end2, strands, None
+    strands = normalize_strands(strands)
+    pos = int(pos)
+    end2 = int(end2)
+    chr2 = chr2 or chrom
+    if breakend_key(chrom, pos, contig_order) <= breakend_key(chr2, end2, contig_order):
+        return chrom, pos, chr2, end2, strands, None
     if isinstance(strands, str) and len(strands) >= 2:
         strands = strands[1] + strands[0] + strands[2:]
     alt = breakend_alt(ref or "N", chrom, pos, strands)
-    return end2, pos, strands, alt
+    return chr2, end2, chrom, pos, strands, alt
 
 
-def breakend_alt(ref, chrom, mate_pos, strands):
+def order_same_chrom_breakend(pos, end2, strands, ref, chrom):
+    """Back-compat wrapper used by unit tests."""
+    new_chrom, new_pos, new_chr2, new_end2, new_strands, alt = order_breakends(
+        chrom, pos, chrom, end2, strands, ref, {chrom: 0}
+    )
+    return new_pos, new_end2, new_strands, alt
+
+
+def breakend_alt(ref, mate_chrom, mate_pos, strands):
     """VCF BND ALT matching GATK SVCluster's constructBndAllele."""
+    strands = normalize_strands(strands) or "++"
     strand_a_plus = strands[0] == "+"
     strand_b_plus = strands[1] == "+"
     bracket = "]" if strand_b_plus else "["
-    mate = f"{chrom}:{mate_pos}"
+    mate = f"{mate_chrom}:{mate_pos}"
     if strand_a_plus:
         return f"{ref}{bracket}{mate}{bracket}"
     return f"{bracket}{mate}{bracket}{ref}"
 
+
+def remint_breakend_record(vcf_out, record, chrom, pos, alleles, chr2, end2, strands):
+    """Build a new record when CHROM must change after breakend reordering."""
+    new_record = vcf_out.new_record(
+        contig=chrom,
+        start=pos - 1,
+        stop=pos,
+        alleles=alleles,
+        id=record.id,
+        qual=record.qual,
+    )
+    for key in list(record.filter.keys()):
+        new_record.filter.add(key)
+    skip = {"CHR2", "END2", "STRANDS", "END"}
+    for key, value in record.info.items():
+        if key in skip:
+            continue
+        try:
+            new_record.info[key] = value
+        except (TypeError, ValueError):
+            continue
+    new_record.info["CHR2"] = chr2
+    new_record.info["END2"] = end2
+    if strands is not None:
+        new_record.info["STRANDS"] = strands
+    for sample in record.samples:
+        for key, value in record.samples[sample].items():
+            new_record.samples[sample][key] = value
+    return new_record
 
 def convert(record: pysam.VariantRecord,
             bnd_end_dict: Optional[Dict[Text, int]],
@@ -134,7 +206,9 @@ def convert(record: pysam.VariantRecord,
             scale_down_gq: bool,
             bothside_pass_vid_set: Set[Text],
             background_fail_vid_set: Set[Text],
-            add_sr_pos: bool) -> pysam.VariantRecord:
+            add_sr_pos: bool,
+            contig_order: Optional[Dict[Text, int]] = None
+            ) -> Tuple[pysam.VariantRecord, Optional[Dict[Text, Any]]]:
     """
     Converts a record from svtk to gatk style. This includes updating END/END2 and adding
     necessary fields such as ECN.
@@ -158,12 +232,16 @@ def convert(record: pysam.VariantRecord,
 
     Returns
     -------
-    header: pysam.VariantRecord
-        gatk-style record
+    record: pysam.VariantRecord
+        gatk-style record (possibly still on the original contig)
+    reloc: Optional[Dict[Text, Any]]
+        when CHROM must move, keys chrom/pos/alleles for reminting
     """
 
     def is_null(val):
         return val is None or val == "."
+
+    reloc = None
 
     svtype = record.info['SVTYPE']
     contig = record.contig
@@ -173,8 +251,15 @@ def convert(record: pysam.VariantRecord,
     else:
         record.ref = 'N'
     if svtype == 'BND' or svtype == 'CTX':
-        record.info['END2'] = bnd_end_dict[record.id] if bnd_end_dict is not None \
-            else record.info.get('END2', record.stop)
+        # Keep INFO/END2 when present (v1.1.1). Only recover from raw END for
+        # legacy records where END held the mate and END2 is absent.
+        existing_end2 = record.info.get('END2')
+        if existing_end2 is not None and existing_end2 != ".":
+            record.info['END2'] = existing_end2
+        elif bnd_end_dict is not None and record.id in bnd_end_dict:
+            record.info['END2'] = bnd_end_dict[record.id]
+        else:
+            record.info['END2'] = record.stop
     # Add SR1POS/SR2POS, CPX not supported
     if add_sr_pos and svtype != 'CPX':
         record.info['SR1POS'] = record.pos
@@ -211,20 +296,47 @@ def convert(record: pysam.VariantRecord,
     if scale_down_gq:
         rescale_gq(record)
     if svtype in ("BND", "CTX"):
+        # Prefer INFO/END2 (v1.1.1). Fall back to raw END when END2 is missing
+        # (legacy svtk) but not when END was already collapsed to POS.
+        end2 = record.info.get("END2")
+        if end2 is None or is_null(end2):
+            raw_end = bnd_end_dict.get(record.id) if bnd_end_dict else None
+            if raw_end is not None and raw_end != record.pos:
+                end2 = raw_end
+            else:
+                end2 = record.pos
         chr2 = record.info.get("CHR2", record.contig)
-        end2 = record.info.get("END2", record.pos)
-        if chr2 == record.contig:
-            pos, end2, strands, alt = order_same_chrom_breakend(
-                record.pos, int(end2), record.info.get("STRANDS"), record.ref, record.contig
-            )
-            record.pos = pos
-            record.stop = pos
-            record.info["END2"] = end2
-            if strands is not None:
-                record.info["STRANDS"] = strands
+        if chr2 is None or is_null(chr2):
+            chr2 = record.contig
+        chrom, pos, chr2, end2, strands, alt = order_breakends(
+            record.contig,
+            record.pos,
+            chr2,
+            int(end2),
+            record.info.get("STRANDS"),
+            record.ref,
+            contig_order or {},
+        )
+        alleles = (record.ref, alt if alt is not None else record.alts[0])
+        record.info["CHR2"] = chr2
+        record.info["END2"] = int(end2)
+        if strands is not None:
+            record.info["STRANDS"] = strands
+        if chrom != record.contig:
+            reloc = {
+                "chrom": chrom,
+                "pos": int(pos),
+                "alleles": alleles,
+                "chr2": chr2,
+                "end2": int(end2),
+                "strands": strands,
+            }
+        else:
+            record.pos = int(pos)
+            record.stop = int(pos)
             if alt is not None:
                 record.alts = (alt,)
-    return record
+    return record, reloc
 
 
 def parse_last_column(path):
@@ -253,21 +365,38 @@ def _process(vcf_in: pysam.VariantFile,
     -------
     header: pysam.VariantRecord
         record with ECN fields added"""
-    if arguments.fix_end:
-        bnd_end_dict = _parse_bnd_ends(arguments.vcf)
-    else:
-        bnd_end_dict = None
+    # Always parse raw END values so legacy BNDs without END2 can be recovered.
+    # For v1.1.1 records END==POS; convert() only uses the raw END when END2 is
+    # missing and the raw value differs from POS.
+    bnd_end_dict = _parse_bnd_ends(arguments.vcf)
     ploidy_dict = _parse_ploidy_table(arguments.ploidy_table)
 
     bothside_pass_vid_set = parse_last_column(arguments.bothside_pass_list)
     background_fail_vid_set = parse_last_column(arguments.background_fail_list)
 
+    contig_order = {}
+    contig_fai = getattr(arguments, "contig_fai", None) or "genome.file"
+    if contig_fai and os.path.exists(contig_fai):
+        contig_order = load_contig_order(contig_fai)
+
     for record in vcf_in:
-        out = convert(record=record, bnd_end_dict=bnd_end_dict,
-                      ploidy_dict=ploidy_dict, scale_down_gq=arguments.scale_down_gq,
-                      bothside_pass_vid_set=bothside_pass_vid_set,
-                      background_fail_vid_set=background_fail_vid_set,
-                      add_sr_pos=arguments.add_sr_pos)
+        out, reloc = convert(record=record, bnd_end_dict=bnd_end_dict,
+                             ploidy_dict=ploidy_dict, scale_down_gq=arguments.scale_down_gq,
+                             bothside_pass_vid_set=bothside_pass_vid_set,
+                             background_fail_vid_set=background_fail_vid_set,
+                             add_sr_pos=arguments.add_sr_pos,
+                             contig_order=contig_order)
+        if reloc is not None:
+            out = remint_breakend_record(
+                vcf_out,
+                out,
+                reloc["chrom"],
+                reloc["pos"],
+                reloc["alleles"],
+                reloc["chr2"],
+                reloc["end2"],
+                reloc["strands"],
+            )
         vcf_out.write(out)
 
 
