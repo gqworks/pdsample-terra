@@ -342,6 +342,8 @@ def test_introme_cpu_tools_are_given_a_thread_count():
     assert "Int pangolin_cpu = if use_gpu then 1 else 16" in workflow
     assert "Int spliceai_cpu = if use_gpu then 1 else 16" in workflow
     assert "Int mmsplice_cpu = if use_gpu then 1 else 16" in workflow
+    assert "Int spliceai_mem = 16" in workflow
+    assert "Int mmsplice_mem = 16" in workflow
     assert "memory_gb = spliceai_mem" in workflow
     assert "memory_gb = mmsplice_mem" in workflow
 
