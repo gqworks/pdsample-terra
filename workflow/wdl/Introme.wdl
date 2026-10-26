@@ -72,13 +72,16 @@ workflow Introme {
   Int heavy_preemptible = if use_gpu then 0 else 1
   # CPU path gives each neural net 16 cores. TensorFlow and PyTorch use that
   # count via the thread variables set in the tasks. Memory stays at 1 GiB per
-  # vCPU. The GPU path keeps a single CPU.
+  # vCPU. The GPU path keeps a single CPU but still needs 16 GiB host RAM:
+  # SpliceAI loads five Keras models beside the T4 allocation, and an 8 GiB
+  # host was SIGKILL'd mid-predict with no Python traceback (stderr ended on
+  # tf.function retracing warnings after GPU init succeeded).
   Int pangolin_cpu = if use_gpu then 1 else 16
   Int pangolin_mem = if use_gpu then 8 else 16
   Int spliceai_cpu = if use_gpu then 1 else 16
-  Int spliceai_mem = if use_gpu then 8 else 16
+  Int spliceai_mem = 16
   Int mmsplice_cpu = if use_gpu then 1 else 16
-  Int mmsplice_mem = if use_gpu then 8 else 16
+  Int mmsplice_mem = 16
 
   call Tasks.FetchIntromeAssets {
     input:
