@@ -118,6 +118,18 @@ workflow PdSample {
     # v1.1.1 defaults: Scramble on, MELT off (MELT is deprecated).
     Boolean sv_use_melt = false
     Boolean sv_use_scramble = true
+    # Optional GatherSampleEvidence outputs for this sample. When set, GATK-SV
+    # skips the matching caller / coverage / PE-SR collection. Provide all of
+    # counts + pe + sr + sd to skip evidence collection entirely; provide each
+    # caller VCF to skip that caller. Indexes are not separate WDL inputs —
+    # keep .tbi objects next to the primary paths in GCS when tools need them.
+    File? sv_case_manta_vcf
+    File? sv_case_wham_vcf
+    File? sv_case_scramble_vcf
+    File? sv_case_counts_file
+    File? sv_case_pe_file
+    File? sv_case_sr_file
+    File? sv_case_sd_file
     File sv_ref_samples_list
     File sv_ref_ped_file
     File sv_genome_file
@@ -466,6 +478,13 @@ workflow PdSample {
       reference_version = "38",
       use_melt = sv_use_melt,
       use_scramble = sv_use_scramble,
+      case_manta_vcf = sv_case_manta_vcf,
+      case_wham_vcf = sv_case_wham_vcf,
+      case_scramble_vcf = sv_case_scramble_vcf,
+      case_counts_file = sv_case_counts_file,
+      case_pe_file = sv_case_pe_file,
+      case_sr_file = sv_case_sr_file,
+      case_sd_file = sv_case_sd_file,
       ref_samples_list = sv_ref_samples_list,
       ref_ped_file = sv_ref_ped_file,
       genome_file = sv_genome_file,

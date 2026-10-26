@@ -400,7 +400,22 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert "Boolean sv_use_scramble = true" in text
     assert "use_melt = sv_use_melt" in text
     assert "use_scramble = sv_use_scramble" in text
+    assert "case_manta_vcf = sv_case_manta_vcf" in text
+    assert "case_wham_vcf = sv_case_wham_vcf" in text
+    assert "case_scramble_vcf = sv_case_scramble_vcf" in text
+    assert "case_counts_file = sv_case_counts_file" in text
+    assert "case_pe_file = sv_case_pe_file" in text
+    assert "case_sr_file = sv_case_sr_file" in text
+    assert "case_sd_file = sv_case_sd_file" in text
     assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
+    terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
+    assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
+    assert '"PdSample.sv_case_counts_file": "${this.Coverage_count}"' in terra
+    assert '"PdSample.sv_case_pe_file": "${this.pesr_disc}"' in terra
+    assert '"PdSample.sv_case_sr_file": "${this.pesr_split}"' in terra
+    assert '"PdSample.sv_case_sd_file": "${this.pesr_sd}"' in terra
+    assert '"PdSample.sv_case_wham_vcf": "${this.wham_vcf}"' in terra
+    assert '"PdSample.sv_case_scramble_vcf": "${this.scramble_vcf}"' in terra
     assert "gq_recalibrator_model_file = sv_gq_recalibrator_model_file" in text
     assert "sl_filter_args = sv_sl_filter_args" in text
     assert "HERVK_reference = sv_hervk_reference" in text
