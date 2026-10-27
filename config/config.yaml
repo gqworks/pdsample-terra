@@ -75,6 +75,8 @@ scoring:
   revel_high: 0.7
   spliceai_high: 0.5
   spliceai_moderate: 0.2
+  # Eigen-phred_coding from dbNSFP. Higher is more deleterious; 10 is a triage band only.
+  eigen_high: 10
   # AlphaGenome Atlas AVI Phred. Phred = -10 log10(1 - CDF) against all GRCh38 SNVs
   # (Cheng et al. medRxiv 2026, doi:10.64898/2026.09.16.26363192).
   # 30 is the top 0.1% and 20 is the top 1%. These are rank bands, not pathogenicity calls.
@@ -92,6 +94,11 @@ scoring:
     spliceai_moderate: 2
     avi_high: 3
     avi_moderate: 1
+    sift_deleterious: 1
+    polyphen_damaging: 1
+    muttaster_disease: 1
+    fathmm_damaging: 1
+    eigen_high: 1
     introme_high: 5
     absent_gnomad: 2
   tiers:

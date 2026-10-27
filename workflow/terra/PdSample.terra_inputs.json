@@ -26,6 +26,8 @@
   "PdSample.cadd_indels_index": "gs://YOUR_WORKSPACE_BUCKET/resources/cadd/gnomad.genomes.r4.0.indel.tsv.gz.tbi",
   "PdSample.revel": "gs://YOUR_WORKSPACE_BUCKET/resources/revel/revel_grch38.tsv.gz",
   "PdSample.revel_index": "gs://YOUR_WORKSPACE_BUCKET/resources/revel/revel_grch38.tsv.gz.tbi",
+  "PdSample.dbnsfp": "gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP4.9c_grch38.gz",
+  "PdSample.dbnsfp_index": "gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP4.9c_grch38.gz.tbi",
   "PdSample.somalier_sites": "gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz",
   "PdSample.wgs_small_variants": false,
   "PdSample.introme_gtf": "gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz",

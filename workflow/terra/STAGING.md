@@ -150,8 +150,12 @@ Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. P
 | `cadd_indels_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/cadd/gnomad.genomes.r4.0.indel.tsv.gz.tbi` | tabix index for CADD indels |
 | `revel` | `gs://YOUR_WORKSPACE_BUCKET/resources/revel/revel_grch38.tsv.gz` | REVEL GRCh38 tabix (prepare per Ensembl REVEL plugin docs) |
 | `revel_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/revel/revel_grch38.tsv.gz.tbi` | tabix index for REVEL |
+| `dbnsfp` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP4.9c_grch38.gz` | VEP-ready dbNSFP (academic/commercial branch as licensed); supplies Eigen, MutationTaster, FATHMM |
+| `dbnsfp_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP4.9c_grch38.gz.tbi` | tabix index for dbNSFP |
 
-`LiftGnomadInfo` writes unified `INFO/gnomAD_AF` and `INFO/AF_popmax` as the **max** across genomes (`gnomADg_*`) and exomes (`gnomADe_*`). `pdvar` maps ClinVar `CLNSIG` to `clinvar_class`, and reads `CADD_PHRED` / `REVEL` from CSQ. Legacy `gnomad_vcf` still aliases genomes. Extra plugins (for example SpliceAI) can still use `vep_extra_args`.
+SIFT and PolyPhen also come from the VEP cache via `--sift b --polyphen b` (`vep_sift_polyphen`, default true) with no extra files. Override `dbnsfp_fields` if your dbNSFP build uses different column names (default includes `Eigen-phred_coding`, `MutationTaster_*`, `FATHMM_*`, and PolyPhen2/SIFT columns).
+
+`LiftGnomadInfo` writes unified `INFO/gnomAD_AF` and `INFO/AF_popmax` as the **max** across genomes (`gnomADg_*`) and exomes (`gnomADe_*`). `pdvar` maps ClinVar `CLNSIG` to `clinvar_class`, and reads `CADD_PHRED` / `REVEL` / SIFT / PolyPhen / Eigen / MutationTaster / FATHMM from CSQ. Legacy `gnomad_vcf` still aliases genomes. Extra plugins (for example SpliceAI) can still use `vep_extra_args`.
 
 ## Optional inputs that are not in the JSON
 

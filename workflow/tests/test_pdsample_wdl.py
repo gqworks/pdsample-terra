@@ -75,6 +75,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File? clinvar_vcf" in text
     assert "File? cadd_snv" in text
     assert "File? revel" in text
+    assert "File? dbnsfp" in text
+    assert "vep_sift_polyphen" in text
     assert "alphagenome_api_key" not in text
     assert "AnnotateAvi" in text
     assert "VepAnnotate" in text
@@ -83,6 +85,11 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "gnomADe" in sample_tasks
     assert "REVEL,file=" in sample_tasks
     assert "CADD,snv=" in sample_tasks
+    assert "dbNSFP" in sample_tasks
+    assert "--sift b --polyphen b" in sample_tasks
+    assert "Eigen-phred_coding" in sample_tasks
+    assert "MutationTaster_pred" in sample_tasks
+    assert "FATHMM_pred" in sample_tasks
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
     assert "PdCohort" not in dockstore

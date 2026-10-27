@@ -9,7 +9,8 @@ import pandas as pd
 
 NUMERIC_COLUMNS = (
     "pos", "depth", "gq", "allele_balance", "cohort_af", "gnomad_af", "gnomad_popmax_af",
-    "gnomad_hom", "cadd", "revel", "spliceai", "clinvar_stars", "introme_score",
+    "gnomad_hom", "cadd", "revel", "spliceai", "sift", "polyphen", "eigen", "muttaster",
+    "fathmm", "clinvar_stars", "introme_score",
     "age_onset", "age_sampling",
 )
 

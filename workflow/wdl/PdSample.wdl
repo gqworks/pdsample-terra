@@ -40,6 +40,11 @@ workflow PdSample {
     File? cadd_indels_index
     File? revel
     File? revel_index
+    # dbNSFP for Eigen / MutationTaster / FATHMM (and optional SIFT/PolyPhen2 columns).
+    File? dbnsfp
+    File? dbnsfp_index
+    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,FATHMM_score,FATHMM_pred"
+    Boolean vep_sift_polyphen = true
 
     File somalier_sites
     Float max_freemix = 0.02
@@ -409,6 +414,10 @@ workflow PdSample {
       cadd_indels_index = cadd_indels_index,
       revel = revel,
       revel_index = revel_index,
+      dbnsfp = dbnsfp,
+      dbnsfp_index = dbnsfp_index,
+      dbnsfp_fields = dbnsfp_fields,
+      vep_sift_polyphen = vep_sift_polyphen,
       extra_args = vep_extra_args,
       preemptible = preemptible
   }

@@ -507,6 +507,12 @@ task VepAnnotate {
     File? cadd_indels_index
     File? revel
     File? revel_index
+    # dbNSFP supplies Eigen, MutationTaster, FATHMM (and optional SIFT/PolyPhen2 columns).
+    File? dbnsfp
+    File? dbnsfp_index
+    # Comma-separated dbNSFP column names. Override if your dbNSFP build differs.
+    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,FATHMM_score,FATHMM_pred"
+    Boolean vep_sift_polyphen = true
     String extra_args = ""
     String vep_docker = "quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0"
     Int preemptible = 3
@@ -521,7 +527,8 @@ task VepAnnotate {
   Float cadd_snv_gb = if defined(cadd_snv) then size(cadd_snv, "GiB") else 0.0
   Float cadd_indel_gb = if defined(cadd_indels) then size(cadd_indels, "GiB") else 0.0
   Float revel_gb = if defined(revel) then size(revel, "GiB") else 0.0
-  Int disk_gb = ceil(size(vcf, "GiB") + size(vcf_index, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 4 + genomes_gb + exomes_gb + clinvar_gb + cadd_snv_gb + cadd_indel_gb + revel_gb + 200)
+  Float dbnsfp_gb = if defined(dbnsfp) then size(dbnsfp, "GiB") else 0.0
+  Int disk_gb = ceil(size(vcf, "GiB") + size(vcf_index, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 4 + genomes_gb + exomes_gb + clinvar_gb + cadd_snv_gb + cadd_indel_gb + revel_gb + dbnsfp_gb + 200)
   command <<<
     set -euo pipefail
 
@@ -573,6 +580,18 @@ task VepAnnotate {
       link_with_tbi "~{revel}" "~{revel_index}" revel.tsv.gz
       plugin_args+=(--plugin REVEL,file=revel.tsv.gz)
     fi
+    if [[ -n "~{dbnsfp}" ]]; then
+      test -s "~{dbnsfp_index}"
+      link_with_tbi "~{dbnsfp}" "~{dbnsfp_index}" dbnsfp.gz
+      # transcript_match keeps missense scores on the picked Ensembl transcript when possible.
+      plugin_args+=(--plugin "dbNSFP,dbnsfp.gz,transcript_match=1,~{dbnsfp_fields}")
+    fi
+
+    pred_args=()
+    if [[ "~{vep_sift_polyphen}" == "true" ]]; then
+      # Cache-native SIFT/PolyPhen (prediction + score). No extra files required.
+      pred_args+=(--sift b --polyphen b)
+    fi
 
     cache_arg="~{cache_dir}"
     case "~{cache_dir}" in
@@ -589,7 +608,7 @@ task VepAnnotate {
     vep --offline --cache --dir_cache "$cache_arg" --fasta ref.fa --assembly GRCh38 \
       --vcf --allele_number --symbol --hgvs --canonical --pick --force_overwrite \
       --fork ~{threads} \
-      "${custom_args[@]}" "${plugin_args[@]}" ~{extra_args} \
+      "${pred_args[@]}" "${custom_args[@]}" "${plugin_args[@]}" ~{extra_args} \
       -i ~{vcf} -o panel.vep.vcf
     bgzip -f panel.vep.vcf
     tabix -p vcf panel.vep.vcf.gz

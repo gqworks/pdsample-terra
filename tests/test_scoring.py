@@ -26,6 +26,37 @@ def test_benign_is_tier4(cfg):
     assert row["tier"] == 4
 
 
+def test_in_silico_predictions_add_points(cfg):
+    bare = _score(cfg, consequence="missense_variant", clinvar_class="none", gnomad_af=0.01)
+    hit = _score(
+        cfg,
+        consequence="missense_variant",
+        clinvar_class="none",
+        gnomad_af=0.01,
+        sift_pred="deleterious",
+        polyphen_pred="probably_damaging",
+        muttaster_pred="D",
+        fathmm_pred="D",
+        eigen=12.0,
+    )
+    expected = (
+        cfg["scoring"]["points"]["sift_deleterious"]
+        + cfg["scoring"]["points"]["polyphen_damaging"]
+        + cfg["scoring"]["points"]["muttaster_disease"]
+        + cfg["scoring"]["points"]["fathmm_damaging"]
+        + cfg["scoring"]["points"]["eigen_high"]
+    )
+    assert hit["evidence_score"] == bare["evidence_score"] + expected
+    for reason in (
+        "sift_deleterious",
+        "polyphen_damaging",
+        "muttaster_disease",
+        "fathmm_damaging",
+        "eigen_high",
+    ):
+        assert reason in hit["evidence_reasons"]
+
+
 def test_avi_phred_bands_add_points(cfg):
     bare = _score(cfg, consequence="missense_variant", clinvar_class="none", gnomad_af=0.0)
     high = _score(cfg, consequence="missense_variant", clinvar_class="none", gnomad_af=0.0, avi_phred=31)

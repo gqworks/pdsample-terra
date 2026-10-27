@@ -36,6 +36,8 @@ VARIANT_COLUMNS = [
     "sample_id", "family_id", "chrom", "pos", "end", "ref", "alt", "variant_id",
     "gene", "consequence", "genotype", "zygosity", "gq", "allele_balance", "depth",
     "cohort_af", "gnomad_af", "gnomad_popmax_af", "cadd", "revel", "spliceai",
+    "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
+    "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
     "clinvar", "clinvar_class", "variant_class", "hit_source", "heteroplasmy",
     "repeat_count", "str_locus", "str_expanded", "str_citation", "copy_number",
     "dosage_mechanism", "dosage_event", "scored_dosage",
