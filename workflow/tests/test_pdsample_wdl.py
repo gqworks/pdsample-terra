@@ -70,8 +70,19 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "ALPHAGENOME_API_KEY" not in sample_tasks
     assert "File? avi_table" in text
     assert "File? avi_table_index" in text
+    assert "File? gnomad_genomes_vcf" in text
+    assert "File? gnomad_exomes_vcf" in text
+    assert "File? clinvar_vcf" in text
+    assert "File? cadd_snv" in text
+    assert "File? revel" in text
     assert "alphagenome_api_key" not in text
     assert "AnnotateAvi" in text
+    assert "VepAnnotate" in text
+    assert "--plugin" in sample_tasks
+    assert "gnomADg" in sample_tasks
+    assert "gnomADe" in sample_tasks
+    assert "REVEL,file=" in sample_tasks
+    assert "CADD,snv=" in sample_tasks
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
     assert "PdCohort" not in dockstore

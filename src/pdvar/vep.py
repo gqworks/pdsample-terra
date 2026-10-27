@@ -1,9 +1,11 @@
 """Parse a single-sample VEP VCF into the columns the scorer expects.
 
 VEP ``--pick`` CSQ supplies consequence, symbol, and HGVS. Optional ``--custom``
-INFO fields ``gnomAD`` (AF|AF_popmax|nhomalt) and ``ClinVar`` (CLNSIG) override
-CSQ frequency and clinical significance when they are present. CADD, REVEL, and
-SpliceAI are read from CSQ only when a plugin added those fields.
+INFO fields from gnomAD genomes (``gnomADg_*``), gnomAD exomes (``gnomADe_*``),
+legacy ``gnomAD`` / ``gnomAD_AF``, and ClinVar (``ClinVar_CLNSIG`` or ``ClinVar``)
+override CSQ frequency and clinical significance when present. Unified
+``gnomAD_AF`` / ``AF_popmax`` from ``LiftGnomadInfo`` are preferred when set.
+CADD, REVEL, and SpliceAI are read from CSQ only when a plugin added those fields.
 """
 
 from __future__ import annotations
@@ -60,25 +62,54 @@ def _pipe_fields(value: object) -> list[str]:
     return str(value).split("|")
 
 
+def _max_float(values: list[float | None]) -> float | None:
+    present = [value for value in values if value is not None]
+    return max(present) if present else None
+
+
 def _gnomad_from_info(info: dict) -> tuple[float | None, float | None]:
-    """Custom VEP annotation ``gnomAD=AF|AF_popmax|nhomalt``, or lifted INFO flags."""
-    af = _float(info.get("gnomAD_AF"))
-    pop = _float(info.get("AF_popmax") or info.get("gnomAD_AF_popmax"))
+    """Prefer lifted ``gnomAD_AF`` / ``AF_popmax``, else max across genomes and exomes.
+
+    Accepts VEP ``--custom`` short names ``gnomADg`` / ``gnomADe`` (separate INFO
+    keys), legacy pipe ``gnomAD=AF|AF_popmax|nhomalt``, and ``LiftGnomadInfo``
+    unified keys.
+    """
     raw = info.get("gnomAD")
+    legacy_af = legacy_pop = None
     if raw and raw is not True:
         parts = _pipe_fields(raw)
-        if af is None and parts:
-            af = _float(parts[0])
-        if pop is None and len(parts) > 1:
-            pop = _float(parts[1])
+        if parts:
+            legacy_af = _float(parts[0])
+        if len(parts) > 1:
+            legacy_pop = _float(parts[1])
+
+    af = _max_float(
+        [
+            _float(info.get("gnomAD_AF")),
+            _float(info.get("gnomADg_AF")),
+            _float(info.get("gnomADe_AF")),
+            legacy_af,
+        ]
+    )
+    pop = _max_float(
+        [
+            _float(info.get("AF_popmax")),
+            _float(info.get("gnomAD_AF_popmax")),
+            _float(info.get("gnomADg_AF_popmax")),
+            _float(info.get("gnomADe_AF_popmax")),
+            legacy_pop,
+        ]
+    )
     return af, pop
 
 
 def _clinvar_from_info(info: dict) -> str:
-    raw = info.get("ClinVar")
-    if not raw or raw is True:
-        return ""
-    return str(raw).split("|")[0]
+    """CLNSIG from VEP ``--custom`` (``ClinVar_CLNSIG``) or legacy ``ClinVar`` pipe."""
+    for key in ("ClinVar_CLNSIG", "ClinVar"):
+        raw = info.get(key)
+        if raw and raw is not True:
+            return str(raw).split("|")[0]
+    return ""
 
 
 def _csq_map(fields: list[str], value: str) -> dict[str, str]:

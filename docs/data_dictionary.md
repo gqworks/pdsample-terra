@@ -26,8 +26,9 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 | `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `mtdna`, `sv`, or `introme_lookup` |
 | `gnomad_af`, `gnomad_popmax_af` | From the VEP custom annotation when present. Missing means rare |
 | `sv_panel_af` | Allele frequency on the GATK-SV reference panel, when that VCF ran |
-| `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` |
-| `cadd`, `revel`, `spliceai` | Present when VEP plugins or Introme wrote them |
+| `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` (from VEP ClinVar `--custom` / CSQ) |
+| `gnomad_af`, `gnomad_popmax_af` | Max across gnomAD genomes and exomes when both are annotated; else whichever is present |
+| `cadd`, `revel`, `spliceai` | Present when VEP CADD/REVEL plugin inputs (or Introme / `vep_extra_args` for SpliceAI) wrote them |
 | `avi_phred`, `avi_raw`, `avi_quantile`, `avi_url` | AlphaGenome AVI for SNVs from the precomputed table when `avi_table` was set. `avi_raw` and `avi_phred` are copied from the table. `avi_quantile` is derived as `1 - 10^(-avi_phred/10)`, so it is only as precise as the published Phred. Phred 20 is the top 1% of genome-wide SNVs. Empty when `avi_table` was unset, the allele is not an SNV, or the table had no row |
 | `introme_score`, `introme_class` | Introme v2 score and high / moderate / low |
 | `str_locus`, `str_expanded` | ExpansionHunter locus. `str_expanded` is null until a cited repeat cutoff exists |

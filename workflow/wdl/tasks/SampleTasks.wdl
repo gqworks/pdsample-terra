@@ -492,27 +492,88 @@ task VepAnnotate {
     File ref_fasta
     File ref_fasta_index
     File cache_dir
+    # Prefer genomes/exomes inputs. gnomad_vcf is a legacy alias for genomes.
+    File? gnomad_genomes_vcf
+    File? gnomad_genomes_vcf_index
+    File? gnomad_exomes_vcf
+    File? gnomad_exomes_vcf_index
     File? gnomad_vcf
     File? gnomad_vcf_index
     File? clinvar_vcf
     File? clinvar_vcf_index
+    File? cadd_snv
+    File? cadd_snv_index
+    File? cadd_indels
+    File? cadd_indels_index
+    File? revel
+    File? revel_index
     String extra_args = ""
     String vep_docker = "quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0"
     Int preemptible = 3
     Int threads = 4
   }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(vcf_index, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 4 + 200)
+  # Legacy gnomad_vcf is an alias for genomes when gnomad_genomes_vcf is unset.
+  File? genomes_vcf = if defined(gnomad_genomes_vcf) then gnomad_genomes_vcf else gnomad_vcf
+  File? genomes_vcf_index = if defined(gnomad_genomes_vcf_index) then gnomad_genomes_vcf_index else gnomad_vcf_index
+  Float genomes_gb = if defined(genomes_vcf) then size(genomes_vcf, "GiB") else 0.0
+  Float exomes_gb = if defined(gnomad_exomes_vcf) then size(gnomad_exomes_vcf, "GiB") else 0.0
+  Float clinvar_gb = if defined(clinvar_vcf) then size(clinvar_vcf, "GiB") else 0.0
+  Float cadd_snv_gb = if defined(cadd_snv) then size(cadd_snv, "GiB") else 0.0
+  Float cadd_indel_gb = if defined(cadd_indels) then size(cadd_indels, "GiB") else 0.0
+  Float revel_gb = if defined(revel) then size(revel, "GiB") else 0.0
+  Int disk_gb = ceil(size(vcf, "GiB") + size(vcf_index, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 4 + genomes_gb + exomes_gb + clinvar_gb + cadd_snv_gb + cadd_indel_gb + revel_gb + 200)
   command <<<
     set -euo pipefail
+
+    # Cromwell localizes File and File index to different paths; tabix needs NAME and NAME.tbi together.
+    link_with_tbi() {
+      local src="$1" idx="$2" dest="$3"
+      ln -sf "$src" "$dest"
+      case "$idx" in
+        *.csi) ln -sf "$idx" "${dest}.csi" ;;
+        *) ln -sf "$idx" "${dest}.tbi" ;;
+      esac
+    }
+
     custom_args=()
-    if [[ -n "~{gnomad_vcf}" ]]; then
-      test -s ~{gnomad_vcf_index}
-      custom_args+=(--custom ~{gnomad_vcf},gnomAD,vcf,exact,0,AF,AF_popmax,nhomalt)
+    plugin_args=()
+
+    if [[ -n "~{genomes_vcf}" ]]; then
+      test -s "~{genomes_vcf_index}"
+      link_with_tbi "~{genomes_vcf}" "~{genomes_vcf_index}" gnomad_genomes.vcf.gz
+      custom_args+=(--custom gnomad_genomes.vcf.gz,gnomADg,vcf,exact,0,AF,AF_popmax,nhomalt)
+    fi
+    if [[ -n "~{gnomad_exomes_vcf}" ]]; then
+      test -s "~{gnomad_exomes_vcf_index}"
+      link_with_tbi "~{gnomad_exomes_vcf}" "~{gnomad_exomes_vcf_index}" gnomad_exomes.vcf.gz
+      custom_args+=(--custom gnomad_exomes.vcf.gz,gnomADe,vcf,exact,0,AF,AF_popmax,nhomalt)
     fi
     if [[ -n "~{clinvar_vcf}" ]]; then
-      test -s ~{clinvar_vcf_index}
-      custom_args+=(--custom ~{clinvar_vcf},ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT)
+      test -s "~{clinvar_vcf_index}"
+      link_with_tbi "~{clinvar_vcf}" "~{clinvar_vcf_index}" clinvar.vcf.gz
+      custom_args+=(--custom clinvar.vcf.gz,ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT)
     fi
+
+    if [[ -n "~{cadd_snv}" ]]; then
+      test -s "~{cadd_snv_index}"
+      link_with_tbi "~{cadd_snv}" "~{cadd_snv_index}" cadd_snv.tsv.gz
+      cadd_plugin="CADD,snv=cadd_snv.tsv.gz"
+      if [[ -n "~{cadd_indels}" ]]; then
+        test -s "~{cadd_indels_index}"
+        link_with_tbi "~{cadd_indels}" "~{cadd_indels_index}" cadd_indels.tsv.gz
+        cadd_plugin+=",indels=cadd_indels.tsv.gz"
+      fi
+      plugin_args+=(--plugin "$cadd_plugin")
+    elif [[ -n "~{cadd_indels}" ]]; then
+      echo "cadd_indels requires cadd_snv (CADD plugin snv= is required when enabling CADD)" >&2
+      exit 1
+    fi
+    if [[ -n "~{revel}" ]]; then
+      test -s "~{revel_index}"
+      link_with_tbi "~{revel}" "~{revel_index}" revel.tsv.gz
+      plugin_args+=(--plugin REVEL,file=revel.tsv.gz)
+    fi
+
     cache_arg="~{cache_dir}"
     case "~{cache_dir}" in
       *.tar.gz|*.tgz)
@@ -521,10 +582,14 @@ task VepAnnotate {
         cache_arg="vep_cache"
         ;;
     esac
-    vep --offline --cache --dir_cache "$cache_arg" --fasta ~{ref_fasta} --assembly GRCh38 \
+
+    ln -sf "~{ref_fasta}" ref.fa
+    ln -sf "~{ref_fasta_index}" ref.fa.fai
+
+    vep --offline --cache --dir_cache "$cache_arg" --fasta ref.fa --assembly GRCh38 \
       --vcf --allele_number --symbol --hgvs --canonical --pick --force_overwrite \
       --fork ~{threads} \
-      "${custom_args[@]}" ~{extra_args} \
+      "${custom_args[@]}" "${plugin_args[@]}" ~{extra_args} \
       -i ~{vcf} -o panel.vep.vcf
     bgzip -f panel.vep.vcf
     tabix -p vcf panel.vep.vcf.gz
@@ -553,42 +618,74 @@ task LiftGnomadInfo {
   command <<<
     set -euo pipefail
     header=$(bcftools view -h ~{vcf})
+    # Already has the Introme/pdvar unified keys.
     if grep -q '^##INFO=<ID=gnomAD_AF,' <<<"$header"; then
       bcftools view -Oz -o lifted.vcf.gz ~{vcf}
       bcftools index -t lifted.vcf.gz
       exit 0
     fi
-    if ! grep -q '^##INFO=<ID=gnomAD,' <<<"$header"; then
+    has_split=0
+    has_legacy=0
+    grep -qE '^##INFO=<ID=gnomAD[ge]?_AF,' <<<"$header" && has_split=1 || true
+    grep -q '^##INFO=<ID=gnomAD,' <<<"$header" && has_legacy=1 || true
+    if [[ "$has_split" -eq 0 && "$has_legacy" -eq 0 ]]; then
       echo "No VEP custom gnomAD INFO field. Introme rare filter stays a no-op." >&2
       bcftools view -Oz -o lifted.vcf.gz ~{vcf}
       bcftools index -t lifted.vcf.gz
       exit 0
     fi
-    bcftools view ~{vcf} | awk 'BEGIN { OFS="\t" }
+    # Build unified gnomAD_AF / AF_popmax as the max across genomes (gnomADg) and exomes (gnomADe),
+    # or lift the legacy pipe-delimited INFO/gnomAD=AF|AF_popmax|nhomalt annotation.
+    bcftools view ~{vcf} | awk -v has_split="$has_split" -v has_legacy="$has_legacy" 'BEGIN { OFS="\t" }
+      function maxnum(a, b,   x, y) {
+        x = a + 0; y = b + 0
+        if (a == "" || a == ".") return b
+        if (b == "" || b == ".") return a
+        return (x > y) ? a : b
+      }
+      function info_get(info, key,   n, i, parts, prefix) {
+        prefix = key "="
+        n = split(info, parts, ";")
+        for (i = 1; i <= n; i++) {
+          if (parts[i] == key) return "."
+          if (index(parts[i], prefix) == 1) return substr(parts[i], length(prefix) + 1)
+        }
+        return ""
+      }
       /^##/ { print; next }
       /^#CHROM/ {
-        print "##INFO=<ID=gnomAD_AF,Number=1,Type=Float,Description=\"AF copied from VEP custom INFO/gnomAD field 1\">"
-        print "##INFO=<ID=AF_popmax,Number=1,Type=Float,Description=\"AF_popmax copied from VEP custom INFO/gnomAD field 2\">"
+        print "##INFO=<ID=gnomAD_AF,Number=1,Type=Float,Description=\"Max AF across VEP gnomADg/gnomADe (or legacy gnomAD) custom annotations\">"
+        print "##INFO=<ID=AF_popmax,Number=1,Type=Float,Description=\"Max AF_popmax across VEP gnomADg/gnomADe (or legacy gnomAD) custom annotations\">"
         print
         next
       }
       {
         info = $8
-        val = ""
-        n = split(info, parts, ";")
-        for (i = 1; i <= n; i++) {
-          if (parts[i] ~ /^gnomAD=/) val = substr(parts[i], 8)
+        af = ""
+        pop = ""
+        if (has_split) {
+          g_af = info_get(info, "gnomADg_AF")
+          e_af = info_get(info, "gnomADe_AF")
+          legacy_af = info_get(info, "gnomAD_AF")
+          af = maxnum(maxnum(g_af, e_af), legacy_af)
+          g_pop = info_get(info, "gnomADg_AF_popmax")
+          e_pop = info_get(info, "gnomADe_AF_popmax")
+          legacy_pop = info_get(info, "gnomAD_AF_popmax")
+          pop = maxnum(maxnum(g_pop, e_pop), legacy_pop)
         }
-        if (val != "" && val != ".") {
-          split(val, fields, "|")
-          af = fields[1]
-          pop = fields[2]
-          sub(/^[A-Za-z0-9_]+=/, "", af)
-          sub(/^[A-Za-z0-9_]+=/, "", pop)
-          if (af != "" && af != ".") info = info ";gnomAD_AF=" af
-          if (pop != "" && pop != ".") info = info ";AF_popmax=" pop
-          $8 = info
+        if ((af == "" || af == ".") && has_legacy) {
+          val = info_get(info, "gnomAD")
+          if (val != "" && val != ".") {
+            split(val, fields, "|")
+            af = fields[1]
+            pop = fields[2]
+            sub(/^[A-Za-z0-9_]+=/, "", af)
+            sub(/^[A-Za-z0-9_]+=/, "", pop)
+          }
         }
+        if (af != "" && af != ".") info = info ";gnomAD_AF=" af
+        if (pop != "" && pop != ".") info = info ";AF_popmax=" pop
+        $8 = info
         print
       }' | bcftools view -Oz -o lifted.vcf.gz
     bcftools index -t lifted.vcf.gz
