@@ -33,17 +33,18 @@ workflow PdSample {
     File? gnomad_vcf_index
     File? clinvar_vcf
     File? clinvar_vcf_index
-    # CADD / REVEL tabix files for VEP plugins (VEP 116 named-arg syntax).
+    # Optional genome-wide CADD / REVEL plugins (fallback when not using dbNSFP 5.4a).
     File? cadd_snv
     File? cadd_snv_index
     File? cadd_indels
     File? cadd_indels_index
     File? revel
     File? revel_index
-    # dbNSFP for Eigen / MutationTaster / FATHMM (and optional SIFT/PolyPhen2 columns).
+    # Academic dbNSFP 5.4a (VEP-ready): CADD_phred, REVEL_score, Eigen, MutationTaster,
+    # fathmm-XF, and optional SIFT/PolyPhen2. Classic FATHMM_* columns are not in 5.4a.
     File? dbnsfp
     File? dbnsfp_index
-    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,FATHMM_score,FATHMM_pred"
+    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score"
     Boolean vep_sift_polyphen = true
 
     File somalier_sites

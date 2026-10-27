@@ -501,17 +501,19 @@ task VepAnnotate {
     File? gnomad_vcf_index
     File? clinvar_vcf
     File? clinvar_vcf_index
+    # Optional genome-wide CADD / REVEL plugins (fallback; academic dbNSFP 5.4a already has CADD_phred / REVEL_score).
     File? cadd_snv
     File? cadd_snv_index
     File? cadd_indels
     File? cadd_indels_index
     File? revel
     File? revel_index
-    # dbNSFP supplies Eigen, MutationTaster, FATHMM (and optional SIFT/PolyPhen2 columns).
+    # Academic dbNSFP 5.4a supplies CADD_phred, REVEL_score, Eigen, MutationTaster, fathmm-XF
+    # (and optional SIFT/PolyPhen2). Classic FATHMM_* is not in 5.4a.
     File? dbnsfp
     File? dbnsfp_index
-    # Comma-separated dbNSFP column names. Override if your dbNSFP build differs.
-    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,FATHMM_score,FATHMM_pred"
+    # Comma-separated dbNSFP column names. Default matches academic 5.4a; override for other builds.
+    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score"
     Boolean vep_sift_polyphen = true
     String extra_args = ""
     String vep_docker = "quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0"

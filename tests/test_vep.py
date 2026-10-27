@@ -45,6 +45,7 @@ def test_in_silico_from_native_and_dbnsfp_fields():
     assert native["polyphen"] == 0.95
     assert native["polyphen_pred"] == "probably_damaging"
 
+    # Academic dbNSFP 5.4a column names (fathmm-XF replaces classic FATHMM).
     dbnsfp = _in_silico_from_csq(
         {
             "SIFT_score": "0.02",
@@ -54,8 +55,8 @@ def test_in_silico_from_native_and_dbnsfp_fields():
             "Eigen-phred_coding": "12.3",
             "MutationTaster_score": "0.99",
             "MutationTaster_pred": "D",
-            "FATHMM_score": "-2.1",
-            "FATHMM_pred": "D",
+            "fathmm-XF_coding_score": "0.82",
+            "fathmm-XF_coding_pred": "D",
         }
     )
     assert dbnsfp["sift"] == 0.02
@@ -64,14 +65,19 @@ def test_in_silico_from_native_and_dbnsfp_fields():
     assert dbnsfp["eigen"] == 12.3
     assert dbnsfp["muttaster"] == 0.99
     assert dbnsfp["muttaster_pred"] == "D"
-    assert dbnsfp["fathmm"] == -2.1
+    assert dbnsfp["fathmm"] == 0.82
     assert dbnsfp["fathmm_pred"] == "D"
+
+    legacy = _in_silico_from_csq({"FATHMM_score": "-2.1", "FATHMM_pred": "D"})
+    assert legacy["fathmm"] == -2.1
+    assert legacy["fathmm_pred"] == "D"
 
 
 def test_parse_vep_fills_cadd_revel_clinvar_class_and_gnomad(tmp_path: Path):
+    # dbNSFP 5.4a CSQ names: CADD_phred / REVEL_score / fathmm-XF_coding_*.
     csq = (
-        "Allele|Consequence|SYMBOL|HGVSc|HGVSp|CANONICAL|CADD_PHRED|REVEL|"
-        "SIFT|PolyPhen|Eigen-phred_coding|MutationTaster_pred|FATHMM_pred"
+        "Allele|Consequence|SYMBOL|HGVSc|HGVSp|CANONICAL|CADD_phred|REVEL_score|"
+        "SIFT|PolyPhen|Eigen-phred_coding|MutationTaster_pred|fathmm-XF_coding_pred"
     )
     path = tmp_path / "panel.vep.vcf"
     path.write_text(
@@ -107,3 +113,24 @@ def test_parse_vep_fills_cadd_revel_clinvar_class_and_gnomad(tmp_path: Path):
     assert row["eigen"] == 11.5
     assert row["muttaster_pred"] == "D"
     assert row["fathmm_pred"] == "D"
+
+
+def test_parse_vep_accepts_plugin_cadd_revel_names(tmp_path: Path):
+    csq = "Allele|Consequence|SYMBOL|HGVSc|HGVSp|CANONICAL|CADD_PHRED|REVEL"
+    path = tmp_path / "plugin.vep.vcf"
+    path.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                f'##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: {csq}">',
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1",
+                "1\t200\t.\tC\tT\t.\tPASS\tCSQ=T|missense_variant|PRKN|c.2C>T|p.Y|YES|22.1|0.71\tGT\t0/1",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    row = parse_vep(path, "S1").iloc[0]
+    assert row["cadd"] == 22.1
+    assert row["revel"] == 0.71

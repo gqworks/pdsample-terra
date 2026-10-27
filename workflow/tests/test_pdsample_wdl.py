@@ -89,7 +89,12 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "--sift b --polyphen b" in sample_tasks
     assert "Eigen-phred_coding" in sample_tasks
     assert "MutationTaster_pred" in sample_tasks
-    assert "FATHMM_pred" in sample_tasks
+    assert "fathmm-XF_coding_pred" in sample_tasks
+    assert "CADD_phred" in sample_tasks
+    assert "REVEL_score" in sample_tasks
+    assert "dbNSFP5.4a_grch38.gz" in (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(
+        encoding="utf-8"
+    )
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
     assert "PdCohort" not in dockstore

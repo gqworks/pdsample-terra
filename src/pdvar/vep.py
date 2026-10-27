@@ -5,9 +5,9 @@ INFO fields from gnomAD genomes (``gnomADg_*``), gnomAD exomes (``gnomADe_*``),
 legacy ``gnomAD`` / ``gnomAD_AF``, and ClinVar (``ClinVar_CLNSIG`` or ``ClinVar``)
 override CSQ frequency and clinical significance when present. Unified
 ``gnomAD_AF`` / ``AF_popmax`` from ``LiftGnomadInfo`` are preferred when set.
-CADD, REVEL, SpliceAI, and dbNSFP (Eigen / MutationTaster / FATHMM) are read from
-CSQ when those plugins ran. Cache-native ``--sift b --polyphen b`` fill SIFT and
-PolyPhen when enabled.
+CADD, REVEL, SpliceAI, and dbNSFP (Eigen / MutationTaster / fathmm-XF, plus CADD_phred
+and REVEL_score from academic dbNSFP 5.4a) are read from CSQ when those plugins ran.
+Cache-native ``--sift b --polyphen b`` fill SIFT and PolyPhen when enabled.
 """
 
 from __future__ import annotations
@@ -30,8 +30,12 @@ _POLYPHEN_SCORE_KEYS = ("Polyphen2_HDIV_score", "PolyPhen2_HDIV_score", "Polyphe
 _POLYPHEN_PRED_KEYS = ("Polyphen2_HDIV_pred", "PolyPhen2_HDIV_pred", "Polyphen2_HVAR_pred")
 _MUTTASTER_SCORE_KEYS = ("MutationTaster_score",)
 _MUTTASTER_PRED_KEYS = ("MutationTaster_pred",)
-_FATHMM_SCORE_KEYS = ("FATHMM_score",)
-_FATHMM_PRED_KEYS = ("FATHMM_pred",)
+# Academic dbNSFP 5.4a uses fathmm-XF_*; older builds used classic FATHMM_*.
+_FATHMM_SCORE_KEYS = ("fathmm-XF_coding_score", "fathmm-XF_coding_rankscore", "FATHMM_score")
+_FATHMM_PRED_KEYS = ("fathmm-XF_coding_pred", "FATHMM_pred")
+# Plugin CADD/REVEL use CADD_PHRED / REVEL; dbNSFP 5.4a uses CADD_phred / REVEL_score.
+_CADD_KEYS = ("CADD_PHRED", "CADD_phred", "CADD_RAW", "CADD_raw")
+_REVEL_KEYS = ("REVEL", "REVEL_score")
 
 
 def csq_fields(header_text: str) -> list[str]:
@@ -193,7 +197,7 @@ def _csq_float(mapped: dict[str, str], names: tuple[str, ...]) -> float | None:
 
 
 def _in_silico_from_csq(csq: dict[str, str]) -> dict[str, object]:
-    """SIFT/PolyPhen (cache or dbNSFP) plus Eigen / MutationTaster / FATHMM."""
+    """SIFT/PolyPhen (cache or dbNSFP) plus Eigen / MutationTaster / fathmm-XF."""
     sift_pred, sift_score = _pred_and_score(csq.get("SIFT"))
     if sift_score is None:
         sift_score = _csq_float(csq, _SIFT_SCORE_KEYS)
@@ -207,7 +211,12 @@ def _in_silico_from_csq(csq: dict[str, str]) -> dict[str, object]:
         poly_pred = _csq_first(csq, _POLYPHEN_PRED_KEYS).lower() or None
 
     mut_pred = _csq_first(csq, _MUTTASTER_PRED_KEYS).upper() or None
+    # fathmm-XF_coding_pred is D/N; classic FATHMM_pred is also D/N (uppercase).
     fathmm_pred = _csq_first(csq, _FATHMM_PRED_KEYS).upper() or None
+    if fathmm_pred and fathmm_pred.startswith("D"):
+        fathmm_pred = "D"
+    elif fathmm_pred and fathmm_pred.startswith("N"):
+        fathmm_pred = "N"
     return {
         "sift": sift_score,
         "sift_pred": sift_pred,
@@ -268,8 +277,8 @@ def parse_vep(path: str | Path, sample_id: str) -> pd.DataFrame:
                 csq, ("gnomAD_AF_popmax", "gnomADe_AF_popmax", "gnomADg_AF_popmax", "MAX_AF_POPS")
             )
             clinvar_raw = info_clinvar or csq.get("CLIN_SIG") or ""
-            cadd = _float(csq.get("CADD_PHRED") or csq.get("CADD_RAW"))
-            revel = _float(csq.get("REVEL"))
+            cadd = _csq_float(csq, _CADD_KEYS)
+            revel = _csq_float(csq, _REVEL_KEYS)
             spliceai = _max_present(csq, _SPLICEAI)
             in_silico = _in_silico_from_csq(csq)
             gene = (csq.get("SYMBOL") or "").split("&")[0].strip() or "."

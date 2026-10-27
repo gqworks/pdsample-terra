@@ -134,7 +134,7 @@ Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. P
 
 ## VEP frequency and pathogenicity annotations
 
-`VepAnnotate` wires these as first-class `File` inputs (not only `vep_extra_args`). Stage each file **and its tabix index** under the workspace bucket, then set the matching `PdSample.*` input (see `PdSample.terra_inputs.json`). The example JSON leaves them unset so a synthetic dry-run does not localize multi-GB resources.
+`VepAnnotate` wires these as first-class `File` inputs (not only `vep_extra_args`). Stage each file **and its tabix index** under the workspace bucket, then set the matching `PdSample.*` input (see `PdSample.terra_inputs.json`). The example JSON leaves heavy resources as placeholders so a synthetic dry-run does not localize multi-GB objects until you replace the bucket prefix.
 
 | Input | Staged path | Source |
 | --- | --- | --- |
@@ -142,20 +142,20 @@ Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. P
 | `gnomad_genomes_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.genomes.v4.1.sites.vcf.gz.tbi` | tabix index for genomes sites |
 | `gnomad_exomes_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz` | gnomAD v4.1 exomes sites (GRCh38) |
 | `gnomad_exomes_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz.tbi` | tabix index for exomes sites |
-| `clinvar_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz` | NCBI ClinVar GRCh38 VCF |
+| `clinvar_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz` | NCBI ClinVar GRCh38 VCF (keep for all variant types; fresher than dbNSFP’s embedded ClinVar) |
 | `clinvar_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz.tbi` | tabix index for ClinVar |
-| `cadd_snv` | `gs://YOUR_WORKSPACE_BUCKET/resources/cadd/whole_genome_SNVs.tsv.gz` | CADD (license required); VEP 116 `--plugin CADD,snv=...` |
-| `cadd_snv_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/cadd/whole_genome_SNVs.tsv.gz.tbi` | tabix index for CADD SNVs |
-| `cadd_indels` | `gs://YOUR_WORKSPACE_BUCKET/resources/cadd/gnomad.genomes.r4.0.indel.tsv.gz` | CADD indel scores (optional but recommended with `cadd_snv`) |
-| `cadd_indels_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/cadd/gnomad.genomes.r4.0.indel.tsv.gz.tbi` | tabix index for CADD indels |
-| `revel` | `gs://YOUR_WORKSPACE_BUCKET/resources/revel/revel_grch38.tsv.gz` | REVEL GRCh38 tabix (prepare per Ensembl REVEL plugin docs) |
-| `revel_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/revel/revel_grch38.tsv.gz.tbi` | tabix index for REVEL |
-| `dbnsfp` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP4.9c_grch38.gz` | VEP-ready dbNSFP (academic/commercial branch as licensed); supplies Eigen, MutationTaster, FATHMM |
-| `dbnsfp_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP4.9c_grch38.gz.tbi` | tabix index for dbNSFP |
+| `dbnsfp` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz` | VEP-ready **academic dbNSFP 5.4a** (bgzip + tabix). Supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, and optional SIFT/PolyPhen2 for missense/splice SNVs |
+| `dbnsfp_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | tabix index for dbNSFP |
 
-SIFT and PolyPhen also come from the VEP cache via `--sift b --polyphen b` (`vep_sift_polyphen`, default true) with no extra files. Override `dbnsfp_fields` if your dbNSFP build uses different column names (default includes `Eigen-phred_coding`, `MutationTaster_*`, `FATHMM_*`, and PolyPhen2/SIFT columns).
+### Prepare academic dbNSFP 5.4a for VEP
 
-`LiftGnomadInfo` writes unified `INFO/gnomAD_AF` and `INFO/AF_popmax` as the **max** across genomes (`gnomADg_*`) and exomes (`gnomADe_*`). `pdvar` maps ClinVar `CLNSIG` to `clinvar_class`, and reads `CADD_PHRED` / `REVEL` / SIFT / PolyPhen / Eigen / MutationTaster / FATHMM from CSQ. Legacy `gnomad_vcf` still aliases genomes. Extra plugins (for example SpliceAI) can still use `vep_extra_args`.
+1. Download the academic (`a`) branch from [dbNSFP releases](https://dbnsfp.org) (registration required; CC BY-NC-ND + upstream non-commercial terms for CADD/REVEL and others).
+2. Build one VEP-ready file from the per-chromosome `dbNSFP5.4a_variant.chr*.gz` tables (concatenate in chrom order with the header once, bgzip, `tabix -s 1 -b 2 -e 2`). Name the object `dbNSFP5.4a_grch38.gz` (+ `.tbi`) under the path above.
+3. Default `dbnsfp_fields` matches 5.4a column names (`CADD_phred`, `REVEL_score`, `fathmm-XF_coding_*`, …). Override only if you use a different build. Classic `FATHMM_score` / `FATHMM_pred` are **not** in 5.4a.
+
+SIFT and PolyPhen also come from the VEP cache via `--sift b --polyphen b` (`vep_sift_polyphen`, default true) with no extra files.
+
+`LiftGnomadInfo` writes unified `INFO/gnomAD_AF` and `INFO/AF_popmax` as the **max** across genomes (`gnomADg_*`) and exomes (`gnomADe_*`). `pdvar` maps ClinVar `CLNSIG` to `clinvar_class`, and reads `CADD_phred` / `REVEL_score` (or plugin `CADD_PHRED` / `REVEL`), SIFT / PolyPhen / Eigen / MutationTaster / fathmm-XF from CSQ. Keep dedicated gnomAD + ClinVar inputs: dbNSFP allele frequencies are older (e.g. gnomAD 2.1.1 / joint columns) and missense-scoped. Legacy `gnomad_vcf` still aliases genomes. Extra plugins (for example SpliceAI) can still use `vep_extra_args`.
 
 ## Optional inputs that are not in the JSON
 
@@ -163,5 +163,6 @@ These are unset in both JSON files. A default launch does not need them.
 
 - **Introme GTF.** Stage GENCODE v44 to `gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz` (see above). The Introme pin is `d6da48bc84abda66f588470f79abcf1244acfb21`.
 - **Introme assets tar.** Optional `introme_assets_tar`. Unset, the fetch task downloads `https://github.com/CCICB/introme/archive/d6da48bc84abda66f588470f79abcf1244acfb21.tar.gz`.
-- **VEP SpliceAI (and other plugins)** via `vep_extra_args` when you have the files. CADD and REVEL use the dedicated inputs above.
+- **Genome-wide CADD / REVEL plugins** (`cadd_snv`, optional `cadd_indels`, `revel`, and indexes). Optional fallback when you need scores outside dbNSFP’s missense/splice SNV scope; academic 5.4a already provides `CADD_phred` / `REVEL_score` for those sites.
+- **VEP SpliceAI (and other plugins)** via `vep_extra_args` when you have the files.
 - **ExpansionHunter / Gauchian catalogs.** `eh_catalog` is already the vendored 19-locus hg38 catalog in this repo (ExpansionHunter 5.0.0). Gauchian 1.0.2 has no catalog file input.
