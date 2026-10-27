@@ -76,10 +76,12 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File? cadd_snv" in text
     assert "File? revel" in text
     assert "File? dbnsfp" in text
+    assert "Array[File] dbnsfp_variant_chroms" in text
     assert "vep_sift_polyphen" in text
     assert "alphagenome_api_key" not in text
     assert "AnnotateAvi" in text
     assert "VepAnnotate" in text
+    assert "PrepareDbnsfpForVep" in text
     assert "--plugin" in sample_tasks
     assert "gnomADg" in sample_tasks
     assert "gnomADe" in sample_tasks
@@ -92,9 +94,11 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "fathmm-XF_coding_pred" in sample_tasks
     assert "CADD_phred" in sample_tasks
     assert "REVEL_score" in sample_tasks
-    assert "dbNSFP5.4a_grch38.gz" in (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(
-        encoding="utf-8"
-    )
+    assert "task PrepareDbnsfpForVep" in sample_tasks
+    terra_json = json.loads((ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8"))
+    assert len(terra_json["PdSample.dbnsfp_variant_chroms"]) == 24
+    assert terra_json["PdSample.dbnsfp_variant_chroms"][0].endswith("dbNSFP5.4a_variant.chr1.gz")
+    assert terra_json["PdSample.dbnsfp_variant_chroms"][-1].endswith("dbNSFP5.4a_variant.chrY.gz")
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
     assert "PdCohort" not in dockstore

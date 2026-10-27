@@ -87,6 +87,7 @@ pairs = [
     ("workflow/scripts/check_reference.py", "check_reference.py"),
     ("workflow/scripts/qc_summary.py", "qc_summary.py"),
     ("workflow/scripts/annotate_avi.py", "annotate_avi.py"),
+    ("workflow/scripts/prepare_dbnsfp_vep.py", "prepare_dbnsfp_vep.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
@@ -109,6 +110,7 @@ PY
     File check_reference_py = "check_reference.py"
     File qc_summary_py = "qc_summary.py"
     File annotate_avi_py = "annotate_avi.py"
+    File prepare_dbnsfp_vep_py = "prepare_dbnsfp_vep.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
     File panel_csv = "panel.csv"
@@ -485,6 +487,49 @@ task NormPass {
   }
 }
 
+# Academic dbNSFP 5.4a ships as per-chromosome gzip tables (not VEP-ready).
+# Concatenate (+ optional panel BED subset), bgzip, and tabix for the dbNSFP plugin.
+task PrepareDbnsfpForVep {
+  input {
+    Array[File] chrom_files
+    File prepare_dbnsfp_vep_py
+    File? panel_bed
+    String out_prefix = "dbNSFP5.4a_grch38"
+    String docker = "python:3.11.11-slim-bookworm"
+    Int preemptible = 2
+    Int cpu = 4
+    Int memory_gb = 16
+  }
+  Float chrom_gb = size(chrom_files, "GiB")
+  Int disk_gb = ceil(chrom_gb * 3 + 100)
+  command <<<
+    set -euo pipefail
+    apt-get update -qq
+    apt-get install -y -qq tabix >/dev/null
+    panel_args=()
+    if [[ -n "~{panel_bed}" ]]; then
+      panel_args=(--panel-bed "~{panel_bed}")
+    fi
+    python3 "~{prepare_dbnsfp_vep_py}" \
+      --out-prefix "~{out_prefix}" \
+      "${panel_args[@]}" \
+      ~{sep=' ' chrom_files}
+    test -s "~{out_prefix}.gz"
+    test -s "~{out_prefix}.gz.tbi"
+  >>>
+  output {
+    File dbnsfp = "~{out_prefix}.gz"
+    File dbnsfp_index = "~{out_prefix}.gz.tbi"
+  }
+  runtime {
+    docker: docker
+    preemptible: preemptible
+    memory: "~{memory_gb} GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: cpu
+  }
+}
+
 task VepAnnotate {
   input {
     File vcf
@@ -510,9 +555,10 @@ task VepAnnotate {
     File? revel_index
     # Academic dbNSFP 5.4a supplies CADD_phred, REVEL_score, Eigen, MutationTaster, fathmm-XF
     # (and optional SIFT/PolyPhen2). Classic FATHMM_* is not in 5.4a.
+    # Prefer PrepareDbnsfpForVep from per-chrom gz; optional pre-built VEP-ready file also works.
     File? dbnsfp
     File? dbnsfp_index
-    # Comma-separated dbNSFP column names. Default matches academic 5.4a; override for other builds.
+    # Column names verified against dbNSFP5.4a_variant.columns.tsv (academic 5.4a).
     String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score"
     Boolean vep_sift_polyphen = true
     String extra_args = ""

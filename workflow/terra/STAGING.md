@@ -144,14 +144,15 @@ Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. P
 | `gnomad_exomes_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz.tbi` | tabix index for exomes sites |
 | `clinvar_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz` | NCBI ClinVar GRCh38 VCF (keep for all variant types; fresher than dbNSFP’s embedded ClinVar) |
 | `clinvar_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz.tbi` | tabix index for ClinVar |
-| `dbnsfp` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz` | VEP-ready **academic dbNSFP 5.4a** (bgzip + tabix). Supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, and optional SIFT/PolyPhen2 for missense/splice SNVs |
-| `dbnsfp_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | tabix index for dbNSFP |
+| `dbnsfp_variant_chroms` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_variant.chr{1-22,X,Y}.gz` | Academic **dbNSFP 5.4a** as distributed (plain gzip per chromosome). `PrepareDbnsfpForVep` builds a panel-subset VEP-ready bgzip+tabix. Optional `chrM` can be added if needed. |
+| `dbnsfp` / `dbnsfp_index` (optional) | `gs://…/dbNSFP5.4a_grch38.gz` (+ `.tbi`) | Pre-built VEP-ready file; when set, skips per-chrom prep |
 
-### Prepare academic dbNSFP 5.4a for VEP
+### Stage academic dbNSFP 5.4a (per-chromosome gz)
 
 1. Download the academic (`a`) branch from [dbNSFP releases](https://dbnsfp.org) (registration required; CC BY-NC-ND + upstream non-commercial terms for CADD/REVEL and others).
-2. Build one VEP-ready file from the per-chromosome `dbNSFP5.4a_variant.chr*.gz` tables (concatenate in chrom order with the header once, bgzip, `tabix -s 1 -b 2 -e 2`). Name the object `dbNSFP5.4a_grch38.gz` (+ `.tbi`) under the path above.
-3. Default `dbnsfp_fields` matches 5.4a column names (`CADD_phred`, `REVEL_score`, `fathmm-XF_coding_*`, …). Override only if you use a different build. Classic `FATHMM_score` / `FATHMM_pred` are **not** in 5.4a.
+2. Upload the distributed files as-is: `dbNSFP5.4a_variant.chr1.gz` … `chr22.gz`, `chrX.gz`, `chrY.gz` (and `chrM.gz` if desired) under `resources/dbnsfp/`. Do **not** rename or concatenate offline unless you prefer a pre-built VEP-ready file.
+3. Point `PdSample.dbnsfp_variant_chroms` at that array (pre-filled in `PdSample.terra_inputs.json`). The workflow’s `PrepareDbnsfpForVep` task subsets to the panel BED, then bgzips and tabixes for the VEP plugin.
+4. Default `dbnsfp_fields` matches `dbNSFP5.4a_variant.columns.tsv`: `SIFT_score`, `SIFT_pred`, `Polyphen2_HDIV_score`, `Polyphen2_HDIV_pred`, `Eigen-phred_coding`, `MutationTaster_score`, `MutationTaster_pred`, `fathmm-XF_coding_score`, `fathmm-XF_coding_pred`, `CADD_phred`, `REVEL_score`. Classic `FATHMM_score` / `FATHMM_pred` are **not** in 5.4a.
 
 SIFT and PolyPhen also come from the VEP cache via `--sift b --polyphen b` (`vep_sift_polyphen`, default true) with no extra files.
 
