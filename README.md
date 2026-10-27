@@ -1,10 +1,11 @@
 # Per-sample Parkinson's variant assessment
 
-One Terra sample row goes in as a BAM (+ `.bai`). `PdSample` calls every required tool from that alignment, annotates the small-variant VCF, and writes a ranked candidate list for that person. A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow. CRAM inputs are not supported.
+One Terra sample row goes in as a BAM (+ `.bai`) or a CRAM (index optional). `EnsureBam` detects CRAM via magic bytes, converts it to BAM/BAI, then `PdSample` calls every required tool from that BAM, annotates the small-variant VCF, and writes a ranked candidate list for that person. A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow.
 
 ```mermaid
 flowchart TD
-  bam[BAM plus reference] --> check[Reference check]
+  bam[BAM or CRAM plus reference] --> ensure[EnsureBam to BAM/BAI]
+  ensure --> check[Reference check]
   check --> qc[VerifyBamID2, somalier sex, mosdepth]
   qc --> hc[HaplotypeCaller GVCF]
   hc --> gt[GenotypeGVCFs and hard filters]
@@ -35,7 +36,7 @@ Register the repository root. `.dockstore.yml` publishes one workflow:
 | --- | --- | --- |
 | `PdSample` | `/workflow/wdl/PdSample.wdl` | `/workflow/terra/PdSample.example.json` |
 
-Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, `bai`, `sex`, `age_onset`, `symptoms`, `ethnicity`, and `phenotype_report` to the sample table (WDL inputs are `bam` and `bai`; the sample column may still be named `bam_or_cram_file`, but the object must be a BAM). Put reference and resource files on the workspace data table or in the method configuration.
+Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, `bai`, `sex`, `age_onset`, `symptoms`, `ethnicity`, and `phenotype_report` to the sample table (WDL inputs are `bam` and optional `bai`; the sample column may still be named `bam_or_cram_file` and may point at a BAM or CRAM). Put reference and resource files on the workspace data table or in the method configuration.
 
 Broad hg38 paths under `gs://gcp-public-data--broad-references` are requester pays. On submit, enable **Use reference disks** and set workflow option `google_project` to your billing GCP project (`workflow/terra/PdSample.workflow_options.example.json`). Set `PdSample.requester_pays_project` to that same project. See [`docs/setup_checklist.md`](docs/setup_checklist.md).
 
@@ -46,8 +47,8 @@ Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https:
 | Column | Required | Meaning |
 | --- | --- | --- |
 | `sample_id` | yes | Identifier written into outputs. Use a synthetic id in examples. |
-| `bam_or_cram_file` | yes | Aligned GRCh38 BAM for this row (`.bam` only). |
-| `bai` | yes | BAM index (`.bai`). |
+| `bam_or_cram_file` | yes | Aligned GRCh38 BAM or CRAM for this row. |
+| `bai` | no | BAM index (`.bai`) or CRAM index (`.crai`). Leave blank for an unindexed CRAM; `EnsureBam` builds a `.bai` after conversion. |
 | `sex` | no | `male` or `female`. Blank, `unspecified`, or anything else is inferred from somalier, then from the X heterozygosity rate. |
 | `age_onset` | no | Age at onset in years. Blank skips onset concordance. A numeric string is accepted. |
 | `symptoms` | no | Free-text clinical features. Keywords are matched to each gene profile in `config/gene_phenotypes.yaml` (for example dementia, tremor, dystonia, levodopa responsive, hallucinations, autonomic). |
@@ -64,17 +65,18 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 
 ## What each stage does
 
-1. **Reference check.** The alignment header `@SQ` MD5s are compared with the reference dictionary. A missing `chr` prefix fails the check.
-2. **QC.** VerifyBamID2 contamination (`FREEMIX` above 0.02 fails the sample by default), somalier extract plus relate on this sample only (sex; relatedness is not run), and mosdepth on the calling BED. Callers wait on the QC gate.
-3. **Small variants.** GATK 4.6.1.0 HaplotypeCaller in GVCF mode, then GenotypeGVCFs, then GATK hard filters, then `bcftools view -f PASS` and `bcftools norm -m -both`. Intervals default to `workflow/assets/monopdaus-genes.grch38.bed`. Set `wgs_small_variants` true to call the whole genome.
-4. **Structural variants.** `GATKSVPipelineSingleSample` v1.1.1 runs on every sample. The reference-panel and hg38 resource inputs are required. `sv_status` is `called`. A missing SV VCF is an error in `pdvar assess`.
-5. **STRs.** ExpansionHunter 5.0.0 with the vendored 19-locus catalog `workflow/assets/expansionhunter_pd.hg38.json`.
-6. **GBA1.** Gauchian 1.0.2.
-7. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0.
-8. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and gnomAD v4.1 joint AF (no separate ClinVar/gnomAD VCF customs; cache-native VEP SIFT/PolyPhen off by default). Optional genome-wide CADD/REVEL plugins remain as a fallback. `LiftGnomadInfo` copies AF from CSQ into `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`.
-9. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
-10. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
-11. **Assess.** `pdvar assess` ranks candidates and writes the Terra outputs. A phenotype report, or age at onset, symptoms, and ancestry, is compared with `config/gene_phenotypes.yaml`. `clinical_match` on a risk variant records whether that gene's onset range, key clinical features, or enriched ancestry fit the patient. The match is a triage note. It does not add evidence points. A higher `phenotype_score` breaks ties after tier and AlphaGenome Phred. Profiles cover every gene in `resources/panel/monopdaus-gene-inheritance.csv` (sources and confidence in `config/gene_phenotypes.SOURCES.md`). They are a starter literature synthesis and need expert clinical review. Low-evidence candidates and the risk genes PSAP and TMEM175 have minimal profiles with no onset range, so they are usually `uninformative`. A gene outside the panel is `no_profile`.
+1. **Ensure BAM.** `EnsureBam` reads the alignment magic bytes. A CRAM is converted with `samtools view -b` against the workflow reference and indexed to `sample_id.bam` / `sample_id.bam.bai`. A BAM is staged under those names (reusing a usable supplied `.bai`, otherwise indexing). Downstream tasks always see BAM + `.bai`.
+2. **Reference check.** The alignment header `@SQ` MD5s are compared with the reference dictionary. A missing `chr` prefix fails the check.
+3. **QC.** VerifyBamID2 contamination (`FREEMIX` above 0.02 fails the sample by default), somalier extract plus relate on this sample only (sex; relatedness is not run), and mosdepth on the calling BED. Callers wait on the QC gate.
+4. **Small variants.** GATK 4.6.1.0 HaplotypeCaller in GVCF mode, then GenotypeGVCFs, then GATK hard filters, then `bcftools view -f PASS` and `bcftools norm -m -both`. Intervals default to `workflow/assets/monopdaus-genes.grch38.bed`. Set `wgs_small_variants` true to call the whole genome.
+5. **Structural variants.** `GATKSVPipelineSingleSample` v1.1.1 runs on every sample. The reference-panel and hg38 resource inputs are required. `sv_status` is `called`. A missing SV VCF is an error in `pdvar assess`.
+6. **STRs.** ExpansionHunter 5.0.0 with the vendored 19-locus catalog `workflow/assets/expansionhunter_pd.hg38.json`.
+7. **GBA1.** Gauchian 1.0.2.
+8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0.
+9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and gnomAD v4.1 joint AF (no separate ClinVar/gnomAD VCF customs; cache-native VEP SIFT/PolyPhen off by default). Optional genome-wide CADD/REVEL plugins remain as a fallback. `LiftGnomadInfo` copies AF from CSQ into `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`.
+10. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
+11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
+12. **Assess.** `pdvar assess` ranks candidates and writes the Terra outputs. A phenotype report, or age at onset, symptoms, and ancestry, is compared with `config/gene_phenotypes.yaml`. `clinical_match` on a risk variant records whether that gene's onset range, key clinical features, or enriched ancestry fit the patient. The match is a triage note. It does not add evidence points. A higher `phenotype_score` breaks ties after tier and AlphaGenome Phred. Profiles cover every gene in `resources/panel/monopdaus-gene-inheritance.csv` (sources and confidence in `config/gene_phenotypes.SOURCES.md`). They are a starter literature synthesis and need expert clinical review. Low-evidence candidates and the risk genes PSAP and TMEM175 have minimal profiles with no onset range, so they are usually `uninformative`. A gene outside the panel is `no_profile`.
 
 ## Hard filters
 

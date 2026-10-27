@@ -298,22 +298,31 @@ def test_qc_tasks_size_disk_for_the_full_alignment():
 
 
 def test_sv_alignment_is_released_as_bam_after_qc():
-    """Manta 1.6 needs a .bam filename so it loads sample.bam.bai. BAM-only inputs."""
+    """EnsureBam converts CRAM to BAM/BAI; Manta still receives sample.bam.bai after QC."""
     workflow = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert "task StageIndexedAlignment" not in tasks
     assert "StageIndexedAlignment" not in workflow
+    assert "task EnsureBam" in tasks
+    assert "call Tasks.EnsureBam" in workflow
+    assert 'if [[ "$magic" == "CRAM" ]]; then' in tasks
+    assert "samtools view -@ ~{threads} -T \"$ref\" -b -o \"$out\" \"$align_in\"" in tasks
+    assert 'samtools index -@ ~{threads} "$out"' in tasks
+    assert "File? alignment_index" in tasks
+    assert "File? bai" in workflow
+    assert "File sample_bam = EnsureBam.bam" in workflow
+    assert "File sample_bai = EnsureBam.bai" in workflow
     assert "call Tasks.ReleaseAfterQc as ReleaseBam" in workflow
     assert "call Tasks.ReleaseAfterQc as ReleaseBai" in workflow
     assert 'name = sample_id + ".bam"' in workflow
     assert 'name = sample_id + ".bam.bai"' in workflow
+    assert "payload = sample_bam" in workflow
+    assert "payload = sample_bai" in workflow
     assert "bam_or_cram_file = ReleaseBam.released" in workflow
     assert "bam_or_cram_index = ReleaseBai.released" in workflow
     assert "File bam" in workflow
-    assert "File bai" in workflow
     assert "File cram" not in workflow
     assert "task ExtractBamHeader" in tasks
-    assert "*.cram)" not in tasks
 
 
 def test_mito_leaves_initial_filter_vcf_uncompressed():

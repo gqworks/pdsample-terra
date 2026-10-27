@@ -10,8 +10,8 @@ See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 
 | Input | JSON | Placeholder | Upstream | Approx. size |
 | --- | --- | --- | --- | --- |
-| `PdSample.bam` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam` | your own GRCh38 BAM | the alignment |
-| `PdSample.bai` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai` | `.bai` for that BAM | small |
+| `PdSample.bam` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam` | your own GRCh38 BAM or CRAM | the alignment |
+| `PdSample.bai` | example only | `gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai` | `.bai` / `.crai`, or omit for an unindexed CRAM | small |
 | `PdSample.vep_cache` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/vep/homo_sapiens_vep_116_GRCh38.tar.gz` | Ensembl VEP cache release 116 | 26 GB (27,644,657,162 bytes) |
 | `PdSample.somalier_sites` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz` | somalier v0.3.5 release notes, chr-prefixed hg38 | 260 KB (265,818 bytes) |
 | `PdSample.introme_gtf` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz` | GENCODE v44 annotation | ~47 MB |
@@ -20,19 +20,22 @@ See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 | `PdSample.dbnsfp` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz` | Academic dbNSFP 5.4a VEP-ready GRCh38 (bgzip) | ~55 GB |
 | `PdSample.dbnsfp_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | Tabix index for that file | small |
 
-`PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are `bam` and `bai`). Only BAM + `.bai` is supported. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
+`PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are `bam` and optional `bai`). BAM + `.bai` and CRAM (with or without `.crai`) both work: `EnsureBam` converts CRAM to BAM/BAI before callers run. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
 
 `PdSample.requester_pays_project` stays `YOUR_GCP_PROJECT`. It is the GCP project that pays for requester-pays reads of `gs://gcp-public-data--broad-references` (the genome FASTA and the chrM bundle). It is not a file.
 
-## Sample BAM
+## Sample BAM or CRAM
 
-Copy a BAM aligned to `Homo_sapiens_assembly38` (chr-prefixed, dictionary MD5s matching that FASTA) and its `.bai` into the workspace bucket, then set the sample-table columns `bam_or_cram_file` and `bai`. CRAM is not supported. This repository does not publish an example alignment.
+Copy a BAM or CRAM aligned to `Homo_sapiens_assembly38` (chr-prefixed, dictionary MD5s matching that FASTA) into the workspace bucket, then set the sample-table column `bam_or_cram_file`. For a BAM, also set `bai` to the `.bai`. For a CRAM, set `bai` to the `.crai` when you have one, or leave `bai` blank; `EnsureBam` converts the CRAM and writes a `.bai`. This repository does not publish an example alignment.
 
 ```bash
 gcloud storage cp /path/to/SYNTHETIC_SAMPLE.bam \
   gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam
 gcloud storage cp /path/to/SYNTHETIC_SAMPLE.bam.bai \
   gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.bam.bai
+# Or a CRAM without an index:
+# gcloud storage cp /path/to/SYNTHETIC_SAMPLE.cram \
+#   gs://YOUR_WORKSPACE_BUCKET/synthetic/SYNTHETIC_SAMPLE.cram
 ```
 
 ## VEP 116 cache
@@ -132,7 +135,7 @@ stage(
 )
 ```
 
-Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. Put the alignment and index on the sample table (`bam_or_cram_file`, `bai`).
+Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. Put the alignment on the sample table (`bam_or_cram_file`, and `bai` when you have an index).
 
 ## VEP pathogenicity annotations (academic dbNSFP 5.4a)
 

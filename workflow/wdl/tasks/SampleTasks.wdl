@@ -1,6 +1,72 @@
 version 1.0
 
-# Tasks for one BAM (+ .bai). CRAM inputs are not supported.
+# Tasks for one BAM (+ .bai). CRAM inputs are converted to BAM/BAI by EnsureBam.
+
+# Detect CRAM (magic "CRAM") or BAM; always emit sample_id.bam + sample_id.bam.bai.
+# CRAM without an index is supported: samtools converts the whole file then indexes.
+# An optional index is used only for BAM passthrough when it opens correctly.
+task EnsureBam {
+  input {
+    File alignment
+    File? alignment_index
+    File ref_fasta
+    File ref_fasta_index
+    String sample_id
+    String samtools_docker = "quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+    Int preemptible = 3
+    Int threads = 8
+  }
+  # CRAM -> BAM needs the CRAM, a larger BAM (~2-4x), reference, and the new index.
+  # BAM passthrough may hardlink-fail into a second copy of the BAM.
+  Int disk_gb = ceil(size(alignment, "GiB") * 5 + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + 200)
+  command <<<
+    set -euo pipefail
+    align_in="~{alignment}"
+    index_in='~{default="" alignment_index}'
+    # Reference disks are often read-only; samtools -T needs <fasta>.fai beside -T.
+    mkdir -p ref
+    ln -s ~{ref_fasta} ref/ref.fa
+    ln -s ~{ref_fasta_index} ref/ref.fa.fai
+    ref="ref/ref.fa"
+    magic="$(head -c 4 "$align_in" || true)"
+    out="~{sample_id}.bam"
+    out_index="${out}.bai"
+    if [[ "$magic" == "CRAM" ]]; then
+      echo "Detected CRAM; converting to BAM and indexing" >&2
+      samtools view -@ ~{threads} -T "$ref" -b -o "$out" "$align_in"
+      samtools index -@ ~{threads} "$out"
+    else
+      echo "Detected BAM; staging as ~{sample_id}.bam" >&2
+      ln "$align_in" "$out" || cp -a "$align_in" "$out"
+      if [[ -n "$index_in" && -e "$index_in" ]]; then
+        ln "$index_in" "$out_index" || cp -a "$index_in" "$out_index"
+        contig="$(samtools view -H "$out" | awk '/^@SQ/{sub(/^SN:/,"",$2); print $2; exit}')"
+        if [[ -n "$contig" ]] && ! samtools view -c "$out" "${contig}:1-2" >/dev/null 2>index_check.txt; then
+          echo "Supplied BAM index cannot be used; rebuilding" >&2
+          cat index_check.txt >&2
+          rm -f "$out_index"
+          samtools index -@ ~{threads} "$out"
+        fi
+      else
+        echo "No BAM index supplied; creating ${out_index}" >&2
+        samtools index -@ ~{threads} "$out"
+      fi
+    fi
+    # Prefer the Picard-style sibling name some tools also look for.
+    [[ -e "${out%.bam}.bai" ]] || ln -s "$(basename "$out_index")" "${out%.bam}.bai"
+  >>>
+  output {
+    File bam = "~{sample_id}.bam"
+    File bai = "~{sample_id}.bam.bai"
+  }
+  runtime {
+    docker: samtools_docker
+    preemptible: preemptible
+    memory: "16 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: threads
+  }
+}
 
 task ExtractBamHeader {
   input {
