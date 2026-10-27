@@ -1,9 +1,13 @@
 """Parse a single-sample VEP VCF into the columns the scorer expects.
 
 VEP ``--pick`` CSQ supplies consequence, symbol, and HGVS. Optional ``--custom``
-INFO fields ``gnomAD`` (AF|AF_popmax|nhomalt) and ``ClinVar`` (CLNSIG) override
-CSQ frequency and clinical significance when they are present. CADD, REVEL, and
-SpliceAI are read from CSQ only when a plugin added those fields.
+INFO fields from gnomAD genomes (``gnomADg_*``), gnomAD exomes (``gnomADe_*``),
+legacy ``gnomAD`` / ``gnomAD_AF``, and ClinVar (``ClinVar_CLNSIG`` or ``ClinVar``)
+override CSQ frequency and clinical significance when present. Unified
+``gnomAD_AF`` / ``AF_popmax`` from ``LiftGnomadInfo`` are preferred when set.
+CADD, REVEL, SpliceAI, and dbNSFP (Eigen / MutationTaster / FATHMM) are read from
+CSQ when those plugins ran. Cache-native ``--sift b --polyphen b`` fill SIFT and
+PolyPhen when enabled.
 """
 
 from __future__ import annotations
@@ -17,7 +21,17 @@ from .normalize import add_variant_id, derive_zygosity, normalize_clinvar, varia
 from .vcf_stream import _open_text, iter_vcf
 
 _CSQ_FORMAT = re.compile(r"Format:\s*([^\"\s]+)")
+_PRED_SCORE = re.compile(r"^(?P<pred>[A-Za-z_]+)\((?P<score>[-+0-9.eE]+)\)$")
 _SPLICEAI = ("SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL")
+_EIGEN_KEYS = ("Eigen-phred_coding", "Eigen-phred", "Eigen-PC-phred_coding", "Eigen-raw_coding", "Eigen-raw")
+_SIFT_SCORE_KEYS = ("SIFT_score",)
+_SIFT_PRED_KEYS = ("SIFT_pred",)
+_POLYPHEN_SCORE_KEYS = ("Polyphen2_HDIV_score", "PolyPhen2_HDIV_score", "Polyphen2_HVAR_score")
+_POLYPHEN_PRED_KEYS = ("Polyphen2_HDIV_pred", "PolyPhen2_HDIV_pred", "Polyphen2_HVAR_pred")
+_MUTTASTER_SCORE_KEYS = ("MutationTaster_score",)
+_MUTTASTER_PRED_KEYS = ("MutationTaster_pred",)
+_FATHMM_SCORE_KEYS = ("FATHMM_score",)
+_FATHMM_PRED_KEYS = ("FATHMM_pred",)
 
 
 def csq_fields(header_text: str) -> list[str]:
@@ -60,25 +74,54 @@ def _pipe_fields(value: object) -> list[str]:
     return str(value).split("|")
 
 
+def _max_float(values: list[float | None]) -> float | None:
+    present = [value for value in values if value is not None]
+    return max(present) if present else None
+
+
 def _gnomad_from_info(info: dict) -> tuple[float | None, float | None]:
-    """Custom VEP annotation ``gnomAD=AF|AF_popmax|nhomalt``, or lifted INFO flags."""
-    af = _float(info.get("gnomAD_AF"))
-    pop = _float(info.get("AF_popmax") or info.get("gnomAD_AF_popmax"))
+    """Prefer lifted ``gnomAD_AF`` / ``AF_popmax``, else max across genomes and exomes.
+
+    Accepts VEP ``--custom`` short names ``gnomADg`` / ``gnomADe`` (separate INFO
+    keys), legacy pipe ``gnomAD=AF|AF_popmax|nhomalt``, and ``LiftGnomadInfo``
+    unified keys.
+    """
     raw = info.get("gnomAD")
+    legacy_af = legacy_pop = None
     if raw and raw is not True:
         parts = _pipe_fields(raw)
-        if af is None and parts:
-            af = _float(parts[0])
-        if pop is None and len(parts) > 1:
-            pop = _float(parts[1])
+        if parts:
+            legacy_af = _float(parts[0])
+        if len(parts) > 1:
+            legacy_pop = _float(parts[1])
+
+    af = _max_float(
+        [
+            _float(info.get("gnomAD_AF")),
+            _float(info.get("gnomADg_AF")),
+            _float(info.get("gnomADe_AF")),
+            legacy_af,
+        ]
+    )
+    pop = _max_float(
+        [
+            _float(info.get("AF_popmax")),
+            _float(info.get("gnomAD_AF_popmax")),
+            _float(info.get("gnomADg_AF_popmax")),
+            _float(info.get("gnomADe_AF_popmax")),
+            legacy_pop,
+        ]
+    )
     return af, pop
 
 
 def _clinvar_from_info(info: dict) -> str:
-    raw = info.get("ClinVar")
-    if not raw or raw is True:
-        return ""
-    return str(raw).split("|")[0]
+    """CLNSIG from VEP ``--custom`` (``ClinVar_CLNSIG``) or legacy ``ClinVar`` pipe."""
+    for key in ("ClinVar_CLNSIG", "ClinVar"):
+        raw = info.get(key)
+        if raw and raw is not True:
+            return str(raw).split("|")[0]
+    return ""
 
 
 def _csq_map(fields: list[str], value: str) -> dict[str, str]:
@@ -106,6 +149,76 @@ def _max_present(mapped: dict[str, str], names: tuple[str, ...]) -> float | None
     values = [_float(mapped.get(name)) for name in names]
     present = [value for value in values if value is not None]
     return max(present) if present else None
+
+
+def _first_token(value: object) -> str:
+    """First non-empty / non-dot token from VEP or dbNSFP multi-value fields."""
+    if value is None or value is True:
+        return ""
+    for part in re.split(r"[&;,/]", str(value)):
+        text = part.strip()
+        if text and text not in {".", "NA", "na", "None"}:
+            return text
+    return ""
+
+
+def _pred_and_score(value: object) -> tuple[str | None, float | None]:
+    """Parse VEP ``prediction(score)`` strings such as ``deleterious(0.01)``."""
+    text = _first_token(value)
+    if not text:
+        return None, None
+    match = _PRED_SCORE.match(text)
+    if match:
+        return match.group("pred").lower(), _float(match.group("score"))
+    # Prediction-only token (tolerated, probably_damaging, D, ...).
+    if re.fullmatch(r"[A-Za-z_]+", text):
+        return text.lower(), None
+    return None, _float(text)
+
+
+def _csq_first(mapped: dict[str, str], names: tuple[str, ...]) -> str:
+    for name in names:
+        token = _first_token(mapped.get(name))
+        if token:
+            return token
+    return ""
+
+
+def _csq_float(mapped: dict[str, str], names: tuple[str, ...]) -> float | None:
+    for name in names:
+        number = _float(_first_token(mapped.get(name)))
+        if number is not None:
+            return number
+    return None
+
+
+def _in_silico_from_csq(csq: dict[str, str]) -> dict[str, object]:
+    """SIFT/PolyPhen (cache or dbNSFP) plus Eigen / MutationTaster / FATHMM."""
+    sift_pred, sift_score = _pred_and_score(csq.get("SIFT"))
+    if sift_score is None:
+        sift_score = _csq_float(csq, _SIFT_SCORE_KEYS)
+    if not sift_pred:
+        sift_pred = _csq_first(csq, _SIFT_PRED_KEYS).lower() or None
+
+    poly_pred, poly_score = _pred_and_score(csq.get("PolyPhen"))
+    if poly_score is None:
+        poly_score = _csq_float(csq, _POLYPHEN_SCORE_KEYS)
+    if not poly_pred:
+        poly_pred = _csq_first(csq, _POLYPHEN_PRED_KEYS).lower() or None
+
+    mut_pred = _csq_first(csq, _MUTTASTER_PRED_KEYS).upper() or None
+    fathmm_pred = _csq_first(csq, _FATHMM_PRED_KEYS).upper() or None
+    return {
+        "sift": sift_score,
+        "sift_pred": sift_pred,
+        "polyphen": poly_score,
+        "polyphen_pred": poly_pred,
+        "eigen": _csq_float(csq, _EIGEN_KEYS),
+        "muttaster": _csq_float(csq, _MUTTASTER_SCORE_KEYS),
+        "muttaster_pred": mut_pred,
+        "fathmm": _csq_float(csq, _FATHMM_SCORE_KEYS),
+        "fathmm_pred": fathmm_pred,
+    }
 
 
 def _allele_balance(fmt: dict) -> float | None:
@@ -158,6 +271,7 @@ def parse_vep(path: str | Path, sample_id: str) -> pd.DataFrame:
             cadd = _float(csq.get("CADD_PHRED") or csq.get("CADD_RAW"))
             revel = _float(csq.get("REVEL"))
             spliceai = _max_present(csq, _SPLICEAI)
+            in_silico = _in_silico_from_csq(csq)
             gene = (csq.get("SYMBOL") or "").split("&")[0].strip() or "."
             for sample, fmt in chosen.items():
                 gt = str(fmt.get("GT") or "./.")
@@ -187,6 +301,7 @@ def parse_vep(path: str | Path, sample_id: str) -> pd.DataFrame:
                         "clinvar": clinvar_raw,
                         "variant_class": variant_class_of(record["ref"], alt),
                         "hit_source": "small_variant",
+                        **in_silico,
                     }
                 )
     frame = pd.DataFrame(rows)

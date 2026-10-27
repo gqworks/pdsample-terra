@@ -27,11 +27,22 @@ def _col(df: pd.DataFrame, name: str) -> pd.Series:
     return df[name] if name in df.columns else pd.Series(pd.NA, index=df.index, dtype="Float64")
 
 
+def _text_col(df: pd.DataFrame, name: str) -> pd.Series:
+    if name not in df.columns:
+        return pd.Series("", index=df.index, dtype="string")
+    return df[name].fillna("").astype(str).str.strip().str.lower()
+
+
 def evidence_flags(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     """Return a boolean frame with one column per scoring rule."""
     cadd, revel, spliceai = _col(df, "cadd"), _col(df, "revel"), _col(df, "spliceai")
     avi = _col(df, "avi_phred")
+    eigen = _col(df, "eigen")
     clinvar = df.get("clinvar_class", pd.Series("none", index=df.index))
+    sift_pred = _text_col(df, "sift_pred")
+    polyphen_pred = _text_col(df, "polyphen_pred")
+    muttaster_pred = _text_col(df, "muttaster_pred")
+    fathmm_pred = _text_col(df, "fathmm_pred")
     flags = pd.DataFrame(index=df.index)
     flags["clinvar_plp"] = clinvar == "P/LP"
     flags["clinvar_conflicting"] = clinvar == "conflicting"
@@ -47,6 +58,13 @@ def evidence_flags(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     # Genome-wide AVI Phred bands (top 0.1% / top 1%), not a clinical cutoff.
     flags["avi_high"] = (avi >= scfg["avi_high"]).fillna(False)
     flags["avi_moderate"] = ((avi >= scfg["avi_moderate"]) & (avi < scfg["avi_high"])).fillna(False)
+    flags["sift_deleterious"] = sift_pred.str.contains("deleterious", regex=False) | (sift_pred == "d")
+    flags["polyphen_damaging"] = polyphen_pred.isin(
+        {"probably_damaging", "possibly_damaging", "d", "p"}
+    )
+    flags["muttaster_disease"] = muttaster_pred.isin({"a", "d"})
+    flags["fathmm_damaging"] = fathmm_pred.isin({"d"})
+    flags["eigen_high"] = (eigen >= scfg.get("eigen_high", 10)).fillna(False)
     flags["absent_gnomad"] = _col(df, "gnomad_af").fillna(0) == 0
     return flags.astype(bool)
 
