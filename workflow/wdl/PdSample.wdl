@@ -7,12 +7,15 @@ import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai), including required GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs are not supported."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai), including required GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
   }
   input {
     String sample_id
+    # Terra sample column bam_or_cram_file. May be BAM or CRAM (magic-byte detected).
     File bam
-    File bai
+    # Optional. Required in practice for BAM when you already have a .bai; CRAM
+    # without a .crai is fine — EnsureBam converts and indexes.
+    File? bai
     String sex = ""
 
     File ref_fasta
@@ -274,10 +277,24 @@ workflow PdSample {
   # GenotypeHardFilter still uses reference_dict_files and bundles in-task.
   File gatk_ref_dict = select_first([ref_dict, select_first(reference_dict_files)])
 
+  # Normalize BAM or CRAM (+ optional index) to sample_id.bam / sample_id.bam.bai
+  # before any reader. CRAM without a .crai is converted and indexed here.
+  call Tasks.EnsureBam {
+    input:
+      alignment = bam,
+      alignment_index = bai,
+      ref_fasta = ref_fasta,
+      ref_fasta_index = ref_fasta_index,
+      sample_id = sample_id,
+      preemptible = preemptible
+  }
+  File sample_bam = EnsureBam.bam
+  File sample_bai = EnsureBam.bai
+
   call Tasks.ExtractBamHeader {
     input:
-      bam = bam,
-      bam_index = bai,
+      bam = sample_bam,
+      bam_index = sample_bai,
       sample_id = sample_id,
       preemptible = preemptible
   }
@@ -291,8 +308,8 @@ workflow PdSample {
   }
   call Tasks.VerifyBamID {
     input:
-      bam = bam,
-      bam_index = bai,
+      bam = sample_bam,
+      bam_index = sample_bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       svd_ud = FetchRepoAssets.verifybamid_ud,
@@ -305,8 +322,8 @@ workflow PdSample {
   }
   call Tasks.SomalierCheck {
     input:
-      bam = bam,
-      bam_index = bai,
+      bam = sample_bam,
+      bam_index = sample_bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       sites = somalier_sites,
@@ -316,8 +333,8 @@ workflow PdSample {
   }
   call Tasks.Mosdepth {
     input:
-      bam = bam,
-      bam_index = bai,
+      bam = sample_bam,
+      bam_index = sample_bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       bed = FetchRepoAssets.panel_bed,
@@ -343,8 +360,8 @@ workflow PdSample {
   }
   call Tasks.HaplotypeCaller {
     input:
-      bam = bam,
-      bam_index = bai,
+      bam = sample_bam,
+      bam_index = sample_bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       ref_dict = gatk_ref_dict,
@@ -415,8 +432,8 @@ workflow PdSample {
   }
   call Tasks.ExpansionHunter {
     input:
-      bam = bam,
-      bam_index = bai,
+      bam = sample_bam,
+      bam_index = sample_bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       catalog = FetchRepoAssets.eh_catalog,
@@ -427,8 +444,8 @@ workflow PdSample {
   }
   call Tasks.Gauchian {
     input:
-      bam = bam,
-      bam_index = bai,
+      bam = sample_bam,
+      bam_index = sample_bai,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       sample_id = sample_id,
@@ -436,17 +453,17 @@ workflow PdSample {
       gauchian_docker = gauchian_docker,
       preemptible = preemptible
   }
-  # Gate mito / GATK-SV on QC. Always release as .bam / .bam.bai so Manta 1.6
-  # symlinks sample.bam + sample.bam.bai (CRAM inputs are not supported).
+  # Gate mito / GATK-SV on QC. EnsureBam already emits sample_id.bam / .bam.bai;
+  # ReleaseAfterQc hardlinks again so Manta 1.6 does not start before the gate.
   call Tasks.ReleaseAfterQc as ReleaseBam {
     input:
-      payload = bam,
+      payload = sample_bam,
       gate = QcGate.gate,
       name = sample_id + ".bam"
   }
   call Tasks.ReleaseAfterQc as ReleaseBai {
     input:
-      payload = bai,
+      payload = sample_bai,
       gate = QcGate.gate,
       name = sample_id + ".bam.bai"
   }
