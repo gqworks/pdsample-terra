@@ -60,9 +60,11 @@ def test_in_silico_from_native_and_dbnsfp_fields():
 
 
 def test_parse_vep_reads_dbnsfp_gnomad_clinvar_cadd_revel(tmp_path: Path):
+    # SIFT/PolyPhen from dbNSFP columns (VEP cache --sift/--polyphen is off by default).
     csq = (
         "Allele|Consequence|SYMBOL|HGVSc|HGVSp|CANONICAL|CADD_phred|REVEL_score|"
-        "SIFT|PolyPhen|Eigen-phred_coding|MutationTaster_pred|fathmm-XF_coding_pred|"
+        "SIFT_score|SIFT_pred|Polyphen2_HDIV_score|Polyphen2_HDIV_pred|"
+        "Eigen-phred_coding|MutationTaster_pred|fathmm-XF_coding_pred|"
         "clinvar_clnsig|gnomAD4.1_joint_AF|gnomAD4.1_joint_POPMAX_AF"
     )
     path = tmp_path / "panel.vep.vcf"
@@ -75,7 +77,8 @@ def test_parse_vep_reads_dbnsfp_gnomad_clinvar_cadd_revel(tmp_path: Path):
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1",
                 "1\t100\t.\tA\tG\t.\tPASS\t"
                 "CSQ=G|missense_variant|PINK1|c.1A>G|p.X|YES|28.5|0.85|"
-                "deleterious(0.01)|probably_damaging(0.99)|11.5|D|D|"
+                "0.01|D|0.99|D|"
+                "11.5|D|D|"
                 "Pathogenic|0.01|0.02\t"
                 "GT\t0/1",
             ]
@@ -92,8 +95,10 @@ def test_parse_vep_reads_dbnsfp_gnomad_clinvar_cadd_revel(tmp_path: Path):
     assert row["gnomad_popmax_af"] == 0.02
     assert row["clinvar"] == "Pathogenic"
     assert row["clinvar_class"] == "P/LP"
-    assert row["sift_pred"] == "deleterious"
-    assert row["polyphen_pred"] == "probably_damaging"
+    assert row["sift"] == 0.01
+    assert row["sift_pred"] == "d"
+    assert row["polyphen"] == 0.99
+    assert row["polyphen_pred"] == "d"
     assert row["eigen"] == 11.5
     assert row["muttaster_pred"] == "D"
     assert row["fathmm_pred"] == "D"

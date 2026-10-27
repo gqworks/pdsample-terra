@@ -148,7 +148,7 @@ gnomAD AF, ClinVar significance, CADD, REVEL, and the other in-silico scores all
 3. Point `PdSample.dbnsfp_variant_chroms` at that array (pre-filled in `PdSample.terra_inputs.json`). The workflow’s `PrepareDbnsfpForVep` task subsets to the panel BED, then bgzips and tabixes for the VEP plugin.
 4. Default `dbnsfp_fields` matches `dbNSFP5.4a_variant.columns.tsv`: SIFT/PolyPhen2, Eigen, MutationTaster, fathmm-XF, `CADD_phred`, `REVEL_score`, `clinvar_clnsig`, `gnomAD4.1_joint_AF`, `gnomAD4.1_joint_POPMAX_AF`. Classic `FATHMM_*` is **not** in 5.4a.
 
-SIFT and PolyPhen also come from the VEP cache via `--sift b --polyphen b` (`vep_sift_polyphen`, default true). `LiftGnomadInfo` copies `gnomAD4.1_joint_*` from CSQ into `INFO/gnomAD_AF` / `INFO/AF_popmax` for Introme’s rare filter. `pdvar` maps `clinvar_clnsig` → `clinvar_class`.
+SIFT and PolyPhen come from dbNSFP (`SIFT_*` / `Polyphen2_HDIV_*`). Cache-native VEP `--sift/--polyphen` is off by default (`vep_sift_polyphen=false`) to avoid duplicating those scores. `LiftGnomadInfo` copies `gnomAD4.1_joint_*` from CSQ into `INFO/gnomAD_AF` / `INFO/AF_popmax` for Introme’s rare filter. `pdvar` maps `clinvar_clnsig` → `clinvar_class`.
 
 ## Optional inputs that are not in the JSON
 

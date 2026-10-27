@@ -39,7 +39,8 @@ workflow PdSample {
     File? dbnsfp
     File? dbnsfp_index
     String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score,clinvar_clnsig,gnomAD4.1_joint_AF,gnomAD4.1_joint_POPMAX_AF"
-    Boolean vep_sift_polyphen = true
+    # Off by default: SIFT/PolyPhen2 come from dbNSFP 5.4a (avoid duplicating cache-native VEP).
+    Boolean vep_sift_polyphen = false
 
     File somalier_sites
     Float max_freemix = 0.02

@@ -552,7 +552,8 @@ task VepAnnotate {
     File? dbnsfp_index
     # Column names verified against dbNSFP5.4a_variant.columns.tsv (academic 5.4a).
     String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score,clinvar_clnsig,gnomAD4.1_joint_AF,gnomAD4.1_joint_POPMAX_AF"
-    Boolean vep_sift_polyphen = true
+    # Off by default: SIFT/PolyPhen2 come from dbNSFP (avoid duplicating VEP cache predictions).
+    Boolean vep_sift_polyphen = false
     String extra_args = ""
     String vep_docker = "quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0"
     Int preemptible = 3
@@ -606,7 +607,7 @@ task VepAnnotate {
 
     pred_args=()
     if [[ "~{vep_sift_polyphen}" == "true" ]]; then
-      # Cache-native SIFT/PolyPhen (prediction + score). No extra files required.
+      # Optional cache-native SIFT/PolyPhen; prefer dbNSFP columns when that plugin is set.
       pred_args+=(--sift b --polyphen b)
     fi
 

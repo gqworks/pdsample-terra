@@ -5,8 +5,8 @@ CSQ fields supply ``CADD_phred``, ``REVEL_score``, Eigen / MutationTaster /
 fathmm-XF, ``clinvar_clnsig``, and ``gnomAD4.1_joint_AF`` /
 ``gnomAD4.1_joint_POPMAX_AF``. Unified ``gnomAD_AF`` / ``AF_popmax`` from
 ``LiftGnomadInfo`` (lifted from those CSQ fields) are preferred when set.
-Cache-native ``--sift b --polyphen b`` fill SIFT and PolyPhen when enabled.
-SpliceAI scores come from Introme, not VEP CSQ.
+SIFT / PolyPhen come from dbNSFP (``SIFT_*`` / ``Polyphen2_*``); optional cache-native
+``--sift/--polyphen`` is off by default. Splice scores come from Introme, not VEP CSQ.
 """
 
 from __future__ import annotations

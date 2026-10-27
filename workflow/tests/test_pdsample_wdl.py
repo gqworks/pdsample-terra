@@ -77,6 +77,7 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File? dbnsfp" in text
     assert "Array[File] dbnsfp_variant_chroms" in text
     assert "vep_sift_polyphen" in text
+    assert 'Boolean vep_sift_polyphen = false' in text
     assert "alphagenome_api_key" not in text
     assert "AnnotateAvi" in text
     assert "VepAnnotate" in text
@@ -89,7 +90,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "REVEL,file=" in sample_tasks
     assert "CADD,snv=" in sample_tasks
     assert "dbNSFP" in sample_tasks
-    assert "--sift b --polyphen b" in sample_tasks
+    assert "SIFT_score" in sample_tasks
+    assert "Polyphen2_HDIV_score" in sample_tasks
+    assert "Boolean vep_sift_polyphen = false" in sample_tasks
     assert "Eigen-phred_coding" in sample_tasks
     assert "MutationTaster_pred" in sample_tasks
     assert "fathmm-XF_coding_pred" in sample_tasks
