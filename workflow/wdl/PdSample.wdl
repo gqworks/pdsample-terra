@@ -24,11 +24,18 @@ workflow PdSample {
     String vep_extra_args = ""
     File? avi_table
     File? avi_table_index
-    # gnomAD v4 sites VCFs for VEP --custom (genomes and/or exomes). Legacy gnomad_vcf aliases genomes.
+    # gnomAD v4 per-chromosome sites VCFs (public gs://gcp-public-data--gnomad/... recommended).
+    # SubsetGnomadPanelSites streams intervals only (localization_optional); full chroms are not copied.
+    Array[File] gnomad_genomes_vcfs = []
+    Array[File] gnomad_genomes_vcf_indexes = []
+    Array[File] gnomad_exomes_vcfs = []
+    Array[File] gnomad_exomes_vcf_indexes = []
+    # Optional already-merged / panel-subset sites VCFs (skip chrom arrays when set alone).
     File? gnomad_genomes_vcf
     File? gnomad_genomes_vcf_index
     File? gnomad_exomes_vcf
     File? gnomad_exomes_vcf_index
+    # Legacy single-file alias for genomes.
     File? gnomad_vcf
     File? gnomad_vcf_index
     File? clinvar_vcf
@@ -393,6 +400,35 @@ workflow PdSample {
       avi_table_index = avi_table_index,
       preemptible = preemptible
   }
+  if (length(gnomad_genomes_vcfs) > 0) {
+    call Tasks.SubsetGnomadPanelSites as SubsetGnomadGenomes {
+      input:
+        chrom_vcfs = gnomad_genomes_vcfs,
+        chrom_vcf_indexes = gnomad_genomes_vcf_indexes,
+        intervals_bed = FetchRepoAssets.panel_bed,
+        output_basename = "gnomad.genomes.panel",
+        gatk_docker = hc_gatk_docker,
+        requester_pays_project = requester_pays_project,
+        preemptible = preemptible
+    }
+  }
+  if (length(gnomad_exomes_vcfs) > 0) {
+    call Tasks.SubsetGnomadPanelSites as SubsetGnomadExomes {
+      input:
+        chrom_vcfs = gnomad_exomes_vcfs,
+        chrom_vcf_indexes = gnomad_exomes_vcf_indexes,
+        intervals_bed = FetchRepoAssets.panel_bed,
+        output_basename = "gnomad.exomes.panel",
+        gatk_docker = hc_gatk_docker,
+        requester_pays_project = requester_pays_project,
+        preemptible = preemptible
+    }
+  }
+  # Chrom-array subsets win; else optional single-file genomes/exomes; else legacy gnomad_vcf.
+  File? vep_gnomad_genomes_vcf = if (length(SubsetGnomadGenomes.subset_vcf) > 0) then select_first(SubsetGnomadGenomes.subset_vcf) else gnomad_genomes_vcf
+  File? vep_gnomad_genomes_vcf_index = if (length(SubsetGnomadGenomes.subset_vcf_index) > 0) then select_first(SubsetGnomadGenomes.subset_vcf_index) else gnomad_genomes_vcf_index
+  File? vep_gnomad_exomes_vcf = if (length(SubsetGnomadExomes.subset_vcf) > 0) then select_first(SubsetGnomadExomes.subset_vcf) else gnomad_exomes_vcf
+  File? vep_gnomad_exomes_vcf_index = if (length(SubsetGnomadExomes.subset_vcf_index) > 0) then select_first(SubsetGnomadExomes.subset_vcf_index) else gnomad_exomes_vcf_index
   call Tasks.VepAnnotate {
     input:
       vcf = NormPass.normalized_vcf,
@@ -400,10 +436,10 @@ workflow PdSample {
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       cache_dir = vep_cache,
-      gnomad_genomes_vcf = gnomad_genomes_vcf,
-      gnomad_genomes_vcf_index = gnomad_genomes_vcf_index,
-      gnomad_exomes_vcf = gnomad_exomes_vcf,
-      gnomad_exomes_vcf_index = gnomad_exomes_vcf_index,
+      gnomad_genomes_vcf = vep_gnomad_genomes_vcf,
+      gnomad_genomes_vcf_index = vep_gnomad_genomes_vcf_index,
+      gnomad_exomes_vcf = vep_gnomad_exomes_vcf,
+      gnomad_exomes_vcf_index = vep_gnomad_exomes_vcf_index,
       gnomad_vcf = gnomad_vcf,
       gnomad_vcf_index = gnomad_vcf_index,
       clinvar_vcf = clinvar_vcf,
