@@ -485,6 +485,75 @@ task NormPass {
   }
 }
 
+task SubsetGnomadPanelSites {
+  input {
+    Array[File] chrom_vcfs
+    Array[File] chrom_vcf_indexes
+    File intervals_bed
+    String output_basename = "gnomad_panel_sites"
+    String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.6.1.0"
+    String requester_pays_project = ""
+    Int preemptible = 3
+    Int threads = 4
+    # Chrom VCFs stay remote (localization_optional); only the panel BED + subset shards are local.
+    Int disk_gb = ceil(size(intervals_bed, "GiB") + 50)
+    Int memory_mb = 8000
+  }
+  Int java_memory_size_mb = memory_mb - 2000
+  command <<<
+    set -euo pipefail
+    if [[ "~{length(chrom_vcfs)}" -ne "~{length(chrom_vcf_indexes)}" ]]; then
+      echo "chrom_vcfs and chrom_vcf_indexes must have the same length" >&2
+      exit 1
+    fi
+    rp_arg=""
+    if [[ -n "~{requester_pays_project}" ]]; then
+      rp_arg="--gcs-project-for-requester-pays ~{requester_pays_project}"
+    fi
+
+    printf '%s\n' ~{sep='\n' chrom_vcfs} > vcfs.txt
+    printf '%s\n' ~{sep='\n' chrom_vcf_indexes} > indexes.txt
+    paste vcfs.txt indexes.txt > pairs.tsv
+
+    mkdir -p shards
+    shard_list=shards/inputs.list
+    : > "$shard_list"
+    n=0
+    while IFS=$'\t' read -r vcf idx; do
+      # localization_optional keeps these as gs:// (or other remote) URIs. GATK/htsjdk
+      # streams the requested intervals and looks up the sibling .tbi on the object store.
+      out="shards/${n}.vcf.gz"
+      gatk --java-options "-Xmx~{java_memory_size_mb}m" SelectVariants \
+        $rp_arg \
+        -V "$vcf" \
+        -L "~{intervals_bed}" \
+        -O "$out"
+      echo "$out" >> "$shard_list"
+      n=$((n + 1))
+    done < pairs.tsv
+
+    gatk --java-options "-Xmx~{java_memory_size_mb}m" MergeVcfs \
+      $rp_arg \
+      -I "$shard_list" \
+      -O "~{output_basename}.vcf.gz"
+  >>>
+  output {
+    File subset_vcf = "~{output_basename}.vcf.gz"
+    File subset_vcf_index = "~{output_basename}.vcf.gz.tbi"
+  }
+  runtime {
+    docker: gatk_docker
+    preemptible: preemptible
+    memory: "~{memory_mb} MiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: threads
+  }
+  parameter_meta {
+    chrom_vcfs: { localization_optional: true }
+    chrom_vcf_indexes: { localization_optional: true }
+  }
+}
+
 task VepAnnotate {
   input {
     File vcf

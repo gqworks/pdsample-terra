@@ -70,6 +70,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "ALPHAGENOME_API_KEY" not in sample_tasks
     assert "File? avi_table" in text
     assert "File? avi_table_index" in text
+    assert "Array[File] gnomad_genomes_vcfs" in text
+    assert "Array[File] gnomad_exomes_vcfs" in text
     assert "File? gnomad_genomes_vcf" in text
     assert "File? gnomad_exomes_vcf" in text
     assert "File? clinvar_vcf" in text
@@ -80,6 +82,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "alphagenome_api_key" not in text
     assert "AnnotateAvi" in text
     assert "VepAnnotate" in text
+    assert "SubsetGnomadPanelSites" in text
+    assert "SubsetGnomadGenomes" in text
+    assert "SubsetGnomadExomes" in text
     assert "--plugin" in sample_tasks
     assert "gnomADg" in sample_tasks
     assert "gnomADe" in sample_tasks
@@ -90,6 +95,17 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "Eigen-phred_coding" in sample_tasks
     assert "MutationTaster_pred" in sample_tasks
     assert "FATHMM_pred" in sample_tasks
+    assert "localization_optional: true" in sample_tasks
+    assert "task SubsetGnomadPanelSites" in sample_tasks
+    terra_json = json.loads((ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8"))
+    assert len(terra_json["PdSample.gnomad_genomes_vcfs"]) == 24
+    assert len(terra_json["PdSample.gnomad_exomes_vcfs"]) == 24
+    assert terra_json["PdSample.gnomad_genomes_vcfs"][0].startswith(
+        "gs://gcp-public-data--gnomad/release/4.1/vcf/genomes/"
+    )
+    assert terra_json["PdSample.gnomad_exomes_vcfs"][0].startswith(
+        "gs://gcp-public-data--gnomad/release/4.1/vcf/exomes/"
+    )
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
     assert "PdCohort" not in dockstore

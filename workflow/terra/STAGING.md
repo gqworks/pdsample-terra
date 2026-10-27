@@ -134,14 +134,13 @@ Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. P
 
 ## VEP frequency and pathogenicity annotations
 
-`VepAnnotate` wires these as first-class `File` inputs (not only `vep_extra_args`). Stage each file **and its tabix index** under the workspace bucket, then set the matching `PdSample.*` input (see `PdSample.terra_inputs.json`). The example JSON leaves them unset so a synthetic dry-run does not localize multi-GB resources.
+`VepAnnotate` wires these as first-class `File` inputs (not only `vep_extra_args`). **gnomAD** uses public per-chrom `gs://gcp-public-data--gnomad/...` arrays in `PdSample.terra_inputs.json` (no workspace copy). For ClinVar / CADD / REVEL / dbNSFP, stage each file **and its tabix index** under the workspace bucket. The example JSON leaves those unset so a synthetic dry-run does not localize multi-GB resources.
 
 | Input | Staged path | Source |
 | --- | --- | --- |
-| `gnomad_genomes_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.genomes.v4.1.sites.vcf.gz` | gnomAD v4.1 genomes sites (GRCh38); subset to the panel BED if full sites are too large |
-| `gnomad_genomes_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.genomes.v4.1.sites.vcf.gz.tbi` | tabix index for genomes sites |
-| `gnomad_exomes_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz` | gnomAD v4.1 exomes sites (GRCh38) |
-| `gnomad_exomes_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz.tbi` | tabix index for exomes sites |
+| `gnomad_genomes_vcfs` / `gnomad_genomes_vcf_indexes` | public `gs://gcp-public-data--gnomad/release/4.1/vcf/genomes/gnomad.genomes.v4.1.sites.chr{1-22,X,Y}.vcf.bgz` (+ `.tbi`) | Per-chrom genomes sites. **Do not copy into the workspace.** `SubsetGnomadPanelSites` uses `localization_optional` and streams panel intervals only. |
+| `gnomad_exomes_vcfs` / `gnomad_exomes_vcf_indexes` | public `gs://gcp-public-data--gnomad/release/4.1/vcf/exomes/gnomad.exomes.v4.1.sites.chr{1-22,X,Y}.vcf.bgz` (+ `.tbi`) | Per-chrom exomes sites; same remote subset pattern. Arrays are pre-filled in `PdSample.terra_inputs.json`. |
+| `gnomad_genomes_vcf` / `gnomad_exomes_vcf` (optional) | workspace panel-subset VCF if you already built one | Single-file alternative; skip the chrom arrays when using these alone. Legacy `gnomad_vcf` still aliases genomes. |
 | `clinvar_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz` | NCBI ClinVar GRCh38 VCF |
 | `clinvar_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz.tbi` | tabix index for ClinVar |
 | `cadd_snv` | `gs://YOUR_WORKSPACE_BUCKET/resources/cadd/whole_genome_SNVs.tsv.gz` | CADD (license required); VEP 116 `--plugin CADD,snv=...` |
