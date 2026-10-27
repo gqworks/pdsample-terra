@@ -35,7 +35,7 @@ def _text_col(df: pd.DataFrame, name: str) -> pd.Series:
 
 def evidence_flags(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     """Return a boolean frame with one column per scoring rule."""
-    cadd, revel, spliceai = _col(df, "cadd"), _col(df, "revel"), _col(df, "spliceai")
+    cadd, revel = _col(df, "cadd"), _col(df, "revel")
     avi = _col(df, "avi_phred")
     eigen = _col(df, "eigen")
     clinvar = df.get("clinvar_class", pd.Series("none", index=df.index))
@@ -51,10 +51,6 @@ def evidence_flags(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     flags["cadd_high"] = (cadd >= scfg["cadd_high"]).fillna(False)
     flags["cadd_moderate"] = ((cadd >= scfg["cadd_moderate"]) & (cadd < scfg["cadd_high"])).fillna(False)
     flags["revel_high"] = (revel >= scfg["revel_high"]).fillna(False)
-    flags["spliceai_high"] = (spliceai >= scfg["spliceai_high"]).fillna(False)
-    flags["spliceai_moderate"] = (
-        (spliceai >= scfg["spliceai_moderate"]) & (spliceai < scfg["spliceai_high"])
-    ).fillna(False)
     # Genome-wide AVI Phred bands (top 0.1% / top 1%), not a clinical cutoff.
     flags["avi_high"] = (avi >= scfg["avi_high"]).fillna(False)
     flags["avi_moderate"] = ((avi >= scfg["avi_moderate"]) & (avi < scfg["avi_high"])).fillna(False)

@@ -84,8 +84,7 @@ def find_second_hits(
 def apply_introme_evidence(df: pd.DataFrame, spcfg: dict, scfg: dict) -> pd.DataFrame:
     """Add ``introme_class`` and add Introme points to the score for relevant consequences.
 
-    Introme points are only added when SpliceAI has not already contributed, to avoid
-    double-counting the same splice evidence.
+    Splice evidence comes from Introme only (VEP SpliceAI is not annotated).
     """
     df = df.copy()
     score = df["introme_score"] if "introme_score" in df.columns else pd.Series(float("nan"), index=df.index)
@@ -94,10 +93,9 @@ def apply_introme_evidence(df: pd.DataFrame, spcfg: dict, scfg: dict) -> pd.Data
     consider = set(spcfg["consider_consequences"])
     terms = df["consequence"].fillna("").astype(str).str.split(r"[&,]")
     relevant = terms.map(lambda ts: any(t.strip() in consider for t in ts)).astype(bool)
-    already_splice = df["evidence_reasons"].fillna("").str.contains("spliceai").astype(bool)
-    add = (df["introme_class"] == "high") & relevant & ~already_splice
+    add = (df["introme_class"] == "high") & relevant
 
-    df["splice_candidate"] = (df["introme_class"] != "none") | already_splice
+    df["splice_candidate"] = df["introme_class"] != "none"
     df.loc[add, "evidence_score"] += scfg["points"]["introme_high"]
     df.loc[add, "evidence_reasons"] = (df.loc[add, "evidence_reasons"].fillna("") + ";introme_high").str.strip(";")
     df["tier"] = assign_tier(df["evidence_score"], scfg["tiers"])

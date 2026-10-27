@@ -24,11 +24,10 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 | `tier`, `evidence_score`, `evidence_reasons` | Point triage. Tier 1 is the highest score band |
 | `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `risk_biallelic`, `mtdna_variant`, `str_expanded`, `incidental`, and the other statuses in `src/pdvar/report.py` |
 | `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `mtdna`, `sv`, or `introme_lookup` |
-| `gnomad_af`, `gnomad_popmax_af` | From the VEP custom annotation when present. Missing means rare |
 | `sv_panel_af` | Allele frequency on the GATK-SV reference panel, when that VCF ran |
-| `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` (from VEP ClinVar `--custom` / CSQ) |
-| `gnomad_af`, `gnomad_popmax_af` | Max across gnomAD genomes and exomes when both are annotated; else whichever is present |
-| `cadd`, `revel`, `spliceai` | `cadd` / `revel` from academic dbNSFP 5.4a (`CADD_phred` / `REVEL_score`) or optional CADD/REVEL plugins (`CADD_PHRED` / `REVEL`); SpliceAI from Introme / `vep_extra_args` |
+| `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` (from dbNSFP `clinvar_clnsig`) |
+| `gnomad_af`, `gnomad_popmax_af` | From dbNSFP `gnomAD4.1_joint_AF` / `gnomAD4.1_joint_POPMAX_AF` (lifted to INFO for Introme). Missing means rare |
+| `cadd`, `revel` | From academic dbNSFP 5.4a (`CADD_phred` / `REVEL_score`) or optional CADD/REVEL plugins |
 | `sift`, `sift_pred`, `polyphen`, `polyphen_pred` | Cache-native VEP `--sift/--polyphen` and/or dbNSFP |
 | `eigen`, `muttaster`, `muttaster_pred`, `fathmm`, `fathmm_pred` | From dbNSFP when set; 5.4a uses `fathmm-XF_coding_*` (maps to `fathmm` / `fathmm_pred`) |
 | `eigen_high` / `sift_deleterious` / … | Evidence-reason flags when configured score/prediction thresholds hit |

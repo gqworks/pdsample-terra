@@ -1,13 +1,12 @@
 """Parse a single-sample VEP VCF into the columns the scorer expects.
 
-VEP ``--pick`` CSQ supplies consequence, symbol, and HGVS. Optional ``--custom``
-INFO fields from gnomAD genomes (``gnomADg_*``), gnomAD exomes (``gnomADe_*``),
-legacy ``gnomAD`` / ``gnomAD_AF``, and ClinVar (``ClinVar_CLNSIG`` or ``ClinVar``)
-override CSQ frequency and clinical significance when present. Unified
-``gnomAD_AF`` / ``AF_popmax`` from ``LiftGnomadInfo`` are preferred when set.
-CADD, REVEL, SpliceAI, and dbNSFP (Eigen / MutationTaster / fathmm-XF, plus CADD_phred
-and REVEL_score from academic dbNSFP 5.4a) are read from CSQ when those plugins ran.
+VEP ``--pick`` CSQ supplies consequence, symbol, and HGVS. Academic dbNSFP 5.4a
+CSQ fields supply ``CADD_phred``, ``REVEL_score``, Eigen / MutationTaster /
+fathmm-XF, ``clinvar_clnsig``, and ``gnomAD4.1_joint_AF`` /
+``gnomAD4.1_joint_POPMAX_AF``. Unified ``gnomAD_AF`` / ``AF_popmax`` from
+``LiftGnomadInfo`` (lifted from those CSQ fields) are preferred when set.
 Cache-native ``--sift b --polyphen b`` fill SIFT and PolyPhen when enabled.
+SpliceAI scores come from Introme, not VEP CSQ.
 """
 
 from __future__ import annotations
@@ -22,7 +21,6 @@ from .vcf_stream import _open_text, iter_vcf
 
 _CSQ_FORMAT = re.compile(r"Format:\s*([^\"\s]+)")
 _PRED_SCORE = re.compile(r"^(?P<pred>[A-Za-z_]+)\((?P<score>[-+0-9.eE]+)\)$")
-_SPLICEAI = ("SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL")
 _EIGEN_KEYS = ("Eigen-phred_coding", "Eigen-phred", "Eigen-PC-phred_coding", "Eigen-raw_coding", "Eigen-raw")
 _SIFT_SCORE_KEYS = ("SIFT_score",)
 _SIFT_PRED_KEYS = ("SIFT_pred",)
@@ -36,6 +34,15 @@ _FATHMM_PRED_KEYS = ("fathmm-XF_coding_pred", "FATHMM_pred")
 # Plugin CADD/REVEL use CADD_PHRED / REVEL; dbNSFP 5.4a uses CADD_phred / REVEL_score.
 _CADD_KEYS = ("CADD_PHRED", "CADD_phred", "CADD_RAW", "CADD_raw")
 _REVEL_KEYS = ("REVEL", "REVEL_score")
+_GNOMAD_AF_CSQ = ("gnomAD4.1_joint_AF", "gnomAD_AF", "gnomADe_AF", "gnomADg_AF", "MAX_AF")
+_GNOMAD_POP_CSQ = (
+    "gnomAD4.1_joint_POPMAX_AF",
+    "gnomAD_AF_popmax",
+    "gnomADe_AF_popmax",
+    "gnomADg_AF_popmax",
+    "MAX_AF_POPS",
+)
+_CLINVAR_CSQ = ("clinvar_clnsig", "CLIN_SIG", "ClinVar_CLNSIG")
 
 
 def csq_fields(header_text: str) -> list[str]:
@@ -84,12 +91,7 @@ def _max_float(values: list[float | None]) -> float | None:
 
 
 def _gnomad_from_info(info: dict) -> tuple[float | None, float | None]:
-    """Prefer lifted ``gnomAD_AF`` / ``AF_popmax``, else max across genomes and exomes.
-
-    Accepts VEP ``--custom`` short names ``gnomADg`` / ``gnomADe`` (separate INFO
-    keys), legacy pipe ``gnomAD=AF|AF_popmax|nhomalt``, and ``LiftGnomadInfo``
-    unified keys.
-    """
+    """Prefer lifted ``gnomAD_AF`` / ``AF_popmax``, else legacy custom keys."""
     raw = info.get("gnomAD")
     legacy_af = legacy_pop = None
     if raw and raw is not True:
@@ -120,7 +122,7 @@ def _gnomad_from_info(info: dict) -> tuple[float | None, float | None]:
 
 
 def _clinvar_from_info(info: dict) -> str:
-    """CLNSIG from VEP ``--custom`` (``ClinVar_CLNSIG``) or legacy ``ClinVar`` pipe."""
+    """CLNSIG from legacy VEP ``--custom`` when present."""
     for key in ("ClinVar_CLNSIG", "ClinVar"):
         raw = info.get(key)
         if raw and raw is not True:
@@ -272,14 +274,11 @@ def parse_vep(path: str | Path, sample_id: str) -> pd.DataFrame:
         info_clinvar = _clinvar_from_info(info)
         for index, alt in enumerate(alts, start=1):
             csq = _pick_csq(info, fields, alt)
-            gnomad_af = info_af if info_af is not None else _max_present(csq, ("gnomAD_AF", "gnomADe_AF", "gnomADg_AF", "MAX_AF"))
-            popmax = info_pop if info_pop is not None else _max_present(
-                csq, ("gnomAD_AF_popmax", "gnomADe_AF_popmax", "gnomADg_AF_popmax", "MAX_AF_POPS")
-            )
-            clinvar_raw = info_clinvar or csq.get("CLIN_SIG") or ""
+            gnomad_af = info_af if info_af is not None else _csq_float(csq, _GNOMAD_AF_CSQ)
+            popmax = info_pop if info_pop is not None else _csq_float(csq, _GNOMAD_POP_CSQ)
+            clinvar_raw = info_clinvar or _csq_first(csq, _CLINVAR_CSQ) or ""
             cadd = _csq_float(csq, _CADD_KEYS)
             revel = _csq_float(csq, _REVEL_KEYS)
-            spliceai = _max_present(csq, _SPLICEAI)
             in_silico = _in_silico_from_csq(csq)
             gene = (csq.get("SYMBOL") or "").split("&")[0].strip() or "."
             for sample, fmt in chosen.items():
@@ -306,7 +305,6 @@ def parse_vep(path: str | Path, sample_id: str) -> pd.DataFrame:
                         "gnomad_popmax_af": popmax,
                         "cadd": cadd,
                         "revel": revel,
-                        "spliceai": spliceai,
                         "clinvar": clinvar_raw,
                         "variant_class": variant_class_of(record["ref"], alt),
                         "hit_source": "small_variant",

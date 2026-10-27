@@ -32,7 +32,7 @@ CURATION_COLUMNS = [
     "zygosity", "tier", "evidence_score", "evidence_reasons", "inheritance_status", "hit_source",
     "introme_class", "introme_score", "introme_cohort_af", "introme_n_carriers", "introme_gene_region",
     "clinvar_class", "gnomad_af", "gnomad_popmax_af",
-    "cadd", "revel", "spliceai",
+    "cadd", "revel",
     "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
     "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
     "avi_phred", "avi_raw", "avi_quantile", "avi_url",

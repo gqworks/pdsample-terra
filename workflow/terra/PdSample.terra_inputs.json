@@ -14,12 +14,6 @@
   "PdSample.vep_cache": "gs://YOUR_WORKSPACE_BUCKET/resources/vep/homo_sapiens_vep_116_GRCh38.tar.gz",
   "PdSample.avi_table": "gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz",
   "PdSample.avi_table_index": "gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz.tbi",
-  "PdSample.gnomad_genomes_vcf": "gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.genomes.v4.1.sites.vcf.gz",
-  "PdSample.gnomad_genomes_vcf_index": "gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.genomes.v4.1.sites.vcf.gz.tbi",
-  "PdSample.gnomad_exomes_vcf": "gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz",
-  "PdSample.gnomad_exomes_vcf_index": "gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz.tbi",
-  "PdSample.clinvar_vcf": "gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz",
-  "PdSample.clinvar_vcf_index": "gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz.tbi",
   "PdSample.dbnsfp_variant_chroms": [
     "gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_variant.chr1.gz",
     "gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_variant.chr2.gz",

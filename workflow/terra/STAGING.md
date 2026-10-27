@@ -132,18 +132,12 @@ stage(
 
 Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. Put the alignment and index on the sample table (`bam_or_cram_file`, `bai`).
 
-## VEP frequency and pathogenicity annotations
+## VEP pathogenicity annotations (academic dbNSFP 5.4a)
 
-`VepAnnotate` wires these as first-class `File` inputs (not only `vep_extra_args`). Stage each file **and its tabix index** under the workspace bucket, then set the matching `PdSample.*` input (see `PdSample.terra_inputs.json`). The example JSON leaves heavy resources as placeholders so a synthetic dry-run does not localize multi-GB objects until you replace the bucket prefix.
+gnomAD AF, ClinVar significance, CADD, REVEL, and the other in-silico scores all come from **dbNSFP 5.4a** (no separate gnomAD / ClinVar VCF `--custom` inputs). SpliceAI for triage is from **Introme**, not VEP.
 
 | Input | Staged path | Source |
 | --- | --- | --- |
-| `gnomad_genomes_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.genomes.v4.1.sites.vcf.gz` | gnomAD v4.1 genomes sites (GRCh38); subset to the panel BED if full sites are too large |
-| `gnomad_genomes_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.genomes.v4.1.sites.vcf.gz.tbi` | tabix index for genomes sites |
-| `gnomad_exomes_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz` | gnomAD v4.1 exomes sites (GRCh38) |
-| `gnomad_exomes_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.exomes.v4.1.sites.vcf.gz.tbi` | tabix index for exomes sites |
-| `clinvar_vcf` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz` | NCBI ClinVar GRCh38 VCF (keep for all variant types; fresher than dbNSFP’s embedded ClinVar) |
-| `clinvar_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.vcf.gz.tbi` | tabix index for ClinVar |
 | `dbnsfp_variant_chroms` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_variant.chr{1-22,X,Y}.gz` | Academic **dbNSFP 5.4a** as distributed (plain gzip per chromosome). `PrepareDbnsfpForVep` builds a panel-subset VEP-ready bgzip+tabix. Optional `chrM` can be added if needed. |
 | `dbnsfp` / `dbnsfp_index` (optional) | `gs://…/dbNSFP5.4a_grch38.gz` (+ `.tbi`) | Pre-built VEP-ready file; when set, skips per-chrom prep |
 
@@ -152,11 +146,9 @@ Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. P
 1. Download the academic (`a`) branch from [dbNSFP releases](https://dbnsfp.org) (registration required; CC BY-NC-ND + upstream non-commercial terms for CADD/REVEL and others).
 2. Upload the distributed files as-is: `dbNSFP5.4a_variant.chr1.gz` … `chr22.gz`, `chrX.gz`, `chrY.gz` (and `chrM.gz` if desired) under `resources/dbnsfp/`. Do **not** rename or concatenate offline unless you prefer a pre-built VEP-ready file.
 3. Point `PdSample.dbnsfp_variant_chroms` at that array (pre-filled in `PdSample.terra_inputs.json`). The workflow’s `PrepareDbnsfpForVep` task subsets to the panel BED, then bgzips and tabixes for the VEP plugin.
-4. Default `dbnsfp_fields` matches `dbNSFP5.4a_variant.columns.tsv`: `SIFT_score`, `SIFT_pred`, `Polyphen2_HDIV_score`, `Polyphen2_HDIV_pred`, `Eigen-phred_coding`, `MutationTaster_score`, `MutationTaster_pred`, `fathmm-XF_coding_score`, `fathmm-XF_coding_pred`, `CADD_phred`, `REVEL_score`. Classic `FATHMM_score` / `FATHMM_pred` are **not** in 5.4a.
+4. Default `dbnsfp_fields` matches `dbNSFP5.4a_variant.columns.tsv`: SIFT/PolyPhen2, Eigen, MutationTaster, fathmm-XF, `CADD_phred`, `REVEL_score`, `clinvar_clnsig`, `gnomAD4.1_joint_AF`, `gnomAD4.1_joint_POPMAX_AF`. Classic `FATHMM_*` is **not** in 5.4a.
 
-SIFT and PolyPhen also come from the VEP cache via `--sift b --polyphen b` (`vep_sift_polyphen`, default true) with no extra files.
-
-`LiftGnomadInfo` writes unified `INFO/gnomAD_AF` and `INFO/AF_popmax` as the **max** across genomes (`gnomADg_*`) and exomes (`gnomADe_*`). `pdvar` maps ClinVar `CLNSIG` to `clinvar_class`, and reads `CADD_phred` / `REVEL_score` (or plugin `CADD_PHRED` / `REVEL`), SIFT / PolyPhen / Eigen / MutationTaster / fathmm-XF from CSQ. Keep dedicated gnomAD + ClinVar inputs: dbNSFP allele frequencies are older (e.g. gnomAD 2.1.1 / joint columns) and missense-scoped. Legacy `gnomad_vcf` still aliases genomes. Extra plugins (for example SpliceAI) can still use `vep_extra_args`.
+SIFT and PolyPhen also come from the VEP cache via `--sift b --polyphen b` (`vep_sift_polyphen`, default true). `LiftGnomadInfo` copies `gnomAD4.1_joint_*` from CSQ into `INFO/gnomAD_AF` / `INFO/AF_popmax` for Introme’s rare filter. `pdvar` maps `clinvar_clnsig` → `clinvar_class`.
 
 ## Optional inputs that are not in the JSON
 
@@ -165,5 +157,4 @@ These are unset in both JSON files. A default launch does not need them.
 - **Introme GTF.** Stage GENCODE v44 to `gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz` (see above). The Introme pin is `d6da48bc84abda66f588470f79abcf1244acfb21`.
 - **Introme assets tar.** Optional `introme_assets_tar`. Unset, the fetch task downloads `https://github.com/CCICB/introme/archive/d6da48bc84abda66f588470f79abcf1244acfb21.tar.gz`.
 - **Genome-wide CADD / REVEL plugins** (`cadd_snv`, optional `cadd_indels`, `revel`, and indexes). Optional fallback when you need scores outside dbNSFP’s missense/splice SNV scope; academic 5.4a already provides `CADD_phred` / `REVEL_score` for those sites.
-- **VEP SpliceAI (and other plugins)** via `vep_extra_args` when you have the files.
 - **ExpansionHunter / Gauchian catalogs.** `eh_catalog` is already the vendored 19-locus hg38 catalog in this repo (ExpansionHunter 5.0.0). Gauchian 1.0.2 has no catalog file input.

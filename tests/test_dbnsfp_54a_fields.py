@@ -23,6 +23,9 @@ EXPECTED = [
     "fathmm-XF_coding_pred",
     "CADD_phred",
     "REVEL_score",
+    "clinvar_clnsig",
+    "gnomAD4.1_joint_AF",
+    "gnomAD4.1_joint_POPMAX_AF",
 ]
 
 
