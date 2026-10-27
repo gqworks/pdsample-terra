@@ -31,11 +31,8 @@ workflow PdSample {
     File? cadd_indels_index
     File? revel
     File? revel_index
-    # Academic dbNSFP 5.4a ships as per-chromosome gzip tables
-    # (dbNSFP5.4a_variant.chr{1-22,X,Y,M}.gz). PrepareDbnsfpForVep builds a panel-subset
-    # VEP-ready bgzip+tabix. Optional pre-built dbnsfp (+ index) skips that prep.
+    # Academic dbNSFP 5.4a VEP-ready single file (bgzip + tabix), e.g. dbNSFP5.4a_grch38.gz.
     # Includes clinvar_clnsig + gnomAD4.1 joint AF (no separate ClinVar/gnomAD --custom).
-    Array[File] dbnsfp_variant_chroms = []
     File? dbnsfp
     File? dbnsfp_index
     String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score,clinvar_clnsig,gnomAD4.1_joint_AF,gnomAD4.1_joint_POPMAX_AF"
@@ -389,22 +386,6 @@ workflow PdSample {
       avi_table_index = avi_table_index,
       preemptible = preemptible
   }
-  # Prefer a pre-built VEP-ready dbNSFP file; otherwise build one from per-chrom gz.
-  if (!defined(dbnsfp) && length(dbnsfp_variant_chroms) > 0) {
-    call Tasks.PrepareDbnsfpForVep {
-      input:
-        chrom_files = dbnsfp_variant_chroms,
-        prepare_dbnsfp_vep_py = FetchRepoAssets.prepare_dbnsfp_vep_py,
-        panel_bed = FetchRepoAssets.panel_bed,
-        preemptible = preemptible
-    }
-  }
-  File? dbnsfp_for_vep = if defined(dbnsfp) then dbnsfp else (
-    if length(PrepareDbnsfpForVep.dbnsfp) > 0 then PrepareDbnsfpForVep.dbnsfp[0] else dbnsfp
-  )
-  File? dbnsfp_index_for_vep = if defined(dbnsfp_index) then dbnsfp_index else (
-    if length(PrepareDbnsfpForVep.dbnsfp_index) > 0 then PrepareDbnsfpForVep.dbnsfp_index[0] else dbnsfp_index
-  )
   call Tasks.VepAnnotate {
     input:
       vcf = NormPass.normalized_vcf,
@@ -418,8 +399,8 @@ workflow PdSample {
       cadd_indels_index = cadd_indels_index,
       revel = revel,
       revel_index = revel_index,
-      dbnsfp = dbnsfp_for_vep,
-      dbnsfp_index = dbnsfp_index_for_vep,
+      dbnsfp = dbnsfp,
+      dbnsfp_index = dbnsfp_index,
       dbnsfp_fields = dbnsfp_fields,
       vep_sift_polyphen = vep_sift_polyphen,
       extra_args = vep_extra_args,

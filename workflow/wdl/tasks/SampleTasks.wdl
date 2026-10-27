@@ -87,7 +87,6 @@ pairs = [
     ("workflow/scripts/check_reference.py", "check_reference.py"),
     ("workflow/scripts/qc_summary.py", "qc_summary.py"),
     ("workflow/scripts/annotate_avi.py", "annotate_avi.py"),
-    ("workflow/scripts/prepare_dbnsfp_vep.py", "prepare_dbnsfp_vep.py"),
     ("workflow/scripts/lift_gnomad_from_csq.py", "lift_gnomad_from_csq.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
@@ -111,7 +110,6 @@ PY
     File check_reference_py = "check_reference.py"
     File qc_summary_py = "qc_summary.py"
     File annotate_avi_py = "annotate_avi.py"
-    File prepare_dbnsfp_vep_py = "prepare_dbnsfp_vep.py"
     File lift_gnomad_from_csq_py = "lift_gnomad_from_csq.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
@@ -489,49 +487,6 @@ task NormPass {
   }
 }
 
-# Academic dbNSFP 5.4a ships as per-chromosome gzip tables (not VEP-ready).
-# Concatenate (+ optional panel BED subset), bgzip, and tabix for the dbNSFP plugin.
-task PrepareDbnsfpForVep {
-  input {
-    Array[File] chrom_files
-    File prepare_dbnsfp_vep_py
-    File? panel_bed
-    String out_prefix = "dbNSFP5.4a_grch38"
-    String docker = "python:3.11.11-slim-bookworm"
-    Int preemptible = 2
-    Int cpu = 4
-    Int memory_gb = 16
-  }
-  Float chrom_gb = size(chrom_files, "GiB")
-  Int disk_gb = ceil(chrom_gb * 3 + 100)
-  command <<<
-    set -euo pipefail
-    apt-get update -qq
-    apt-get install -y -qq tabix >/dev/null
-    panel_args=()
-    if [[ -n "~{panel_bed}" ]]; then
-      panel_args=(--panel-bed "~{panel_bed}")
-    fi
-    python3 "~{prepare_dbnsfp_vep_py}" \
-      --out-prefix "~{out_prefix}" \
-      "${panel_args[@]}" \
-      ~{sep=' ' chrom_files}
-    test -s "~{out_prefix}.gz"
-    test -s "~{out_prefix}.gz.tbi"
-  >>>
-  output {
-    File dbnsfp = "~{out_prefix}.gz"
-    File dbnsfp_index = "~{out_prefix}.gz.tbi"
-  }
-  runtime {
-    docker: docker
-    preemptible: preemptible
-    memory: "~{memory_gb} GiB"
-    disks: "local-disk ~{disk_gb} HDD"
-    cpu: cpu
-  }
-}
-
 task VepAnnotate {
   input {
     File vcf
@@ -546,8 +501,7 @@ task VepAnnotate {
     File? cadd_indels_index
     File? revel
     File? revel_index
-    # Academic dbNSFP 5.4a: pathogenicity scores plus clinvar_clnsig and gnomAD4.1 joint AF
-    # (no separate ClinVar / gnomAD --custom). Prefer PrepareDbnsfpForVep from per-chrom gz.
+    # Academic dbNSFP 5.4a VEP-ready single file (bgzip + tabix): scores, clinvar_clnsig, gnomAD4.1 joint AF.
     File? dbnsfp
     File? dbnsfp_index
     # Column names verified against dbNSFP5.4a_variant.columns.tsv (academic 5.4a).

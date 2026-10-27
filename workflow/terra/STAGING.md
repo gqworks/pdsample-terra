@@ -17,6 +17,8 @@ See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 | `PdSample.introme_gtf` | both | `gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz` | GENCODE v44 annotation | ~47 MB |
 | `PdSample.avi_table` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz` | AlphaGenome "AVI SNV scores" download, GRCh38, Tabix | 88.5 GB |
 | `PdSample.avi_table_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz.tbi` | Tabix index for that table | small |
+| `PdSample.dbnsfp` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz` | Academic dbNSFP 5.4a VEP-ready GRCh38 (bgzip) | ~55 GB |
+| `PdSample.dbnsfp_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | Tabix index for that file | small |
 
 `PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are `bam` and `bai`). Only BAM + `.bai` is supported. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
 
@@ -138,14 +140,13 @@ gnomAD AF, ClinVar significance, CADD, REVEL, and the other in-silico scores all
 
 | Input | Staged path | Source |
 | --- | --- | --- |
-| `dbnsfp_variant_chroms` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_variant.chr{1-22,X,Y}.gz` | Academic **dbNSFP 5.4a** as distributed (plain gzip per chromosome). `PrepareDbnsfpForVep` builds a panel-subset VEP-ready bgzip+tabix. Optional `chrM` can be added if needed. |
-| `dbnsfp` / `dbnsfp_index` (optional) | `gs://…/dbNSFP5.4a_grch38.gz` (+ `.tbi`) | Pre-built VEP-ready file; when set, skips per-chrom prep |
+| `dbnsfp` / `dbnsfp_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz` / `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | Academic **dbNSFP 5.4a** VEP-ready single file (bgzip + tabix). |
 
-### Stage academic dbNSFP 5.4a (per-chromosome gz)
+### Stage academic dbNSFP 5.4a (VEP-ready single file)
 
-1. Download the academic (`a`) branch from [dbNSFP releases](https://dbnsfp.org) (registration required; CC BY-NC-ND + upstream non-commercial terms for CADD/REVEL and others).
-2. Upload the distributed files as-is: `dbNSFP5.4a_variant.chr1.gz` … `chr22.gz`, `chrX.gz`, `chrY.gz` (and `chrM.gz` if desired) under `resources/dbnsfp/`. Do **not** rename or concatenate offline unless you prefer a pre-built VEP-ready file.
-3. Point `PdSample.dbnsfp_variant_chroms` at that array (pre-filled in `PdSample.terra_inputs.json`). The workflow’s `PrepareDbnsfpForVep` task subsets to the panel BED, then bgzips and tabixes for the VEP plugin.
+1. Download the academic (`a`) VEP-ready GRCh38 file and its Tabix index (registration / academic license required; CC BY-NC-ND + upstream non-commercial terms for CADD/REVEL and others). Example distribution: `dbNSFP5.4a_grch38.gz` and `dbNSFP5.4a_grch38.gz.tbi`.
+2. Upload both under `resources/dbnsfp/` in the workspace bucket.
+3. Point `PdSample.dbnsfp` and `PdSample.dbnsfp_index` at those objects (pre-filled in `PdSample.terra_inputs.json`).
 4. Default `dbnsfp_fields` matches `dbNSFP5.4a_variant.columns.tsv`: SIFT/PolyPhen2, Eigen, MutationTaster, fathmm-XF, `CADD_phred`, `REVEL_score`, `clinvar_clnsig`, `gnomAD4.1_joint_AF`, `gnomAD4.1_joint_POPMAX_AF`. Classic `FATHMM_*` is **not** in 5.4a.
 
 SIFT and PolyPhen come from dbNSFP (`SIFT_*` / `Polyphen2_HDIV_*`). Cache-native VEP `--sift/--polyphen` is off by default (`vep_sift_polyphen=false`) to avoid duplicating those scores. `LiftGnomadInfo` copies `gnomAD4.1_joint_*` from CSQ into `INFO/gnomAD_AF` / `INFO/AF_popmax` for Introme’s rare filter. `pdvar` maps `clinvar_clnsig` → `clinvar_class`.
