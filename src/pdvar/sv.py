@@ -54,7 +54,7 @@ GAIN_PREDICTED = {"COPY_GAIN", "TSS_DUP"}
 VARIANT_COLUMNS = [
     "sample_id", "family_id", "chrom", "pos", "end", "ref", "alt", "variant_id",
     "gene", "gene_id", "consequence", "genotype", "zygosity", "gq", "allele_balance",
-    "depth", "cohort_af", "gnomad_af", "gnomad_popmax_af", "cadd", "revel", "spliceai",
+    "depth", "cohort_af", "gnomad_af", "gnomad_popmax_af", "cadd", "revel",
     "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
     "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
     "clinvar", "clinvar_class", "variant_class", "hit_source", "svtype", "sv_id",
@@ -399,7 +399,6 @@ def ingest_sv(
                         "gnomad_popmax_af": popmax,
                         "cadd": pd.NA,
                         "revel": pd.NA,
-                        "spliceai": pd.NA,
                         "sift": pd.NA,
                         "sift_pred": "",
                         "polyphen": pd.NA,

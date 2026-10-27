@@ -1,24 +1,11 @@
-"""VEP INFO parsing for gnomAD, ClinVar, CADD/REVEL, and in-silico predictors."""
+"""VEP CSQ parsing for dbNSFP gnomAD/ClinVar/CADD/REVEL and in-silico predictors."""
 
 from pathlib import Path
 
 from pdvar.vep import _clinvar_from_info, _gnomad_from_info, _in_silico_from_csq, parse_vep
 
 
-def test_gnomad_from_info_prefers_max_across_genomes_and_exomes():
-    af, pop = _gnomad_from_info(
-        {
-            "gnomADg_AF": "0.001",
-            "gnomADe_AF": "0.02",
-            "gnomADg_AF_popmax": "0.003",
-            "gnomADe_AF_popmax": "0.01",
-        }
-    )
-    assert af == 0.02
-    assert pop == 0.01
-
-
-def test_gnomad_from_info_uses_lifted_unified_keys():
+def test_gnomad_from_info_prefers_lifted_unified_keys():
     af, pop = _gnomad_from_info({"gnomAD_AF": "0.05", "AF_popmax": "0.07"})
     assert af == 0.05
     assert pop == 0.07
@@ -30,7 +17,7 @@ def test_gnomad_from_info_legacy_pipe():
     assert pop == 0.006
 
 
-def test_clinvar_from_info_reads_clnsig_field():
+def test_clinvar_from_info_reads_legacy_clnsig_field():
     assert _clinvar_from_info({"ClinVar_CLNSIG": "Pathogenic"}) == "Pathogenic"
     assert _clinvar_from_info({"ClinVar": "Likely_pathogenic|criteria_provided"}) == "Likely_pathogenic"
     assert _clinvar_from_info({}) == ""
@@ -54,8 +41,8 @@ def test_in_silico_from_native_and_dbnsfp_fields():
             "Eigen-phred_coding": "12.3",
             "MutationTaster_score": "0.99",
             "MutationTaster_pred": "D",
-            "FATHMM_score": "-2.1",
-            "FATHMM_pred": "D",
+            "fathmm-XF_coding_score": "0.82",
+            "fathmm-XF_coding_pred": "D",
         }
     )
     assert dbnsfp["sift"] == 0.02
@@ -64,14 +51,21 @@ def test_in_silico_from_native_and_dbnsfp_fields():
     assert dbnsfp["eigen"] == 12.3
     assert dbnsfp["muttaster"] == 0.99
     assert dbnsfp["muttaster_pred"] == "D"
-    assert dbnsfp["fathmm"] == -2.1
+    assert dbnsfp["fathmm"] == 0.82
     assert dbnsfp["fathmm_pred"] == "D"
 
+    legacy = _in_silico_from_csq({"FATHMM_score": "-2.1", "FATHMM_pred": "D"})
+    assert legacy["fathmm"] == -2.1
+    assert legacy["fathmm_pred"] == "D"
 
-def test_parse_vep_fills_cadd_revel_clinvar_class_and_gnomad(tmp_path: Path):
+
+def test_parse_vep_reads_dbnsfp_gnomad_clinvar_cadd_revel(tmp_path: Path):
+    # SIFT/PolyPhen from dbNSFP columns (VEP cache --sift/--polyphen is off by default).
     csq = (
-        "Allele|Consequence|SYMBOL|HGVSc|HGVSp|CANONICAL|CADD_PHRED|REVEL|"
-        "SIFT|PolyPhen|Eigen-phred_coding|MutationTaster_pred|FATHMM_pred"
+        "Allele|Consequence|SYMBOL|HGVSc|HGVSp|CANONICAL|CADD_phred|REVEL_score|"
+        "SIFT_score|SIFT_pred|Polyphen2_HDIV_score|Polyphen2_HDIV_pred|"
+        "Eigen-phred_coding|MutationTaster_pred|fathmm-XF_coding_pred|"
+        "clinvar_clnsig|gnomAD4.1_joint_AF|gnomAD4.1_joint_POPMAX_AF"
     )
     path = tmp_path / "panel.vep.vcf"
     path.write_text(
@@ -79,15 +73,13 @@ def test_parse_vep_fills_cadd_revel_clinvar_class_and_gnomad(tmp_path: Path):
             [
                 "##fileformat=VCFv4.2",
                 f'##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: {csq}">',
-                '##INFO=<ID=gnomADg_AF,Number=A,Type=Float,Description="gnomAD genomes AF">',
-                '##INFO=<ID=gnomADe_AF,Number=A,Type=Float,Description="gnomAD exomes AF">',
-                '##INFO=<ID=ClinVar_CLNSIG,Number=.,Type=String,Description="ClinVar CLNSIG">',
                 "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1",
                 "1\t100\t.\tA\tG\t.\tPASS\t"
                 "CSQ=G|missense_variant|PINK1|c.1A>G|p.X|YES|28.5|0.85|"
-                "deleterious(0.01)|probably_damaging(0.99)|11.5|D|D;"
-                "gnomADg_AF=0.001;gnomADe_AF=0.01;ClinVar_CLNSIG=Pathogenic\t"
+                "0.01|D|0.99|D|"
+                "11.5|D|D|"
+                "Pathogenic|0.01|0.02\t"
                 "GT\t0/1",
             ]
         )
@@ -100,10 +92,35 @@ def test_parse_vep_fills_cadd_revel_clinvar_class_and_gnomad(tmp_path: Path):
     assert row["cadd"] == 28.5
     assert row["revel"] == 0.85
     assert row["gnomad_af"] == 0.01
+    assert row["gnomad_popmax_af"] == 0.02
     assert row["clinvar"] == "Pathogenic"
     assert row["clinvar_class"] == "P/LP"
-    assert row["sift_pred"] == "deleterious"
-    assert row["polyphen_pred"] == "probably_damaging"
+    assert row["sift"] == 0.01
+    assert row["sift_pred"] == "d"
+    assert row["polyphen"] == 0.99
+    assert row["polyphen_pred"] == "d"
     assert row["eigen"] == 11.5
     assert row["muttaster_pred"] == "D"
     assert row["fathmm_pred"] == "D"
+    assert "spliceai" not in frame.columns
+
+
+def test_parse_vep_accepts_plugin_cadd_revel_names(tmp_path: Path):
+    csq = "Allele|Consequence|SYMBOL|HGVSc|HGVSp|CANONICAL|CADD_PHRED|REVEL"
+    path = tmp_path / "plugin.vep.vcf"
+    path.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                f'##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: {csq}">',
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1",
+                "1\t200\t.\tC\tT\t.\tPASS\tCSQ=T|missense_variant|PRKN|c.2C>T|p.Y|YES|22.1|0.71\tGT\t0/1",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    row = parse_vep(path, "S1").iloc[0]
+    assert row["cadd"] == 22.1
+    assert row["revel"] == 0.71

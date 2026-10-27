@@ -70,26 +70,46 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "ALPHAGENOME_API_KEY" not in sample_tasks
     assert "File? avi_table" in text
     assert "File? avi_table_index" in text
-    assert "File? gnomad_genomes_vcf" in text
-    assert "File? gnomad_exomes_vcf" in text
-    assert "File? clinvar_vcf" in text
+    assert "File? gnomad_genomes_vcf" not in text
+    assert "File? clinvar_vcf" not in text
     assert "File? cadd_snv" in text
     assert "File? revel" in text
     assert "File? dbnsfp" in text
+    assert "File? dbnsfp_index" in text
+    assert "Array[File] dbnsfp_variant_chroms" not in text
     assert "vep_sift_polyphen" in text
+    assert 'Boolean vep_sift_polyphen = false' in text
     assert "alphagenome_api_key" not in text
     assert "AnnotateAvi" in text
     assert "VepAnnotate" in text
+    assert "PrepareDbnsfpForVep" not in text
+    assert "LiftGnomadInfo" in text
     assert "--plugin" in sample_tasks
-    assert "gnomADg" in sample_tasks
-    assert "gnomADe" in sample_tasks
+    assert "gnomADg" not in sample_tasks
+    assert "gnomADe" not in sample_tasks
+    assert "clinvar.vcf.gz,ClinVar" not in sample_tasks
     assert "REVEL,file=" in sample_tasks
     assert "CADD,snv=" in sample_tasks
     assert "dbNSFP" in sample_tasks
-    assert "--sift b --polyphen b" in sample_tasks
+    assert "SIFT_score" in sample_tasks
+    assert "Polyphen2_HDIV_score" in sample_tasks
+    assert "Boolean vep_sift_polyphen = false" in sample_tasks
     assert "Eigen-phred_coding" in sample_tasks
     assert "MutationTaster_pred" in sample_tasks
-    assert "FATHMM_pred" in sample_tasks
+    assert "fathmm-XF_coding_pred" in sample_tasks
+    assert "CADD_phred" in sample_tasks
+    assert "REVEL_score" in sample_tasks
+    assert "clinvar_clnsig" in sample_tasks
+    assert "gnomAD4.1_joint_AF" in sample_tasks
+    assert "lift_gnomad_from_csq.py" in sample_tasks
+    assert "task PrepareDbnsfpForVep" not in sample_tasks
+    assert "prepare_dbnsfp_vep.py" not in sample_tasks
+    terra_json = json.loads((ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8"))
+    assert terra_json["PdSample.dbnsfp"].endswith("dbNSFP5.4a_grch38.gz")
+    assert terra_json["PdSample.dbnsfp_index"].endswith("dbNSFP5.4a_grch38.gz.tbi")
+    assert "PdSample.dbnsfp_variant_chroms" not in terra_json
+    assert "PdSample.gnomad_genomes_vcf" not in terra_json
+    assert "PdSample.clinvar_vcf" not in terra_json
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
     assert "PdCohort" not in dockstore

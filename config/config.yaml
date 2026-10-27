@@ -73,9 +73,9 @@ scoring:
   cadd_high: 25
   cadd_moderate: 20
   revel_high: 0.7
-  spliceai_high: 0.5
-  spliceai_moderate: 0.2
-  # Eigen-phred_coding from dbNSFP. Higher is more deleterious; 10 is a triage band only.
+  # Eigen-phred_coding from academic dbNSFP 5.4a. Higher is more deleterious; 10 is a triage band only.
+  # fathmm_damaging uses fathmm-XF_coding_pred (D when score > 0.5) from the same build.
+  # Splice evidence comes from Introme (introme_high), not a separate VEP SpliceAI column.
   eigen_high: 10
   # AlphaGenome Atlas AVI Phred. Phred = -10 log10(1 - CDF) against all GRCh38 SNVs
   # (Cheng et al. medRxiv 2026, doi:10.64898/2026.09.16.26363192).
@@ -90,8 +90,6 @@ scoring:
     cadd_high: 3
     cadd_moderate: 1
     revel_high: 3
-    spliceai_high: 4
-    spliceai_moderate: 2
     avi_high: 3
     avi_moderate: 1
     sift_deleterious: 1

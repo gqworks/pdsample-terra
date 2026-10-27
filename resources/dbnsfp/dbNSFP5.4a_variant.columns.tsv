@@ -1,0 +1,509 @@
+index	name	description
+1	#chr	chromosome number
+2	pos(1-based)	physical position on the chromosome as to hg38 (1-based coordinate). For mitochondrial SNV, this position refers to the rCRS (GenBank: NC_012920).
+3	ref	reference nucleotide allele (as on the + strand)
+4	alt	alternative nucleotide allele (as on the + strand)
+5	aaref	reference amino acid "." if the variant is a splicing site SNP (2bp on each end of an intron)
+6	aaalt	alternative amino acid "." if the variant is a splicing site SNP (2bp on each end of an intron)
+7	rs_dbSNP	rs number from dbSNP
+8	hg19_chr	chromosome as to hg19, "." means missing
+9	hg19_pos(1-based)	physical position on the chromosome as to hg19 (1-based coordinate). For mitochondrial SNV, this position refers to a YRI sequence (GenBank: AF347015)
+10	hg18_chr	chromosome as to hg18, "." means missing
+11	hg18_pos(1-based)	physical position on the chromosome as to hg18 (1-based coordinate) For mitochondrial SNV, this position refers to a YRI sequence (GenBank: AF347015)
+12	hs1_chr	chromosome as to hs1, "." means missing
+13	hs1_pos(1-based)	physical position on the chromosome as to hs1 (1-based coordinate) For mitochondrial SNV, this position refers to the rCRS (GenBank: NC_012920).
+14	aapos	amino acid position as to the protein. "-1" if the variant is a splicing site SNP (2bp on each end of an intron). Multiple entries separated by ";", corresponding to Ensembl_proteinid
+15	genename	gene name; if the nsSNV can be assigned to multiple genes, gene names are separated by ";"
+16	Ensembl_geneid	Ensembl gene id
+17	Ensembl_transcriptid	Ensembl transcript ids (Multiple entries separated by ";")
+18	Ensembl_proteinid	Ensembl protein ids Multiple entries separated by ";", corresponding to Ensembl_transcriptids
+19	Uniprot_acc	Uniprot accession number matching the Ensembl_proteinid Multiple entries separated by ";".
+20	Uniprot_entry	Uniprot entry ID matching the Ensembl_proteinid Multiple entries separated by ";".
+21	HGVSc_snpEff	HGVS coding variant presentation from snpEff Multiple entries separated by ";", corresponds to Ensembl_transcriptid
+22	HGVSp_snpEff	HGVS protein variant presentation from snpEff Multiple entries separated by ";", corresponds to Ensembl_proteinid
+23	HGVSc_VEP	HGVS coding variant presentation from VEP Multiple entries separated by ";", corresponds to Ensembl_transcriptid
+24	HGVSp_VEP	HGVS protein variant presentation from VEP Multiple entries separated by ";", corresponds to Ensembl_proteinid
+25	APPRIS	APPRIS annotation for the transcripts matching Ensembl_transcriptid Multiple entries separated by ";". Potential values: principal1, principal2, principal3, principal4, principal5, alternative1, alternative2. See https://useast.ensembl.org/info/genome/genebuild/transcript_quality_tags.html
+26	GENCODE_basic	Whether the transcript belongs to GENCODE_basic (5' and 3' complete transcripts). Multiple entries separated by ";", matching Ensembl_transcriptid. See https://useast.ensembl.org/info/genome/genebuild/transcript_quality_tags.html
+27	TSL	Transcript Support Level. Multiple entries separated by ";", matching Ensembl_transcriptid. Potential values: 1 to 5, NA. See https://useast.ensembl.org/info/genome/genebuild/transcript_quality_tags.html
+28	Ensembl_canonical	canonical transcript used in Ensembl (provided by Gencode). Multiple entries separated by ";", matching Ensembl_transcriptid. See https://useast.ensembl.org/Help/Glossary?id=521
+29	MANE	transcripts annotated by the MANE project. Multiple entries separated by ";", matching Ensembl_transcriptid. Potential values include "Select" (representative transcripts) or "Plus_Clinical" (additional clinical relevant transcripts). See https://www.ncbi.nlm.nih.gov/refseq/MANE/
+30	cds_strand	coding sequence (CDS) strand (+ or -)
+31	refcodon	reference codon
+32	codonpos	position on the codon (1, 2 or 3)
+33	codon_degeneracy	degenerate type (0, 2 or 3)
+34	Ancestral_allele	ancestral allele based on 8 primates EPO. Ancestral alleles by Ensembl 84. The following comes from its original README file: ACTG - high-confidence call, ancestral state supported by the other two sequences actg - low-confidence call, ancestral state supported by one sequence only N - failure, the ancestral state is not supported by any other sequence - - the extant species contains an insertion at this position . - no coverage in the alignment
+35	AltaiNeandertal	genotype of a deep sequenced Altai Neanderthal
+36	Denisova	genotype of a deep sequenced Denisova
+37	VindijiaNeandertal	genotype of a deep sequenced Vindijia Neandertal
+38	ChagyrskayaNeandertal	genotype of a deep sequenced Chagyrskaya Neandertal
+39	clinvar_id	clinvar variation ID
+40	clinvar_clnsig	clinical significance by clinvar Possible values: Benign, Likely_benign, Likely_pathogenic, Pathogenic, drug_response, histocompatibility. A negative score means the score is for the ref allele
+41	clinvar_trait	the trait/disease the clinvar_clnsig referring to
+42	clinvar_review	ClinVar Review Status summary Possible values: no assertion criteria provided, criteria provided, single submitter, criteria provided, multiple submitters, no conflicts, reviewed by expert panel, practice guideline
+43	clinvar_hgvs	variant in HGVS format
+44	clinvar_var_source	source of the variant
+45	clinvar_MedGen_id	MedGen ID of the trait/disease the clinvar_trait referring to
+46	clinvar_OMIM_id	OMIM ID of the trait/disease the clinvar_trait referring to
+47	clinvar_Orphanet_id	Orphanet ID of the trait/disease the clinvar_trait referring to
+48	Interpro_domain	domain or conserved site on which the variant locates. Domain annotations come from Interpro database. The number in the brackets following a specific domain is the count of times Interpro assigns the variant position to that domain, typically coming from different predicting databases. Multiple entries separated by ";".
+49	SIFT_score	SIFT score (SIFTori). Scores range from 0 to 1. The smaller the score the more likely the SNP has a damaging effect. Multiple scores separated by ";", corresponding to Ensembl_proteinid.
+50	SIFT_converted_rankscore	SIFTori scores were first converted to SIFTnew=1-SIFTori, then ranked among all SIFTnew scores in dbNSFP. The rankscore is the ratio of the rank the SIFTnew score over the total number of SIFTnew scores in dbNSFP. If there are multiple scores, only the most damaging (largest) rankscore is presented. The rankscores range from 0.00964 to 0.91255.
+51	SIFT_pred	If SIFTori is smaller than 0.05 (rankscore>0.39575) the corresponding nsSNV is predicted as "D(amaging)"; otherwise it is predicted as "T(olerated)". Multiple predictions separated by ";"
+52	SIFT4G_score	SIFT 4G score (SIFT4G). Scores range from 0 to 1. The smaller the score the more likely the SNP has damaging effect. Multiple scores separated by ",", corresponding to Ensembl_transcriptid
+53	SIFT4G_converted_rankscore	SIFT4G scores were first converted to SIFT4Gnew=1-SIFT4G, then ranked among all SIFT4Gnew scores in dbNSFP. The rankscore is the ratio of the rank the SIFT4Gnew score over the total number of SIFT4Gnew scores in dbNSFP. If there are multiple scores, only the most damaging (largest) rankscore is presented.
+54	SIFT4G_pred	If SIFT4G is < 0.05 the corresponding nsSNV is predicted as "D(amaging)"; otherwise it is predicted as "T(olerated)". Multiple scores separated by ",", corresponding to Ensembl_transcriptid
+55	Polyphen2_HDIV_score	Polyphen2 score based on HumDiv, i.e. hdiv_prob. The score ranges from 0 to 1. Multiple entries separated by ";", corresponding to Uniprot_acc.
+56	Polyphen2_HDIV_rankscore	Polyphen2 HDIV scores were first ranked among all HDIV scores in dbNSFP. The rankscore is the ratio of the rank the score over the total number of the scores in dbNSFP. If there are multiple scores, only the most damaging (largest) rankscore is presented. The scores range from 0.03061 to 0.91137.
+57	Polyphen2_HDIV_pred	Polyphen2 prediction based on HumDiv, "D" ("probably damaging", HDIV score in [0.957,1] or rankscore in [0.55859,0.91137]), "P" ("possibly damaging", HDIV score in [0.454,0.956] or rankscore in [0.37043,0.55681]) and "B" ("benign", HDIV score in [0,0.452] or rankscore in [0.03061,0.36974]). Score cutoff for binary classification is 0.5 for HDIV score or 0.38028 for rankscore, i.e. the prediction is "neutral" if the HDIV score is smaller than 0.5 (rankscore is smaller than 0.38028), and "deleterious" if the HDIV score is larger than 0.5 (rankscore is larger than 0.38028). Multiple entries are separated by ";", corresponding to Uniprot_acc.
+58	Polyphen2_HVAR_score	Polyphen2 score based on HumVar, i.e. hvar_prob. The score ranges from 0 to 1. Multiple entries separated by ";", corresponding to Uniprot_acc.
+59	Polyphen2_HVAR_rankscore	Polyphen2 HVAR scores were first ranked among all HVAR scores in dbNSFP. The rankscore is the ratio of the rank the score over the total number of the scores in dbNSFP. If there are multiple scores, only the most damaging (largest) rankscore is presented. The scores range from 0.01493 to 0.97581.
+60	Polyphen2_HVAR_pred	Polyphen2 prediction based on HumVar, "D" ("probably damaging", HVAR score in [0.909,1] or rankscore in [0.65694,0.97581]), "P" ("possibly damaging", HVAR in [0.447,0.908] or rankscore in [0.47121,0.65622]) and "B" ("benign", HVAR score in [0,0.446] or rankscore in [0.01493,0.47076]). Score cutoff for binary classification is 0.5 for HVAR score or 0.48762 for rankscore, i.e. the prediction is "neutral" if the HVAR score is smaller than 0.5 (rankscore is smaller than 0.48762), and "deleterious" if the HVAR score is larger than 0.5 (rankscore is larger than 0.48762). Multiple entries are separated by ";", corresponding to Uniprot_acc.
+61	MutationTaster_score	MutationTaster p-value (MTori), ranges from 0 to 1. Multiple scores are separated by ";". Information on corresponding transcript(s) can be found by querying http://www.mutationtaster.org/ChrPos.html
+62	MutationTaster_rankscore	The MTori scores were ranked among all MTori scores in dbNSFP. If there are multiple scores of a SNV, only the largest MTori was used in ranking. The rankscore is the ratio of the rank of the score over the total number of MTori scores in dbNSFP.
+63	MutationTaster_pred	MutationTaster prediction, "A" ("disease_causing_automatic"), "D" ("disease_causing"), "N" ("polymorphism") or "P" ("polymorphism_automatic"). The score cutoff between "D" and "N" is 0.5 for MTnew and 0.31733 for the rankscore.
+64	MutationTaster_model	MutationTaster prediction models.
+65	MutationTaster_trees_benign	the number of decision trees of the Random Forest suggesting benign; trees_deleterious/(trees_benign+trees_deleterious) can be used as a measure for deleteriousness.
+66	MutationTaster_trees_deleterious	the number of decision trees of the Random Forest suggesting deleterious; trees_deleterious/(trees_benign+trees_deleterious) can be used as a measure for deleteriousness.
+67	MutationAssessor_score	MutationAssessor functional impact combined score (MAori). The score ranges from -5.17 to 6.49 in dbNSFP. Multiple entries are separated by ";", corresponding to Uniprot_entry.
+68	MutationAssessor_rankscore	MAori scores were ranked among all MAori scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MAori scores in dbNSFP. The scores range from 0 to 1.
+69	MutationAssessor_pred	MutationAssessor's functional impact of a variant - predicted functional, i.e. high ("H") or medium ("M"), or predicted non-functional, i.e. low ("L") or neutral ("N"). The MAori score cutoffs between "H" and "M", "M" and "L", and "L" and "N", are 3.5, 1.935 and 0.8, respectively. The rankscore cutoffs between "H" and "M", "M" and "L", and "L" and "N", are 0.9307, 0.52043 and 0.19675, respectively.
+70	PROVEAN_score	PROVEAN score (PROVEANori). Scores range from -14 to 14. The smaller the score the more likely the SNP has damaging effect. Multiple scores separated by ";", corresponding to Ensembl_proteinid.
+71	PROVEAN_converted_rankscore	PROVEANori were first converted to PROVEANnew=1-(PROVEANori+14)/28, then ranked among all PROVEANnew scores in dbNSFP. The rankscore is the ratio of the rank the PROVEANnew score over the total number of PROVEANnew scores in dbNSFP. If there are multiple scores, only the most damaging (largest) rankscore is presented. The scores range from 0 to 1.
+72	PROVEAN_pred	If PROVEANori <= -2.5 (rankscore>=0.54382) the corresponding nsSNV is predicted as "D(amaging)"; otherwise it is predicted as "N(eutral)". Multiple predictions separated by ";", corresponding to Ensembl_proteinid.
+73	VEST4_score	VEST 4.0 score. Score ranges from 0 to 1. The larger the score the more likely the mutation may cause functional change. Multiple scores separated by ";", corresponding to Ensembl_transcriptid. Please note this score is free for non-commercial use. For more details please refer to http://wiki.chasmsoftware.org/index.php/SoftwareLicense. Commercial users should contact the Johns Hopkins Technology Transfer office.
+74	VEST4_rankscore	VEST4 scores were ranked among all VEST4 scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of VEST4 scores in dbNSFP. In case there are multiple scores for the same variant, the largest score (most damaging) is presented. The scores range from 0 to 1. Please note VEST score is free for non-commercial use. For more details please refer to http://wiki.chasmsoftware.org/index.php/SoftwareLicense. Commercial users should contact the Johns Hopkins Technology Transfer office.
+75	MetaSVM_score	Our support vector machine (SVM) based ensemble prediction score, which incorporated 10 scores (SIFT, PolyPhen-2 HDIV, PolyPhen-2 HVAR, GERP++, MutationTaster, Mutation Assessor, FATHMM, LRT, SiPhy, PhyloP) and the maximum frequency observed in the 1000 genomes populations. Larger value means the SNV is more likely to be damaging. Scores range from -2 to 3 in dbNSFP.
+76	MetaSVM_rankscore	MetaSVM scores were ranked among all MetaSVM scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MetaSVM scores in dbNSFP. The scores range from 0 to 1.
+77	MetaSVM_pred	Prediction of our SVM based ensemble prediction score,"T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0. The rankscore cutoff between "D" and "T" is 0.82257.
+78	MetaLR_score	Our logistic regression (LR) based ensemble prediction score, which incorporated 10 scores (SIFT, PolyPhen-2 HDIV, PolyPhen-2 HVAR, GERP++, MutationTaster, Mutation Assessor, FATHMM, LRT, SiPhy, PhyloP) and the maximum frequency observed in the 1000 genomes populations. Larger value means the SNV is more likely to be damaging. Scores range from 0 to 1.
+79	MetaLR_rankscore	MetaLR scores were ranked among all MetaLR scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MetaLR scores in dbNSFP. The scores range from 0 to 1.
+80	MetaLR_pred	Prediction of our MetaLR based ensemble prediction score,"T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.5. The rankscore cutoff between "D" and "T" is 0.81101.
+81	Reliability_index	Number of observed component scores (except the maximum frequency in the 1000 genomes populations) for MetaSVM and MetaLR. Ranges from 1 to 10. As MetaSVM and MetaLR scores are calculated based on imputed data, the less missing component scores, the higher the reliability of the scores and predictions.
+82	MetaRNN_score	Our recurrent neural network (RNN) based ensemble prediction score, which incorporated 16 scores (SIFT, Polyphen2_HDIV, Polyphen2_HVAR, MutationAssessor, PROVEAN, VEST4, M-CAP, REVEL, MutPred, MVP, PrimateAI, DEOGEN2, CADD, fathmm-XF, Eigen and GenoCanyon), 8 conservation scores (GERP, phyloP100way_vertebrate, phyloP30way_mammalian, phyloP17way_primate, phastCons100way_vertebrate, phastCons30way_mammalian, phastCons17way_primate and SiPhy), and allele frequency information from the 1000 Genomes Project (1000GP), ExAC, and gnomAD. Larger value means the SNV is more likely to be damaging. Scores range from 0 to 1.
+83	MetaRNN_rankscore	MetaRNN scores were ranked among all MetaRNN scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MetaRNN scores in dbNSFP. The scores range from 0 to 1.
+84	MetaRNN_pred	Prediction of our MetaRNN based ensemble prediction score,"T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.5. The rankscore cutoff between "D" and "T" is 0.6149.
+85	M-CAP_score	M-CAP is hybrid ensemble score (details in DOI: 10.1038/ng.3703). Scores range from 0 to 1. The larger the score the more likely the SNP has damaging effect.
+86	M-CAP_rankscore	M-CAP scores were ranked among all M-CAP scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of M-CAP scores in dbNSFP.
+87	M-CAP_pred	Prediction of M-CAP score based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.025.
+88	REVEL_score	REVEL is an ensemble score based on 13 individual scores for predicting the pathogenicity of missense variants. Scores range from 0 to 1. The larger the score the more likely the SNP has a damaging effect. "REVEL scores are freely available for non-commercial use. For other uses, please contact Weiva Sieh" (weiva.sieh@mssm.edu) Multiple entries are separated by ";", corresponding to Ensembl_transcriptid.
+89	REVEL_rankscore	REVEL scores were ranked among all REVEL scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of REVEL scores in dbNSFP.
+90	MutPred2_score	General MutPred2 score. Scores range from 0 to 1. The larger the score the more likely the SNP has a damaging effect.
+91	MutPred2_rankscore	MutPred2 scores were ranked among all MutPred2 scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MutPred2 scores in dbNSFP.
+92	MutPred2_pred	Prediction of MutPred2 score after calibration (https://doi.org/10.1016/j.ajhg.2022.10.013): PS (Strong Evidence of Pathogenic, score>=0.932), PM (Moderate Evidence of Pathogenic (Moderate evidence of pathogenicity, score >=0.829 and < 0.932), PP (Supporting Evidence of Pathogenic, score >=0.737 and <0.829), UC (Uncertain, score >0.391 and <0.737), BP (Supporting Evidence of Benign, score >0.197 and <=0.391), BM (Moderate Evidence of Benign, score >0.010 and <=0.197), BS (Strong Evidence of Benign, score <=0.010). Multiple entries are separated by ";", corresponding to Ensembl_transcriptid.
+93	MutPred2_top5_mechanisms	Top 5 molecular mechanisms as predicted by MutPred2 with p values. The Pr is the "posterior probability of the loss/gain of certain structural and functional properties due to the substitution". The P is the "empirical P-value calculated as the fraction of benign substitutions in MutPred2's training set with Pr values >= to the Pr value for the given substitution." More details can be found at http://mutpred.mutdb.org/help.html.
+94	MVP_score	A pathogenicity prediction score for missense variants using deep learning approach. The range of MVP score is from 0 to 1. The larger the score, the more likely the variant is pathogenic. The authors suggest thresholds of 0.7 and 0.75 for separating damaging vs tolerant variants in constrained genes (ExAC pLI >=0.5) and non-constrained genes (ExAC pLI<0.5), respectively. Details see doi: http://dx.doi.org/10.1101/259390 Multiple entries are separated by ";", corresponding to Ensembl_transcriptid.
+95	MVP_rankscore	MVP scores were ranked among all MVP scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MVP scores in dbNSFP.
+96	gMVP_score	A pathogenicity prediction score for missense variants using a graph attention neural network model. The range of gMVP score is from 0 to 1. The larger the score, the more likely the variant is pathogenic. Details see doi: https://www.nature.com/articles/s42256-022-00561-w Multiple entries are separated by ";", corresponding to Ensembl_transcriptid.
+97	gMVP_rankscore	gMVP scores were ranked among all gMVP scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of gMVP scores in dbNSFP.
+98	MisFit_D_score	A pathogenicity prediction score for missense variants as to protein function. The range of MisFit_D score score is from 0 to 1. The larger the score, the more likely the variant is pathogenic. Recommended threshold for "pathogenicity" in disease genes is 0.45 (lenient) to 0.55 (stringent). Details see doi: 10.1038/s41467-025-59937-2.
+99	MisFit_D_rankscore	MisFit_D scores were ranked among all MisFit_D scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MisFit_D scores in dbNSFP.
+100	MisFit_D_pred_lenient	Prediction of MisFit_D score use a lenient threshold based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.45.
+101	MisFit_D_pred_stringent	Prediction of MisFit_D score use a stringent threshold based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.55.
+102	MisFit_S_score	An estimated selection coefficient of negative selection, range from 0 to 0.5. The scores below 1e-4 is considered as noise. The authors do not recommend a fixed threshold for pathogenicity. The optimal threshold depends on genes and age of onset of the condition. Per the authors' comments, "for early onset conditions such as neurodevelopmental disorders, S >= 0.1 is a good place to start for *diagnosis*, and S >= 0.01 is ok for gene discovery."
+103	MisFit_S_rankscore	MisFit_S scores were ranked among all MisFit_S scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MisFit_S scores in dbNSFP.
+104	MPC_score	A deleteriousness prediction score for missense variants based on regional missense constraint. The range of MPC score is 0 to 5. The larger the score, the more likely the variant is pathogenic. Details see doi: http://dx.doi.org/10.1101/148353. Multiple entries are separated by ";", corresponding to Ensembl_transcriptid.
+105	MPC_rankscore	MPC scores were ranked among all MPC scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of MPC scores in dbNSFP.
+106	PrimateAI_score	A pathogenicity prediction score for missense variants based on common variants of non-human primate species using a deep neural network. The range of PrimateAI score is 0 to 1. The larger the score, the more likely the variant is pathogenic. The authors suggest a threshold of 0.803 for separating damaging vs tolerant variants. Details see https://doi.org/10.1038/s41588-018-0167-z
+107	PrimateAI_rankscore	PrimateAI scores were ranked among all PrimateAI scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of PrimateAI scores in dbNSFP.
+108	PrimateAI_pred	Prediction of PrimateAI score based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.803.
+109	DEOGEN2_score	A deleteriousness prediction score "which incorporates heterogeneous information about the molecular effects of the variants, the domains involved, the relevance of the gene and the interactions in which it participates". It ranges from 0 to 1. The larger the score, the more likely the variant is deleterious. The authors suggest a threshold of 0.5 for separating damaging vs tolerant variants.
+110	DEOGEN2_rankscore	DEOGEN2 scores were ranked among all DEOGEN2 scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of DEOGEN2 scores in dbNSFP.
+111	DEOGEN2_pred	Prediction of DEOGEN2 score based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.5.
+112	BayesDel_addAF_score	A deleteriousness prediction meta-score for SNVs and indels with inclusion of MaxAF. See https://doi.org/10.1002/humu.23158 for details. The range of the score in dbNSFP is from -1.11707 to 0.750927. The higher the score, the more likely the variant is pathogenic. The author suggested cutoff between deleterious ("D") and tolerated ("T") is 0.0692655.
+113	BayesDel_addAF_rankscore	BayesDel_addAF scores were ranked among all BayesDel_addAF scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of BayesDel_addAF scores in dbNSFP.
+114	BayesDel_addAF_pred	Prediction of BayesDel_addAF score based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.0692655.
+115	BayesDel_noAF_score	A deleteriousness prediction meta-score for SNVs and indels without inclusion of MaxAF. See https://doi.org/10.1002/humu.23158 for details. The range of the score in dbNSFP is from -1.31914 to 0.840878. The higher the score, the more likely the variant is pathogenic. The author suggested cutoff between deleterious ("D") and tolerated ("T") is -0.0570105.
+116	BayesDel_noAF_rankscore	BayesDel_noAF scores were ranked among all BayesDel_noAF scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of BayesDel_noAF scores in dbNSFP.
+117	BayesDel_noAF_pred	Prediction of BayesDel_noAF score based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is -0.0570105.
+118	ClinPred_score	A deleteriousness prediction meta-score for nonsynonymous SNVs. See https://doi.org/10.1016/j.ajhg.2018.08.005. for details. The range of the score in dbNSFP is from 0 to 1. The higher the score, the more likely the variant is pathogenic. The author suggested cutoff between deleterious ("D") and tolerated ("T") is 0.5.
+119	ClinPred_rankscore	ClinPred scores were ranked among all ClinPred scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of ClinPred scores in dbNSFP.
+120	ClinPred_pred	Prediction of ClinPred score based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.5.
+121	LIST-S2_score	A deleteriousness prediction score for nonsynonymous SNVs. See https://doi.org/10.1093/nar/gkaa288. for details. The range of the score in dbNSFP is from 0 to 1. The higher the score, the more likely the variant is pathogenic. The author suggested cutoff between deleterious ("D") and tolerated ("T") is 0.85.
+122	LIST-S2_rankscore	LIST-S2 scores were ranked among all LIST-S2 scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of LIST-S2 scores in dbNSFP.
+123	LIST-S2_pred	Prediction of LIST-S2 score based on the authors' recommendation, "T(olerated)" or "D(amaging)". The score cutoff between "D" and "T" is 0.85.
+124	VARITY_R_score	VARITY_R scores are pathogenicity prediction scores for rare human missense variants. The range of VARITY_R score is from 0 to 1. The larger the score, the more likely the variant is pathogenic. Details see doi: https://doi.org/10.1016/j.ajhg.2021.08.012
+125	VARITY_R_rankscore	VARITY_R scores were ranked among all VARITY_R scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of VARITY_R scores in dbNSFP.
+126	VARITY_ER_score	VARITY_ER scores are pathogenicity prediction scores for extremely rare human missense variants. The range of VARITY_ER score is from 0 to 1. The larger the score, the more likely the variant is pathogenic. Details see doi: https://doi.org/10.1016/j.ajhg.2021.08.012
+127	VARITY_ER_rankscore	VARITY_ER scores were ranked among all VARITY_ER scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of VARITY_ER scores in dbNSFP.
+128	VARITY_R_LOO_score	"Same as VARITY_R except the prediction on the variants used for training was made using Leave-One-Variant out." Details see doi: https://doi.org/10.1016/j.ajhg.2021.08.012
+129	VARITY_R_LOO_rankscore	VARITY_R_LOO scores were ranked among all VARITY_R_LOO scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of VARITY_R_LOO scores in dbNSFP.
+130	VARITY_ER_LOO_score	"Same as VARITY_ER except the prediction on the variants used for training was made using Leave-One-Variant out." Details see https://doi.org/10.1016/j.ajhg.2021.08.012
+131	VARITY_ER_LOO_rankscore	VARITY_ER_LOO scores were ranked among all VARITY_ER_LOO scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of VARITY_ER_LOO scores in dbNSFP.
+132	ESM1b_score	ESM1b scores are log-likelihood ratio (LLR) scores for predicting the pathogenic effects of coding variants based on a 650-million-parameter protein language model, ESM1b. The range of ESM1b score in dbNSFP is from -24.538 to 6.937. The smaller the score, the more likely the variant is pathogenic. Details see doi: https://doi.org/10.1038/s41588-023-01465-0
+133	ESM1b_converted_rankscore	ESM1b scores were firstly negated (i.e., -ESM1b_score), then ranked among all -ESM1b_score scores in dbNSFP. The rankscore is the ratio of the rank of the -ESM1b_score over the total number of scores in dbNSFP.
+134	ESM1b_pred	The authors do not recommend a threshold for separating deleterious (D) variants versus tolerated (T) variants. This prediction is based on the threshold of -7.5 described in their paper that yields a true-positive rate of 81% and a true-negative rate of 82% in their ClinVar and HGMD test datasets.
+135	AlphaMissense_score	AlphaMissense is an unsupervised model for predicting the pathogenicity of human missense variants by incorporating the structural context of an AlphaFold-derived system. The AlphaMissense score ranges from 0 to 1. The larger the score, the more likely the variant is pathogenic. Details see https://doi.org/10.1126/science.adg7492. License information: Copyright (2023) DeepMind Technologies Limited. All materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY) (the ""License""). You may obtain a copy of the License at: https://creativecommons.org/licenses/by/4.0/legalcode.
+136	AlphaMissense_rankscore	AlphaMissense scores were ranked among all AlphaMissense scores in dbNSFP. The rankscore is the ratio of the rank of the AlphaMissense_score over the total number of scores in dbNSFP.
+137	AlphaMissense_pred	The AlphaMissense classification of likely (B)enign, (A)mbiguous, or likely (P)athogenic with 90% expected precision estimated from ClinVar for likely benign and likely pathogenic classes.
+138	PHACTboost_score	"PHACTboost is a gradient boosting tree based classifier that combines PHACT scores with information from multiple sequence alignment, phylogenetic trees, and ancestral reconstruction." The range of the score is from 0 to 1, the larger the score the more likely the variant is pathogenic. Details see https://doi.org/10.1093/molbev/msae136. The authors recommend to use 0.62 as the cutoff for binary prediction (personal communication).
+139	PHACTboost_rankscore	PHACTboost scores were ranked among all PHACTboost scores in dbNSFP. The rankscore is the ratio of the rank of the PHACTboost_score over the total number of scores in dbNSFP.
+140	MutFormer_score	"MutFormer is an application of the BERT (Bidirectional Encoder Representations from Transformers) NLP (Natural Language Processing) model with an added adaptive vocabulary to protein context, for the purpose of predicting the effect of missense mutations on protein function." The range of the score is from 0 to 1, the larger the score the more likely the variant is pathogenic. Details see https://doi.org/10.1016/j.xinn.2023.100487. The authors recommend to use 0.8838 as the cutoff for binary prediction (personal communication).
+141	MutFormer_rankscore	MutFormer scores were ranked among all MutFormer scores in dbNSFP. The rankscore is the ratio of the rank of the MutFormer_score over the total number of scores in dbNSFP.
+142	MutScore_score	MutScore is an ensemble score which integrate multiple unsupervised scores for DNA substitutions with additional positional clustering information. The range of the score is from 0 to 1, the larger the score the more likely the variant is pathogenic. Details see https://doi.org/10.1016/j.ajhg.2022.01.006. The authors recommend to use 0.5 as the cutoff for binary prediction (personal communication).
+143	MutScore_rankscore	MutScore scores were ranked among all MutScore scores in dbNSFP. The rankscore is the ratio of the rank of the MutScore_score over the total number of scores in dbNSFP.
+144	popEVE_score	popEVE score "is a computational model for the prediction of variant severity and pathogenicity. It combines variation across species and variation within the human population for scores comparable across the whole proteome while minimizing population biases". The range of ESM1b score in dbNSFP is from -9.638 to 10.378. The smaller the score, the more likely the variant is pathogenic. Details see doi: https://doi.org/10.1038/s41588-025-02400-1
+145	popEVE_pred	This prediction is based on the thresholds described in the paper: popEVE_score < -5.056 is considered as (S)everely pathogenic; -5.056 <= popEVE_score < -4.617 is considered as (M)oderately pathogenic; popEVE_score > = -4.617 is considered as (B)enign.
+146	popEVE_converted_rankscore	popEVE scores were firstly negated (i.e., -popEVE_score), then ranked among all -popEVE_score scores in dbNSFP. The rankscore is the ratio of the rank of the -popEVE_score over the total number of scores in dbNSFP.
+147	Aloft_Fraction_transcripts_affected	the fraction of the transcripts of the gene affected i.e. No. of transcripts affected by the SNP/Total no. of protein_coding transcripts for the gene multiple values separated by ";", corresponding to Ensembl_proteinid.
+148	Aloft_prob_Tolerant	Probability of the SNP being classified as benign by ALoFT multiple values separated by ";", corresponding to Ensembl_proteinid.
+149	Aloft_prob_Recessive	Probability of the SNP being classified as recessive disease-causing by ALoFT multiple values separated by ";", corresponding to Ensembl_proteinid.
+150	Aloft_prob_Dominant	Probability of the SNP being classified as dominant disease-causing by ALoFT multiple values separated by ";", corresponding to Ensembl_proteinid.
+151	Aloft_pred	final classification predicted by ALoFT; values can be Tolerant, Recessive or Dominant multiple values separated by ";", corresponding to Ensembl_proteinid.
+152	Aloft_Confidence	Confidence level of Aloft_pred; values can be "High Confidence" (p < 0.05) or "Low Confidence" (p > 0.05) multiple values separated by ";", corresponding to Ensembl_proteinid.
+153	CADD_raw	CADD raw score for functional prediction of a SNP. Please refer to Kircher et al. (2014) Nature Genetics 46(3):310-5 for details. The larger the score the more likely the SNP has damaging effect. Scores range from -28.377575 to 25.511592 in dbNSFP. Please note the following copyright statement for CADD: "CADD scores (http://cadd.gs.washington.edu/) are Copyright 2013 University of Washington and Hudson-Alpha Institute for Biotechnology (all rights reserved) but are freely available for all academic, non-commercial applications. For commercial licensing information contact Jennifer McCullar (mccullaj@uw.edu)."
+154	CADD_raw_rankscore	CADD raw scores were ranked among all CADD raw scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of CADD raw scores in dbNSFP. Please note the following copyright statement for CADD: "CADD scores (http://cadd.gs.washington.edu/) are Copyright 2013 University of Washington and Hudson-Alpha Institute for Biotechnology (all rights reserved) but are freely available for all academic, non-commercial applications. For commercial licensing information contact Jennifer McCullar (mccullaj@uw.edu)."
+155	CADD_phred	CADD phred-like score. This is phred-like rank score based on whole genome CADD raw scores. Please refer to Kircher et al. (2014) Nature Genetics 46(3):310-5 for details. The larger the score the more likely the SNP has damaging effect. Please note the following copyright statement for CADD: "CADD scores (http://cadd.gs.washington.edu/) are Copyright 2013 University of Washington and Hudson-Alpha Institute for Biotechnology (all rights reserved) but are freely available for all academic, non-commercial applications. For commercial licensing information contact Jennifer McCullar (mccullaj@uw.edu)."
+156	DANN_score	DANN is a functional prediction score retrained based on the training data of CADD using deep neural network. Scores range from 0 to 1. A larger number indicate a higher probability to be damaging. More information of this score can be found in doi: 10.1093/bioinformatics/btu703.
+157	DANN_rankscore	DANN scores were ranked among all DANN scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of DANN scores in dbNSFP.
+158	fathmm-XF_coding_score	fathmm-XF p-values. Scores range from 0 to 1. SNVs with scores >0.5 are predicted to be deleterious, and those <0.5 are predicted to be neutral or benign. Scores close to 0 or 1 are with the highest-confidence. Coding scores are trained using 10 groups of features. More details of the score can be found in doi: 10.1093/bioinformatics/btx536.
+159	fathmm-XF_coding_rankscore	fathmm-XF coding scores were ranked among all fathmm-XF coding scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of fathmm-XF coding scores in dbNSFP.
+160	fathmm-XF_coding_pred	If a fathmm-XF_coding_score is >0.5, the corresponding nsSNV is predicted as "D(AMAGING)"; otherwise it is predicted as "N(EUTRAL)".
+161	Eigen-raw_coding	Eigen score for coding SNVs. A functional prediction score based on conservation, allele frequencies, and deleteriousness prediction using an unsupervised learning method (doi: 10.1038/ng.3477).
+162	Eigen-raw_coding_rankscore	Eigen-raw scores were ranked among all Eigen-raw scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of Eigen-raw scores in dbNSFP.
+163	Eigen-phred_coding	Eigen score in phred scale.
+164	Eigen-PC-raw_coding	Eigen PC score for genome-wide SNVs. A functional prediction score based on conservation, allele frequencies, deleteriousness prediction (for missense SNVs) and epigenomic signals (for synonymous and non-coding SNVs) using an unsupervised learning method (doi: 10.1038/ng.3477).
+165	Eigen-PC-raw_coding_rankscore	Eigen-PC-raw scores were ranked among all Eigen-PC-raw scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of Eigen-PC-raw scores in dbNSFP.
+166	Eigen-PC-phred_coding	Eigen PC score in phred scale.
+167	GPN_MSA_score	GPN-MSA score is a computational metric from a DNA language model used to predict the harmfulness or pathogenicity of genetic variants across both coding and non-coding regions of the human genome (Nat Biotechnol. 2025 Dec;43(12):1960-1965. doi: 10.1038/s41587-024-02511-w). Scores range from -14.21 to 12.87 in dbNSFP, the smaller the score the more likely it is pathogenic.
+168	GPN_MSA_converted_rankscore	GPN-MSA scores were firstly negated (i.e., -GPN_MSA_score), then ranked among all -GPN_MSA_score scores in dbNSFP. The rankscore is the ratio of the rank of the -GPN_MSA_score over the total number of scores in dbNSFP.
+169	GPN_MSA_pred	GPN_MSA_score <-7 is considered as D(amaging), otherwise as T(olerated).
+170	GERP++_NR	GERP++ neutral rate
+171	GERP++_RS	GERP++ RS score, the larger the score, the more conserved the site. Scores range from -12.3 to 6.17.
+172	GERP++_RS_rankscore	GERP++ RS scores were ranked among all GERP++ RS scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of GERP++ RS scores in dbNSFP.
+173	GERP_92_mammals	GERP conservation score calculated based on multiple sequence alignments of 92 mammals.
+174	GERP_92_mammals_rankscore	GERP (92 mammals) scores were ranked among all GERP (92 mammals) scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of GERP_91_mammals scores in dbNSFP.
+175	phyloP100way_vertebrate	phyloP (phylogenetic p-values) conservation score based on the multiple alignments of 100 vertebrate genomes (including human). The larger the score, the more conserved the site. Scores range from -20.0 to 10.003 in dbNSFP.
+176	phyloP100way_vertebrate_rankscore	phyloP100way_vertebrate scores were ranked among all phyloP100way_vertebrate scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of phyloP100way_vertebrate scores in dbNSFP.
+177	phyloP470way_mammalian	phyloP (phylogenetic p-values) conservation score based on the multiple alignments of 470 mammalian genomes (including human). The larger the score, the more conserved the site. Scores range from -20 to 11.936 in dbNSFP.
+178	phyloP470way_mammalian_rankscore	phyloP470way_mammalian scores were ranked among all phyloP470way_mammalian scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of phyloP470way_mammalian scores in dbNSFP.
+179	phyloP17way_primate	a conservation score based on 17way alignment primate set, the higher the more conservative. Scores range from -13.362 to 0.756 in dbNSFP.
+180	phyloP17way_primate_rankscore	the rank of the phyloP17way_primate score among all phyloP17way_primate scores in dbNSFP.
+181	phastCons100way_vertebrate	phastCons conservation score based on the multiple alignments of 100 vertebrate genomes (including human). The larger the score, the more conserved the site. Scores range from 0 to 1.
+182	phastCons100way_vertebrate_rankscore	phastCons100way_vertebrate scores were ranked among all phastCons100way_vertebrate scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of phastCons100way_vertebrate scores in dbNSFP.
+183	phastCons470way_mammalian	phastCons conservation score based on the multiple alignments of 470 mammalian genomes (including human). The larger the score, the more conserved the site. Scores range from 0 to 1.
+184	phastCons470way_mammalian_rankscore	phastCons470way_mammalian scores were ranked among all phastCons470way_mammalian scores in dbNSFP. The rankscore is the ratio of the rank of the score over the total number of phastCons470way_mammalian scores in dbNSFP.
+185	phastCons17way_primate	a conservation score based on 17way alignment primate set, The larger the score, the more conserved the site. Scores range from 0 to 1.
+186	phastCons17way_primate_rankscore	the rank of the phastCons17way_primate score among all phastCons17way_primate scores in dbNSFP.
+187	bStatistic	Background selection (B) value estimates from doi.org/10.1371/journal.pgen.1000471. Ranges from 0 to 1000. It estimates the expected fraction (*1000) of neutral diversity present at a site. Values close to 0 represent the near complete removal of diversity as a result of background selection and values near 1000 indicating absence of background selection. Data from CADD v1.4.
+188	bStatistic_converted_rankscore	bStatistic scores were first converted to -bStatistic, then ranked among all -bStatistic scores in dbNSFP. The rankscore is the ratio of the rank of -bStatistic over the total number of -bStatistic scores in dbNSFP.
+189	1000Gp3_AC	Alternative allele counts in the whole 1000 genomes phase 3 (1000Gp3) data.
+190	1000Gp3_AF	Alternative allele frequency in the whole 1000Gp3 data.
+191	1000Gp3_AFR_AC	Alternative allele counts in the 1000Gp3 African descendent samples.
+192	1000Gp3_AFR_AF	Alternative allele frequency in the 1000Gp3 African descendent samples.
+193	1000Gp3_EUR_AC	Alternative allele counts in the 1000Gp3 European descendent samples.
+194	1000Gp3_EUR_AF	Alternative allele frequency in the 1000Gp3 European descendent samples.
+195	1000Gp3_AMR_AC	Alternative allele counts in the 1000Gp3 American descendent samples.
+196	1000Gp3_AMR_AF	Alternative allele frequency in the 1000Gp3 American descendent samples.
+197	1000Gp3_EAS_AC	Alternative allele counts in the 1000Gp3 East Asian descendent samples.
+198	1000Gp3_EAS_AF	Alternative allele frequency in the 1000Gp3 East Asian descendent samples.
+199	1000Gp3_SAS_AC	Alternative allele counts in the 1000Gp3 South Asian descendent samples.
+200	1000Gp3_SAS_AF	Alternative allele frequency in the 1000Gp3 South Asian descendent samples.
+201	TOPMed_frz8_AC	Alternative allele counts in the TOPMed freeze 8 samples.
+202	TOPMed_frz8_AN	Total allele count in the TOPMed freeze 8 samples.
+203	TOPMed_frz8_AF	Alternative allele frequency in the TOPMed freeze 8 samples.
+204	AllofUs_ALL_AC	Alternative allele counts in the whole All of Us 250k (~245,393 genomes) data.
+205	AllofUs_ALL_AN	Total allele counts in the whole All of Us 250k (~245,393 genomes) data.
+206	AllofUs_ALL_AF	Alternative allele frequency in the whole All of Us 250k (~245,393 genomes) data.
+207	AllofUs_AFR_AC	Alternative allele counts in the All of Us African descendent samples.
+208	AllofUs_AFR_AN	Total allele counts in the All of Us African descendent samples.
+209	AllofUs_AFR_AF	Alternative allele frequency in the All of Us African descendent samples.
+210	AllofUs_AMR_AC	Alternative allele counts in the All of Us American descendent samples.
+211	AllofUs_AMR_AN	Total allele counts in the All of Us American descendent samples.
+212	AllofUs_AMR_AF	Alternative allele frequency in the All of Us American descendent samples.
+213	AllofUs_EAS_AC	Alternative allele counts in the All of Us East Asian descendent samples.
+214	AllofUs_EAS_AN	Total allele counts in the All of Us East Asian descendent samples.
+215	AllofUs_EAS_AF	Alternative allele frequency in the All of Us East Asian descendent samples.
+216	AllofUs_EUR_AC	Alternative allele counts in the All of Us European descendent samples.
+217	AllofUs_EUR_AN	Total allele counts in the All of Us European descendent samples.
+218	AllofUs_EUR_AF	Alternative allele frequency in the All of Us European descendent samples.
+219	AllofUs_MID_AC	Alternative allele counts in the All of Us Middle Eastern descendent samples.
+220	AllofUs_MID_AN	Total allele counts in the All of Us Middle Eastern descendent samples.
+221	AllofUs_MID_AF	Alternative allele frequency in the All of Us Middle Eastern descendent samples.
+222	AllofUs_SAS_AC	Alternative allele counts in the All of Us South Asian descendent samples.
+223	AllofUs_SAS_AN	Total allele counts in the All of Us South Asian descendent samples.
+224	AllofUs_SAS_AF	Alternative allele frequency in the All of Us South Asian descendent samples.
+225	AllofUs_OTH_AC	Alternative allele counts in the All of Us other samples.
+226	AllofUs_OTH_AN	Total allele counts in the All of Us other samples.
+227	AllofUs_OTH_AF	Alternative allele frequency in the All of Us other samples.
+228	AllofUs_POPMAX_AF	Maximum alternative allele frequency across all populations in All of Us.
+229	AllofUs_POPMAX_AC	Alternative allele count(s) of the population(s) with AllofUs_POPMAX_AF. Multiple entries are separated by ";".
+230	AllofUs_POPMAX_AN	Total allele count(s) of the population(s) with AllofUs_POPMAX_AF. Multiple entries are separated by ";".
+231	AllofUs_POPMAX_POP	Population(s) with AllofUs_POPMAX_AF. Multiple entries are separated by ";".
+232	RegeneronME_AFR_AC	Probabilistic alternate allele count of African descendent samples in RGC-ME.
+233	RegeneronME_AFR_AF	Probabilistic alternate allele frequency of African descendent samples in RGC-ME.
+234	RegeneronME_AFR_AN	Probabilistic total number of alleles of African descendent samples in RGC-ME.
+235	RegeneronME_ALL_AC	Alternate allele count of all the whole Regeneron Genetics Center Million Exome (RGC-ME) (~983,578 exomes) data.
+236	RegeneronME_ALL_AF	Alternate allele frequency of all the whole Regeneron Genetics Center Million Exome (RGC-ME) (~983,578 exomes) data.
+237	RegeneronME_ALL_AN	Total number of alleles of all the whole Regeneron Genetics Center Million Exome (RGC-ME) (~983,578 exomes) data.
+238	RegeneronME_AMI_AC	Alternate allele count of Amish descendent samples in RGC-ME.
+239	RegeneronME_AMI_AF	Alternate allele frequency of Amish descendent samples in RGC-ME.
+240	RegeneronME_AMI_AN	Total number of alleles of Amish descendent samples in RGC-ME.
+241	RegeneronME_ASH_AC	Probabilistic alternate allele count of Ashkenazi Jewish descendent samples in RGC-ME.
+242	RegeneronME_ASH_AF	Probabilistic alternate allele frequency of Ashkenazi Jewish descendent samples in RGC-ME.
+243	RegeneronME_ASH_AN	Probabilistic total number of alleles of Ashkenazi Jewish descendent samples in RGC-ME.
+244	RegeneronME_BI_AC	Probabilistic alternate allele count of British Isles descendent samples in RGC-ME.
+245	RegeneronME_BI_AF	Probabilistic alternate allele frequency of British Isles descendent samples in RGC-ME.
+246	RegeneronME_BI_AN	Probabilistic total number of alleles of British Isles descendent samples in RGC-ME.
+247	RegeneronME_C_EUR_AC	Probabilistic alternate allele count of Central Europe descendent samples in RGC-ME.
+248	RegeneronME_C_EUR_AF	Probabilistic alternate allele frequency of Central Europe descendent samples in RGC-ME.
+249	RegeneronME_C_EUR_AN	Probabilistic total number of alleles of Central Europe descendent samples in RGC-ME.
+250	RegeneronME_EAS_AC	Probabilistic alternate allele count of East Asian descendent samples in RGC-ME.
+251	RegeneronME_EAS_AF	Probabilistic alternate allele frequency of East Asian descendent samples in RGC-ME.
+252	RegeneronME_EAS_AN	Probabilistic total number of alleles of East Asian descendent samples in RGC-ME.
+253	RegeneronME_EUR_AC	Probabilistic alternate allele count of European descendent samples in RGC-ME.
+254	RegeneronME_EUR_AF	Probabilistic alternate allele frequency of European descendent samples in RGC-ME.
+255	RegeneronME_EUR_AN	Probabilistic total number of alleles of European descendent samples in RGC-ME.
+256	RegeneronME_E_AFR_AC	Probabilistic alternate allele count of East Africa descendent samples in RGC-ME.
+257	RegeneronME_E_AFR_AF	Probabilistic alternate allele frequency of East Africa descendent samples in RGC-ME.
+258	RegeneronME_E_AFR_AN	Probabilistic total number of alleles of East Africa descendent samples in RGC-ME.
+259	RegeneronME_E_ASIA_AC	Probabilistic alternate allele count of East Asia descendent samples in RGC-ME.
+260	RegeneronME_E_ASIA_AF	Probabilistic alternate allele frequency of East Asia descendent samples in RGC-ME.
+261	RegeneronME_E_ASIA_AN	Probabilistic total number of alleles of East Asia descendent samples in RGC-ME.
+262	RegeneronME_FIN_AC	Probabilistic alternate allele count of Finland descendent samples in RGC-ME.
+263	RegeneronME_FIN_AF	Probabilistic alternate allele frequency of Finland descendent samples in RGC-ME.
+264	RegeneronME_FIN_AN	Probabilistic total number of alleles of Finland descendent samples in RGC-ME.
+265	RegeneronME_GBR_AC	Probabilistic alternate allele count of Great Britain descendent samples in RGC-ME.
+266	RegeneronME_GBR_AF	Probabilistic alternate allele frequency of Great Britain descendent samples in RGC-ME.
+267	RegeneronME_GBR_AN	Probabilistic total number of alleles of Great Britain descendent samples in RGC-ME.
+268	RegeneronME_GHA_AC	Probabilistic alternate allele count of Ghana descendent samples in RGC-ME.
+269	RegeneronME_GHA_AF	Probabilistic alternate allele frequency of Ghana descendent samples in RGC-ME.
+270	RegeneronME_GHA_AN	Probabilistic total number of alleles of Ghana descendent samples in RGC-ME.
+271	RegeneronME_IAM_AC	Probabilistic alternate allele count of Indigenous American descendent samples in RGC-ME.
+272	RegeneronME_IAM_AF	Probabilistic alternate allele frequency of Indigenous American descendent samples in RGC-ME.
+273	RegeneronME_IAM_AN	Probabilistic total number of alleles of Indigenous American descendent samples in RGC-ME.
+274	RegeneronME_IND_AC	Probabilistic alternate allele count of Indian descendent samples in RGC-ME.
+275	RegeneronME_IND_AF	Probabilistic alternate allele frequency of Indian descendent samples in RGC-ME.
+276	RegeneronME_IND_AN	Probabilistic total number of alleles of Indian descendent samples in RGC-ME.
+277	RegeneronME_IRE_AC	Probabilistic alternate allele count of Ireland of Northern Ireland descendent samples in RGC-ME.
+278	RegeneronME_IRE_AF	Probabilistic alternate allele frequency of Ireland of Northern Ireland descendent samples in RGC-ME.
+279	RegeneronME_IRE_AN	Probabilistic total number of alleles of Ireland of Northern Ireland descendent samples in RGC-ME.
+280	RegeneronME_ITA_AC	Probabilistic alternate allele count of Italy descendent samples in RGC-ME.
+281	RegeneronME_ITA_AF	Probabilistic alternate allele frequency of Italy descendent samples in RGC-ME.
+282	RegeneronME_ITA_AN	Probabilistic total number of alleles of Italy descendent samples in RGC-ME.
+283	RegeneronME_MEA_AC	Probabilistic alternate allele count of Middle East descendent samples in RGC-ME.
+284	RegeneronME_MEA_AF	Probabilistic alternate allele frequency of Middle East descendent samples in RGC-ME.
+285	RegeneronME_MEA_AN	Probabilistic total number of alleles of Middle East descendent samples in RGC-ME.
+286	RegeneronME_MEX_AC	Probabilistic alternate allele count of Mexico descendent samples in RGC-ME.
+287	RegeneronME_MEX_AF	Probabilistic alternate allele frequency of Mexico descendent samples in RGC-ME.
+288	RegeneronME_MEX_AN	Probabilistic total number of alleles of Mexico descendent samples in RGC-ME.
+289	RegeneronME_NIN_AC	Probabilistic alternate allele count of Nigeria-Niger descendent samples in RGC-ME.
+290	RegeneronME_NIN_AF	Probabilistic alternate allele frequency of Nigeria-Niger descendent samples in RGC-ME.
+291	RegeneronME_NIN_AN	Probabilistic total number of alleles of Nigeria-Niger descendent samples in RGC-ME.
+292	RegeneronME_N_EUR_AC	Probabilistic alternate allele count of Northern Europe descendent samples in RGC-ME.
+293	RegeneronME_N_EUR_AF	Probabilistic alternate allele frequency of Northern Europe descendent samples in RGC-ME.
+294	RegeneronME_N_EUR_AN	Probabilistic total number of alleles of Northern Europe descendent samples in RGC-ME.
+295	RegeneronME_PAK_AC	Probabilistic alternate allele count of Pakistan descendent samples in RGC-ME.
+296	RegeneronME_PAK_AF	Probabilistic alternate allele frequency of Pakistan descendent samples in RGC-ME.
+297	RegeneronME_PAK_AN	Probabilistic total number of alleles of Pakistan descendent samples in RGC-ME.
+298	RegeneronME_SAS_AC	Probabilistic alternate allele count of South Asia descendent samples in RGC-ME.
+299	RegeneronME_SAS_AF	Probabilistic alternate allele frequency of South Asia descendent samples in RGC-ME.
+300	RegeneronME_SAS_AN	Probabilistic total number of alleles of South Asia descendent samples in RGC-ME.
+301	RegeneronME_SE_ASIA_AC	Probabilistic alternate allele count of South East Asia descendent samples in RGC-ME.
+302	RegeneronME_SE_ASIA_AF	Probabilistic alternate allele frequency of South East Asia descendent samples in RGC-ME.
+303	RegeneronME_SE_ASIA_AN	Probabilistic total number of alleles of South East Asia descendent samples in RGC-ME.
+304	RegeneronME_SPA_AC	Probabilistic alternate allele count of Spain descendent samples in RGC-ME.
+305	RegeneronME_SPA_AF	Probabilistic alternate allele frequency of Spain descendent samples in RGC-ME.
+306	RegeneronME_SPA_AN	Probabilistic total number of alleles of Spain descendent samples in RGC-ME.
+307	RegeneronME_S_AFR_AC	Probabilistic alternate allele count of South Africa descendent samples in RGC-ME.
+308	RegeneronME_S_AFR_AF	Probabilistic alternate allele frequency of South Africa descendent samples in RGC-ME.
+309	RegeneronME_S_AFR_AN	Probabilistic total number of alleles of South Africa descendent samples in RGC-ME.
+310	RegeneronME_S_EUR_AC	Probabilistic alternate allele count of Southern Europe descendent samples in RGC-ME.
+311	RegeneronME_S_EUR_AF	Probabilistic alternate allele frequency of Southern Europe descendent samples in RGC-ME.
+312	RegeneronME_S_EUR_AN	Probabilistic total number of alleles of Southern Europe descendent samples in RGC-ME.
+313	RegeneronME_W_AFR_AC	Probabilistic alternate allele count of West Africa descendent samples in RGC-ME.
+314	RegeneronME_W_AFR_AF	Probabilistic alternate allele frequency of West Africa descendent samples in RGC-ME.
+315	RegeneronME_W_AFR_AN	Probabilistic total number of alleles of West Africa descendent samples in RGC-ME.
+316	gnomAD2.1.1_exomes_flag	information from gnomAD exome data indicating whether the variant falling within low-complexity (lcr) or segmental duplication (segdup) or decoy regions. The flag can be either "." for high-quality PASS or not reported/polymorphic in gnomAD exomes, "lcr" for within lcr, "segdup" for within segdup, or "decoy" for with decoy region.
+317	gnomAD2.1.1_exomes_controls_AC	Alternative allele count in the controls subset of whole gnomAD exome samples v2.1.1
+318	gnomAD2.1.1_exomes_controls_AN	Total allele count in the controls subset of whole gnomAD exome samples v2.1.1
+319	gnomAD2.1.1_exomes_controls_AF	Alternative allele frequency in the controls subset of whole gnomAD exome samples v2.1.1
+320	gnomAD2.1.1_exomes_controls_nhomalt	Count of individuals with homozygous alternative allele in the controls subset of whole gnomAD exome samples v2.1.1
+321	gnomAD2.1.1_exomes_non_neuro_AC	Alternative allele count in the non-neuro subset of whole gnomAD exome samples v2.1.1
+322	gnomAD2.1.1_exomes_non_neuro_AN	Total allele count in the non-neuro subset of whole gnomAD exome samples v2.1.1
+323	gnomAD2.1.1_exomes_non_neuro_AF	Alternative allele frequency in the non-neuro subset of whole gnomAD exome samples v2.1.1
+324	gnomAD2.1.1_exomes_non_neuro_nhomalt	Count of individuals with homozygous alternative allele in the non-neuro subset of whole gnomAD exome samples v2.1.1
+325	gnomAD2.1.1_exomes_non_cancer_AC	Alternative allele count in the non-cancer subset of whole gnomAD exome samples v2.1.1
+326	gnomAD2.1.1_exomes_non_cancer_AN	Total allele count in the non-cancer subset of whole gnomAD exome samples v2.1.1
+327	gnomAD2.1.1_exomes_non_cancer_AF	Alternative allele frequency in the non-cancer subset of whole gnomAD exome samples v2.1.1
+328	gnomAD2.1.1_exomes_non_cancer_nhomalt	Count of individuals with homozygous alternative allele in the non-cancer subset of whole gnomAD exome samples v2.1.1
+329	gnomAD2.1.1_exomes_controls_AFR_AC	Alternative allele count in the controls subset of African/African American gnomAD exome samples v2.1.1
+330	gnomAD2.1.1_exomes_controls_AFR_AN	Total allele count in the controls subset of African/African American gnomAD exome samples v2.1.1
+331	gnomAD2.1.1_exomes_controls_AFR_AF	Alternative allele frequency in the controls subset of African/African American gnomAD exome samples v2.1.1
+332	gnomAD2.1.1_exomes_controls_AFR_nhomalt	Count of individuals with homozygous alternative allele in the controls subset of African/African American gnomAD exome samples v2.1.1
+333	gnomAD2.1.1_exomes_controls_AMR_AC	Alternative allele count in the controls subset of Latino gnomAD exome samples v2.1.1
+334	gnomAD2.1.1_exomes_controls_AMR_AN	Total allele count in the controls subset of Latino gnomAD exome samples v2.1.1
+335	gnomAD2.1.1_exomes_controls_AMR_AF	Alternative allele frequency in the controls subset of Latino gnomAD exome samples v2.1.1
+336	gnomAD2.1.1_exomes_controls_AMR_nhomalt	Count of individuals with homozygous alternative allele in the controls subset of Latino gnomAD exome samples v2.1.1
+337	gnomAD2.1.1_exomes_controls_ASJ_AC	Alternative allele count in the controls subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+338	gnomAD2.1.1_exomes_controls_ASJ_AN	Total allele count in the controls subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+339	gnomAD2.1.1_exomes_controls_ASJ_AF	Alternative allele frequency in the controls subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+340	gnomAD2.1.1_exomes_controls_ASJ_nhomalt	Count of individuals with homozygous alternative allele in the controls subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+341	gnomAD2.1.1_exomes_controls_EAS_AC	Alternative allele count in the controls subset of East Asian gnomAD exome samples v2.1.1
+342	gnomAD2.1.1_exomes_controls_EAS_AN	Total allele count in the controls subset of East Asian gnomAD exome samples v2.1.1
+343	gnomAD2.1.1_exomes_controls_EAS_AF	Alternative allele frequency in the controls subset of East Asian gnomAD exome samples v2.1.1
+344	gnomAD2.1.1_exomes_controls_EAS_nhomalt	Count of individuals with homozygous alternative allele in the controls subset of East Asian gnomAD exome samples v2.1.1
+345	gnomAD2.1.1_exomes_controls_FIN_AC	Alternative allele count in the controls subset of Finnish gnomAD exome samples v2.1.1
+346	gnomAD2.1.1_exomes_controls_FIN_AN	Total allele count in the controls subset of Finnish gnomAD exome samples v2.1.1
+347	gnomAD2.1.1_exomes_controls_FIN_AF	Alternative allele frequency in the controls subset of Finnish gnomAD exome samples v2.1.1
+348	gnomAD2.1.1_exomes_controls_FIN_nhomalt	Count of individuals with homozygous alternative allele in the controls subset of Finnish gnomAD exome samples v2.1.1
+349	gnomAD2.1.1_exomes_controls_NFE_AC	Alternative allele count in the controls subset of Non-Finnish European gnomAD exome samples v2.1.1
+350	gnomAD2.1.1_exomes_controls_NFE_AN	Total allele count in the controls subset of Non-Finnish European gnomAD exome samples v2.1.1
+351	gnomAD2.1.1_exomes_controls_NFE_AF	Alternative allele frequency in the controls subset of Non-Finnish European gnomAD exome samples v2.1.1
+352	gnomAD2.1.1_exomes_controls_NFE_nhomalt	Count of individuals with homozygous alternative allele in the controls subset of Non-Finnish European gnomAD exome samples v2.1.1
+353	gnomAD2.1.1_exomes_controls_SAS_AC	Alternative allele count in the controls subset of South Asian gnomAD exome samples v2.1.1
+354	gnomAD2.1.1_exomes_controls_SAS_AN	Total allele count in the controls subset of South Asian gnomAD exome samples v2.1.1
+355	gnomAD2.1.1_exomes_controls_SAS_AF	Alternative allele frequency in the controls subset of South Asian gnomAD exome samples v2.1.1
+356	gnomAD2.1.1_exomes_controls_SAS_nhomalt	Count of individuals with homozygous alternative allele in the controls subset of South Asian gnomAD exome samples v2.1.1
+357	gnomAD2.1.1_exomes_controls_POPMAX_AC	Allele count in the controls subset of population with the maximum AF
+358	gnomAD2.1.1_exomes_controls_POPMAX_AN	Total number of alleles in the controls subset of population with the maximum AF
+359	gnomAD2.1.1_exomes_controls_POPMAX_AF	Maximum allele frequency across populations (excluding samples of Ashkenazi, Finnish, and indeterminate ancestry) in the controls subset
+360	gnomAD2.1.1_exomes_controls_POPMAX_nhomalt	Count of homozygous individuals in the controls subset of population with the maximum allele frequency
+361	gnomAD2.1.1_exomes_non_neuro_AFR_AC	Alternative allele count in the non-neuro subset of African/African American gnomAD exome samples v2.1.1
+362	gnomAD2.1.1_exomes_non_neuro_AFR_AN	Total allele count in the non-neuro subset of African/African American gnomAD exome samples v2.1.1
+363	gnomAD2.1.1_exomes_non_neuro_AFR_AF	Alternative allele frequency in the non-neuro subset of African/African American gnomAD exome samples v2.1.1
+364	gnomAD2.1.1_exomes_non_neuro_AFR_nhomalt	Count of individuals with homozygous alternative allele in the non-neuro subset of African/African American gnomAD exome samples v2.1.1
+365	gnomAD2.1.1_exomes_non_neuro_AMR_AC	Alternative allele count in the non-neuro subset of Latino gnomAD exome samples v2.1.1
+366	gnomAD2.1.1_exomes_non_neuro_AMR_AN	Total allele count in the non-neuro subset of Latino gnomAD exome samples v2.1.1
+367	gnomAD2.1.1_exomes_non_neuro_AMR_AF	Alternative allele frequency in the non-neuro subset of Latino gnomAD exome samples v2.1.1
+368	gnomAD2.1.1_exomes_non_neuro_AMR_nhomalt	Count of individuals with homozygous alternative allele in the non-neuro subset of Latino gnomAD exome samples v2.1.1
+369	gnomAD2.1.1_exomes_non_neuro_ASJ_AC	Alternative allele count in the non-neuro subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+370	gnomAD2.1.1_exomes_non_neuro_ASJ_AN	Total allele count in the non-neuro subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+371	gnomAD2.1.1_exomes_non_neuro_ASJ_AF	Alternative allele frequency in the non-neuro subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+372	gnomAD2.1.1_exomes_non_neuro_ASJ_nhomalt	Count of individuals with homozygous alternative allele in the non-neuro subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+373	gnomAD2.1.1_exomes_non_neuro_EAS_AC	Alternative allele count in the non-neuro subset of East Asian gnomAD exome samples v2.1.1
+374	gnomAD2.1.1_exomes_non_neuro_EAS_AN	Total allele count in the non-neuro subset of East Asian gnomAD exome samples v2.1.1
+375	gnomAD2.1.1_exomes_non_neuro_EAS_AF	Alternative allele frequency in the non-neuro subset of East Asian gnomAD exome samples v2.1.1
+376	gnomAD2.1.1_exomes_non_neuro_EAS_nhomalt	Count of individuals with homozygous alternative allele in the non-neuro subset of East Asian gnomAD exome samples v2.1.1
+377	gnomAD2.1.1_exomes_non_neuro_FIN_AC	Alternative allele count in the non-neuro subset of Finnish gnomAD exome samples v2.1.1
+378	gnomAD2.1.1_exomes_non_neuro_FIN_AN	Total allele count in the non-neuro subset of Finnish gnomAD exome samples v2.1.1
+379	gnomAD2.1.1_exomes_non_neuro_FIN_AF	Alternative allele frequency in the non-neuro subset of Finnish gnomAD exome samples v2.1.1
+380	gnomAD2.1.1_exomes_non_neuro_FIN_nhomalt	Count of individuals with homozygous alternative allele in the non-neuro subset of Finnish gnomAD exome samples v2.1.1
+381	gnomAD2.1.1_exomes_non_neuro_NFE_AC	Alternative allele count in the non-neuro subset of Non-Finnish European gnomAD exome samples v2.1.1
+382	gnomAD2.1.1_exomes_non_neuro_NFE_AN	Total allele count in the non-neuro subset of Non-Finnish European gnomAD exome samples v2.1.1
+383	gnomAD2.1.1_exomes_non_neuro_NFE_AF	Alternative allele frequency in the non-neuro subset of Non-Finnish European gnomAD exome samples v2.1.1
+384	gnomAD2.1.1_exomes_non_neuro_NFE_nhomalt	Count of individuals with homozygous alternative allele in the non-neuro subset of Non-Finnish European gnomAD exome samples v2.1.1
+385	gnomAD2.1.1_exomes_non_neuro_SAS_AC	Alternative allele count in the non-neuro subset of South Asian gnomAD exome samples v2.1.1
+386	gnomAD2.1.1_exomes_non_neuro_SAS_AN	Total allele count in the non-neuro subset of South Asian gnomAD exome samples v2.1.1
+387	gnomAD2.1.1_exomes_non_neuro_SAS_AF	Alternative allele frequency in the non-neuro subset of South Asian gnomAD exome samples v2.1.1
+388	gnomAD2.1.1_exomes_non_neuro_SAS_nhomalt	Count of individuals with homozygous alternative allele in the non-neuro subset of South Asian gnomAD exome samples v2.1.1
+389	gnomAD2.1.1_exomes_non_neuro_POPMAX_AC	Allele count in the non-neuro subset of population with the maximum AF
+390	gnomAD2.1.1_exomes_non_neuro_POPMAX_AN	Total number of alleles in the non-neuro subset of population with the maximum AF
+391	gnomAD2.1.1_exomes_non_neuro_POPMAX_AF	Maximum allele frequency across populations (excluding samples of Ashkenazi, Finnish, and indeterminate ancestry) in the non-neuro subset
+392	gnomAD2.1.1_exomes_non_neuro_POPMAX_nhomalt	Count of homozygous individuals in the non-neuro subset of population with the maximum allele frequency
+393	gnomAD2.1.1_exomes_non_cancer_AFR_AC	Alternative allele count in the non-cancer subset of African/African American gnomAD exome samples v2.1.1
+394	gnomAD2.1.1_exomes_non_cancer_AFR_AN	Total allele count in the non-cancer subset of African/African American gnomAD exome samples v2.1.1
+395	gnomAD2.1.1_exomes_non_cancer_AFR_AF	Alternative allele frequency in the non-cancer subset of African/African American gnomAD exome samples v2.1.1
+396	gnomAD2.1.1_exomes_non_cancer_AFR_nhomalt	Count of individuals with homozygous alternative allele in the non-cancer subset of African/African American gnomAD exome samples v2.1.1
+397	gnomAD2.1.1_exomes_non_cancer_AMR_AC	Alternative allele count in the non-cancer subset of Latino gnomAD exome samples v2.1.1
+398	gnomAD2.1.1_exomes_non_cancer_AMR_AN	Total allele count in the non-cancer subset of Latino gnomAD exome samples v2.1.1
+399	gnomAD2.1.1_exomes_non_cancer_AMR_AF	Alternative allele frequency in the non-cancer subset of Latino gnomAD exome samples v2.1.1
+400	gnomAD2.1.1_exomes_non_cancer_AMR_nhomalt	Count of individuals with homozygous alternative allele in the non-cancer subset of Latino gnomAD exome samples v2.1.1
+401	gnomAD2.1.1_exomes_non_cancer_ASJ_AC	Alternative allele count in the non-cancer subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+402	gnomAD2.1.1_exomes_non_cancer_ASJ_AN	Total allele count in the non-cancer subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+403	gnomAD2.1.1_exomes_non_cancer_ASJ_AF	Alternative allele frequency in the non-cancer subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+404	gnomAD2.1.1_exomes_non_cancer_ASJ_nhomalt	Count of individuals with homozygous alternative allele in the non-cancer subset of Ashkenazi Jewish gnomAD exome samples v2.1.1
+405	gnomAD2.1.1_exomes_non_cancer_EAS_AC	Alternative allele count in the non-cancer subset of East Asian gnomAD exome samples v2.1.1
+406	gnomAD2.1.1_exomes_non_cancer_EAS_AN	Total allele count in the non-cancer subset of East Asian gnomAD exome samples v2.1.1
+407	gnomAD2.1.1_exomes_non_cancer_EAS_AF	Alternative allele frequency in the non-cancer subset of East Asian gnomAD exome samples v2.1.1
+408	gnomAD2.1.1_exomes_non_cancer_EAS_nhomalt	Count of individuals with homozygous alternative allele in the non-cancer subset of East Asian gnomAD exome samples v2.1.1
+409	gnomAD2.1.1_exomes_non_cancer_FIN_AC	Alternative allele count in the non-cancer subset of Finnish gnomAD exome samples v2.1.1
+410	gnomAD2.1.1_exomes_non_cancer_FIN_AN	Total allele count in the non-cancer subset of Finnish gnomAD exome samples v2.1.1
+411	gnomAD2.1.1_exomes_non_cancer_FIN_AF	Alternative allele frequency in the non-cancer subset of Finnish gnomAD exome samples v2.1.1
+412	gnomAD2.1.1_exomes_non_cancer_FIN_nhomalt	Count of individuals with homozygous alternative allele in the non-cancer subset of Finnish gnomAD exome samples v2.1.1
+413	gnomAD2.1.1_exomes_non_cancer_NFE_AC	Alternative allele count in the non-cancer subset of Non-Finnish European gnomAD exome samples v2.1.1
+414	gnomAD2.1.1_exomes_non_cancer_NFE_AN	Total allele count in the non-cancer subset of Non-Finnish European gnomAD exome samples v2.1.1
+415	gnomAD2.1.1_exomes_non_cancer_NFE_AF	Alternative allele frequency in the non-cancer subset of Non-Finnish European gnomAD exome samples v2.1.1
+416	gnomAD2.1.1_exomes_non_cancer_NFE_nhomalt	Count of individuals with homozygous alternative allele in the non-cancer subset of Non-Finnish European gnomAD exome samples v2.1.1
+417	gnomAD2.1.1_exomes_non_cancer_SAS_AC	Alternative allele count in the non-cancer subset of South Asian gnomAD exome samples v2.1.1
+418	gnomAD2.1.1_exomes_non_cancer_SAS_AN	Total allele count in the non-cancer subset of South Asian gnomAD exome samples v2.1.1
+419	gnomAD2.1.1_exomes_non_cancer_SAS_AF	Alternative allele frequency in the non-cancer subset of South Asian gnomAD exome samples v2.1.1
+420	gnomAD2.1.1_exomes_non_cancer_SAS_nhomalt	Count of individuals with homozygous alternative allele in the non-cancer subset of South Asian gnomAD exome samples v2.1.1
+421	gnomAD2.1.1_exomes_non_cancer_POPMAX_AC	Allele count in the non-cancer subset of population with the maximum AF
+422	gnomAD2.1.1_exomes_non_cancer_POPMAX_AN	Total number of alleles in the non-cancer subset of population with the maximum AF
+423	gnomAD2.1.1_exomes_non_cancer_POPMAX_AF	Maximum allele frequency across populations (excluding samples of Ashkenazi, Finnish, and indeterminate ancestry) in the non-cancer subset
+424	gnomAD2.1.1_exomes_non_cancer_POPMAX_nhomalt	Count of homozygous individuals in the non-cancer subset of population with the maximum allele frequency
+425	gnomAD4.1_joint_flag	information from gnomAD joint (genome+exome) data indicating whether the variant falling within low-complexity (lcr) or segmental duplication (segdup) or decoy regions. The flag can be either "." for high-quality PASS or not reported/polymorphic in gnomAD exomes, "lcr" for within lcr, "segdup" for within segdup, or "decoy" for with decoy region.
+426	gnomAD4.1_joint_AC	Alternative allele count in the whole gnomAD joint (genome+exome) samples v4.1
+427	gnomAD4.1_joint_AN	Total allele count in the whole gnomAD joint (genome+exome) samples v4.1
+428	gnomAD4.1_joint_AF	Alternative allele frequency in the whole gnomAD genome samples v4.1
+429	gnomAD4.1_joint_nhomalt	Count of individuals with homozygous alternative allele in the whole gnomAD joint (genome+exome) samples v4.1
+430	gnomAD4.1_joint_POPMAX_AC	Allele count in the population with the maximum AF
+431	gnomAD4.1_joint_POPMAX_AN	Total number of alleles in the population with the maximum AF
+432	gnomAD4.1_joint_POPMAX_AF	Maximum allele frequency across populations (excluding samples of Ashkenazi, Finnish, and indeterminate ancestry)
+433	gnomAD4.1_joint_POPMAX_nhomalt	Count of homozygous individuals in the population with the maximum allele frequency
+434	gnomAD4.1_joint_AFR_AC	Alternative allele count in the African/African American gnomAD joint (genome+exome) samples v4.1
+435	gnomAD4.1_joint_AFR_AN	Total allele count in the African/African American gnomAD joint (genome+exome) samples v4.1
+436	gnomAD4.1_joint_AFR_AF	Alternative allele frequency in the African/African American gnomAD joint (genome+exome) samples v4.1
+437	gnomAD4.1_joint_AFR_nhomalt	Count of individuals with homozygous alternative allele in the African/African American gnomAD joint (genome+exome) samples v4.1
+438	gnomAD4.1_joint_AMI_AC	Alternative allele count in the Amish gnomAD joint (genome+exome) samples v4.1
+439	gnomAD4.1_joint_AMI_AN	Total allele count in the Amish gnomAD joint (genome+exome) samples v4.1
+440	gnomAD4.1_joint_AMI_AF	Alternative allele frequency in the Amish gnomAD joint (genome+exome) samples v4.1
+441	gnomAD4.1_joint_AMI_nhomalt	Count of individuals with homozygous alternative allele in the Amish gnomAD joint (genome+exome) samples v4.1
+442	gnomAD4.1_joint_AMR_AC	Alternative allele count in the Latino gnomAD joint (genome+exome) samples v4.1
+443	gnomAD4.1_joint_AMR_AN	Total allele count in the Latino gnomAD joint (genome+exome) samples v4.1
+444	gnomAD4.1_joint_AMR_AF	Alternative allele frequency in the Latino gnomAD joint (genome+exome) samples v4.1
+445	gnomAD4.1_joint_AMR_nhomalt	Count of individuals with homozygous alternative allele in the Latino gnomAD joint (genome+exome) samples v4.1
+446	gnomAD4.1_joint_ASJ_AC	Alternative allele count in the Ashkenazi Jewish gnomAD joint (genome+exome) samples v4.1
+447	gnomAD4.1_joint_ASJ_AN	Total allele count in the Ashkenazi Jewish gnomAD joint (genome+exome) samples v4.1
+448	gnomAD4.1_joint_ASJ_AF	Alternative allele frequency in the Ashkenazi Jewish gnomAD joint (genome+exome) samples v4.1
+449	gnomAD4.1_joint_ASJ_nhomalt	Count of individuals with homozygous alternative allele in the Ashkenazi Jewish gnomAD joint (genome+exome) samples v4.1
+450	gnomAD4.1_joint_EAS_AC	Alternative allele count in the East Asian gnomAD joint (genome+exome) samples v4.1
+451	gnomAD4.1_joint_EAS_AN	Total allele count in the East Asian gnomAD joint (genome+exome) samples v4.1
+452	gnomAD4.1_joint_EAS_AF	Alternative allele frequency in the East Asian gnomAD joint (genome+exome) samples v4.1
+453	gnomAD4.1_joint_EAS_nhomalt	Count of individuals with homozygous alternative allele in the East Asian gnomAD joint (genome+exome) samples v4.1
+454	gnomAD4.1_joint_FIN_AC	Alternative allele count in the Finnish gnomAD joint (genome+exome) samples v4.1
+455	gnomAD4.1_joint_FIN_AN	Total allele count in the Finnish gnomAD joint (genome+exome) samples v4.1
+456	gnomAD4.1_joint_FIN_AF	Alternative allele frequency in the Finnish gnomAD joint (genome+exome) samples v4.1
+457	gnomAD4.1_joint_FIN_nhomalt	Count of individuals with homozygous alternative allele in the Finnish gnomAD joint (genome+exome) samples v4.1
+458	gnomAD4.1_joint_MID_AC	Alternative allele count in the Middle Eastern gnomAD joint (genome+exome) samples v4.1
+459	gnomAD4.1_joint_MID_AN	Total allele count in the Middle Eastern gnomAD joint (genome+exome) samples v4.1
+460	gnomAD4.1_joint_MID_AF	Alternative allele frequency in the Middle Eastern gnomAD joint (genome+exome) samples v4.1
+461	gnomAD4.1_joint_MID_nhomalt	Count of individuals with homozygous alternative allele in the Middle Eastern gnomAD joint (genome+exome) samples v4.1
+462	gnomAD4.1_joint_NFE_AC	Alternative allele count in the Non-Finnish European gnomAD joint (genome+exome) samples v4.1
+463	gnomAD4.1_joint_NFE_AN	Total allele count in the Non-Finnish European gnomAD joint (genome+exome) samples v4.1
+464	gnomAD4.1_joint_NFE_AF	Alternative allele frequency in the Non-Finnish European gnomAD joint (genome+exome) samples v4.1
+465	gnomAD4.1_joint_NFE_nhomalt	Count of individuals with homozygous alternative allele in the Non-Finnish European gnomAD joint (genome+exome) samples v4.1
+466	gnomAD4.1_joint_SAS_AC	Alternative allele count in the South Asian gnomAD joint (genome+exome) samples v4.1
+467	gnomAD4.1_joint_SAS_AN	Total allele count in the South Asian gnomAD joint (genome+exome) samples v4.1
+468	gnomAD4.1_joint_SAS_AF	Alternative allele frequency in the South Asian gnomAD joint (genome+exome) samples v4.1
+469	gnomAD4.1_joint_SAS_nhomalt	Count of individuals with homozygous alternative allele in the South Asian gnomAD joint (genome+exome) samples v4.1
+470	ALFA_European_AC	Alternative allele count of the European samples in the Allele Frequency Aggregator
+471	ALFA_European_AN	Total allele count of the European samples in the Allele Frequency Aggregator
+472	ALFA_European_AF	Alternative allele frequency of the European samples in the Allele Frequency Aggregator
+473	ALFA_African_Others_AC	Alternative allele count of the individuals with African ancestry in the Allele Frequency Aggregator
+474	ALFA_African_Others_AN	Total allele count of the individuals with African ancestry in the Allele Frequency Aggregator
+475	ALFA_African_Others_AF	Alternative allele frequency of the individuals with African ancestry in the Allele Frequency Aggregator
+476	ALFA_East_Asian_AC	Alternative allele count of the East Asian samples in the Allele Frequency Aggregator
+477	ALFA_East_Asian_AN	Total allele count of the East Asian samples in the Allele Frequency Aggregator
+478	ALFA_East_Asian_AF	Alternative allele frequency of the East Asian samples in the Allele Frequency Aggregator
+479	ALFA_African_American_AC	Alternative allele count of the African American samples in the Allele Frequency Aggregator
+480	ALFA_African_American_AN	Total allele count of the African American samples in the Allele Frequency Aggregator
+481	ALFA_African_American_AF	Alternative allele frequency of the African American samples in the Allele Frequency Aggregator
+482	ALFA_Latin_American_1_AC	Alternative allele count of the Latin American individuals with Afro-Caribbean ancestry in the Allele Frequency Aggregator
+483	ALFA_Latin_American_1_AN	Total allele count of the Latin American individuals with Afro-Caribbean ancestry in the Allele Frequency Aggregator
+484	ALFA_Latin_American_1_AF	Alternative allele frequency of the Latin American individuals with Afro-Caribbean ancestry in the Allele Frequency Aggregator
+485	ALFA_Latin_American_2_AC	Alternative allele count of the Latin American individuals with mostly European and Native American Ancestry in the Allele Frequency Aggregator
+486	ALFA_Latin_American_2_AN	Total allele count of the Latin American individuals with mostly European and Native American Ancestry in the Allele Frequency Aggregator
+487	ALFA_Latin_American_2_AF	Alternative allele frequency of the Latin American individuals with mostly European and Native American Ancestry in the Allele Frequency Aggregator
+488	ALFA_Other_Asian_AC	Alternative allele count of the Asian individuals excluding South or East Asian in the Allele Frequency Aggregator
+489	ALFA_Other_Asian_AN	Total allele count of the Asian individuals excluding South or East Asian in the Allele Frequency Aggregator
+490	ALFA_Other_Asian_AF	Alternative allele frequency of the Asian individuals excluding South or East Asian in the Allele Frequency Aggregator
+491	ALFA_South_Asian_AC	Alternative allele count of the South Asian samples in the Allele Frequency Aggregator
+492	ALFA_South_Asian_AN	Total allele count of the South Asian samples in the Allele Frequency Aggregator
+493	ALFA_South_Asian_AF	Alternative allele frequency of the South Asian samples in the Allele Frequency Aggregator
+494	ALFA_Other_AC	Alternative allele count of the samples whose self-reported population is inconsistent with the GRAF-assigned population in the Allele Frequency Aggregator
+495	ALFA_Other_AN	Total allele count of the samples whose self-reported population is inconsistent with the GRAF-assigned population in the Allele Frequency Aggregator
+496	ALFA_Other_AF	Alternative allele frequency of the samples whose self-reported population is inconsistent with the GRAF-assigned population in the Allele Frequency Aggregator
+497	ALFA_African_AC	Alternative allele count of the all African samples (African_Others and African_American) in the Allele Frequency Aggregator
+498	ALFA_African_AN	Total allele count of the all African samples (African_Others and African_American) in the Allele Frequency Aggregator
+499	ALFA_African_AF	Alternative allele frequency of the all African samples (African_Others and African_American) in the Allele Frequency Aggregator
+500	ALFA_Asian_AC	Alternative allele count of the all Asian individuals (East_Asian and Other_Asian, excluding South_Asian) in the Allele Frequency Aggregator
+501	ALFA_Asian_AN	Total allele count of the all Asian individuals (East_Asian and Other_Asian, excluding South_Asian) in the Allele Frequency Aggregator
+502	ALFA_Asian_AF	Alternative allele frequency of the all Asian individuals (East_Asian and Other_Asian, excluding South_Asian) in the Allele Frequency Aggregator
+503	ALFA_Total_AC	Alternative allele count of the total samples in the Allele Frequency Aggregator
+504	ALFA_Total_AN	Total allele count of the total samples in the Allele Frequency Aggregator
+505	ALFA_Total_AF	Alternative allele frequency of the total samples in the Allele Frequency Aggregator
+506	dbNSFP_POPMAX_AF	Maximum alternative allele frequency across all populations in dbNSFP.
+507	dbNSFP_POPMAX_AC	Alternative allele count(s) of the population(s) with dbNSFP_POPMAX_AF. Multiple entries are separated by ";".
+508	dbNSFP_POPMAX_POP	Population(s) with dbNSFP_POPMAX_AF. Multiple entries are separated by ";".

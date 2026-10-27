@@ -35,7 +35,7 @@ MODULES = {
 VARIANT_COLUMNS = [
     "sample_id", "family_id", "chrom", "pos", "end", "ref", "alt", "variant_id",
     "gene", "consequence", "genotype", "zygosity", "gq", "allele_balance", "depth",
-    "cohort_af", "gnomad_af", "gnomad_popmax_af", "cadd", "revel", "spliceai",
+    "cohort_af", "gnomad_af", "gnomad_popmax_af", "cadd", "revel",
     "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
     "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
     "clinvar", "clinvar_class", "variant_class", "hit_source", "heteroplasmy",

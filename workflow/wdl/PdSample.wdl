@@ -24,27 +24,20 @@ workflow PdSample {
     String vep_extra_args = ""
     File? avi_table
     File? avi_table_index
-    # gnomAD v4 sites VCFs for VEP --custom (genomes and/or exomes). Legacy gnomad_vcf aliases genomes.
-    File? gnomad_genomes_vcf
-    File? gnomad_genomes_vcf_index
-    File? gnomad_exomes_vcf
-    File? gnomad_exomes_vcf_index
-    File? gnomad_vcf
-    File? gnomad_vcf_index
-    File? clinvar_vcf
-    File? clinvar_vcf_index
-    # CADD / REVEL tabix files for VEP plugins (VEP 116 named-arg syntax).
+    # Optional genome-wide CADD / REVEL plugins (fallback when not using dbNSFP 5.4a).
     File? cadd_snv
     File? cadd_snv_index
     File? cadd_indels
     File? cadd_indels_index
     File? revel
     File? revel_index
-    # dbNSFP for Eigen / MutationTaster / FATHMM (and optional SIFT/PolyPhen2 columns).
+    # Academic dbNSFP 5.4a VEP-ready single file (bgzip + tabix), e.g. dbNSFP5.4a_grch38.gz.
+    # Includes clinvar_clnsig + gnomAD4.1 joint AF (no separate ClinVar/gnomAD --custom).
     File? dbnsfp
     File? dbnsfp_index
-    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,FATHMM_score,FATHMM_pred"
-    Boolean vep_sift_polyphen = true
+    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score,clinvar_clnsig,gnomAD4.1_joint_AF,gnomAD4.1_joint_POPMAX_AF"
+    # Off by default: SIFT/PolyPhen2 come from dbNSFP 5.4a (avoid duplicating cache-native VEP).
+    Boolean vep_sift_polyphen = false
 
     File somalier_sites
     Float max_freemix = 0.02
@@ -400,14 +393,6 @@ workflow PdSample {
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       cache_dir = vep_cache,
-      gnomad_genomes_vcf = gnomad_genomes_vcf,
-      gnomad_genomes_vcf_index = gnomad_genomes_vcf_index,
-      gnomad_exomes_vcf = gnomad_exomes_vcf,
-      gnomad_exomes_vcf_index = gnomad_exomes_vcf_index,
-      gnomad_vcf = gnomad_vcf,
-      gnomad_vcf_index = gnomad_vcf_index,
-      clinvar_vcf = clinvar_vcf,
-      clinvar_vcf_index = clinvar_vcf_index,
       cadd_snv = cadd_snv,
       cadd_snv_index = cadd_snv_index,
       cadd_indels = cadd_indels,
@@ -425,6 +410,7 @@ workflow PdSample {
     input:
       vcf = VepAnnotate.vep_vcf,
       vcf_index = VepAnnotate.vep_index,
+      lift_gnomad_from_csq_py = FetchRepoAssets.lift_gnomad_from_csq_py,
       preemptible = preemptible
   }
   call Tasks.ExpansionHunter {

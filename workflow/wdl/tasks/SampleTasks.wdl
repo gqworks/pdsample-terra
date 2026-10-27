@@ -87,6 +87,7 @@ pairs = [
     ("workflow/scripts/check_reference.py", "check_reference.py"),
     ("workflow/scripts/qc_summary.py", "qc_summary.py"),
     ("workflow/scripts/annotate_avi.py", "annotate_avi.py"),
+    ("workflow/scripts/lift_gnomad_from_csq.py", "lift_gnomad_from_csq.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
@@ -109,6 +110,7 @@ PY
     File check_reference_py = "check_reference.py"
     File qc_summary_py = "qc_summary.py"
     File annotate_avi_py = "annotate_avi.py"
+    File lift_gnomad_from_csq_py = "lift_gnomad_from_csq.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
     File panel_csv = "panel.csv"
@@ -492,43 +494,30 @@ task VepAnnotate {
     File ref_fasta
     File ref_fasta_index
     File cache_dir
-    # Prefer genomes/exomes inputs. gnomad_vcf is a legacy alias for genomes.
-    File? gnomad_genomes_vcf
-    File? gnomad_genomes_vcf_index
-    File? gnomad_exomes_vcf
-    File? gnomad_exomes_vcf_index
-    File? gnomad_vcf
-    File? gnomad_vcf_index
-    File? clinvar_vcf
-    File? clinvar_vcf_index
+    # Optional genome-wide CADD / REVEL plugins (fallback; academic dbNSFP 5.4a already has CADD_phred / REVEL_score).
     File? cadd_snv
     File? cadd_snv_index
     File? cadd_indels
     File? cadd_indels_index
     File? revel
     File? revel_index
-    # dbNSFP supplies Eigen, MutationTaster, FATHMM (and optional SIFT/PolyPhen2 columns).
+    # Academic dbNSFP 5.4a VEP-ready single file (bgzip + tabix): scores, clinvar_clnsig, gnomAD4.1 joint AF.
     File? dbnsfp
     File? dbnsfp_index
-    # Comma-separated dbNSFP column names. Override if your dbNSFP build differs.
-    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,FATHMM_score,FATHMM_pred"
-    Boolean vep_sift_polyphen = true
+    # Column names verified against dbNSFP5.4a_variant.columns.tsv (academic 5.4a).
+    String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score,clinvar_clnsig,gnomAD4.1_joint_AF,gnomAD4.1_joint_POPMAX_AF"
+    # Off by default: SIFT/PolyPhen2 come from dbNSFP (avoid duplicating VEP cache predictions).
+    Boolean vep_sift_polyphen = false
     String extra_args = ""
     String vep_docker = "quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0"
     Int preemptible = 3
     Int threads = 4
   }
-  # Legacy gnomad_vcf is an alias for genomes when gnomad_genomes_vcf is unset.
-  File? genomes_vcf = if defined(gnomad_genomes_vcf) then gnomad_genomes_vcf else gnomad_vcf
-  File? genomes_vcf_index = if defined(gnomad_genomes_vcf_index) then gnomad_genomes_vcf_index else gnomad_vcf_index
-  Float genomes_gb = if defined(genomes_vcf) then size(genomes_vcf, "GiB") else 0.0
-  Float exomes_gb = if defined(gnomad_exomes_vcf) then size(gnomad_exomes_vcf, "GiB") else 0.0
-  Float clinvar_gb = if defined(clinvar_vcf) then size(clinvar_vcf, "GiB") else 0.0
   Float cadd_snv_gb = if defined(cadd_snv) then size(cadd_snv, "GiB") else 0.0
   Float cadd_indel_gb = if defined(cadd_indels) then size(cadd_indels, "GiB") else 0.0
   Float revel_gb = if defined(revel) then size(revel, "GiB") else 0.0
   Float dbnsfp_gb = if defined(dbnsfp) then size(dbnsfp, "GiB") else 0.0
-  Int disk_gb = ceil(size(vcf, "GiB") + size(vcf_index, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 4 + genomes_gb + exomes_gb + clinvar_gb + cadd_snv_gb + cadd_indel_gb + revel_gb + dbnsfp_gb + 200)
+  Int disk_gb = ceil(size(vcf, "GiB") + size(vcf_index, "GiB") + size(ref_fasta, "GiB") + size(cache_dir, "GiB") * 4 + cadd_snv_gb + cadd_indel_gb + revel_gb + dbnsfp_gb + 200)
   command <<<
     set -euo pipefail
 
@@ -542,24 +531,7 @@ task VepAnnotate {
       esac
     }
 
-    custom_args=()
     plugin_args=()
-
-    if [[ -n "~{genomes_vcf}" ]]; then
-      test -s "~{genomes_vcf_index}"
-      link_with_tbi "~{genomes_vcf}" "~{genomes_vcf_index}" gnomad_genomes.vcf.gz
-      custom_args+=(--custom gnomad_genomes.vcf.gz,gnomADg,vcf,exact,0,AF,AF_popmax,nhomalt)
-    fi
-    if [[ -n "~{gnomad_exomes_vcf}" ]]; then
-      test -s "~{gnomad_exomes_vcf_index}"
-      link_with_tbi "~{gnomad_exomes_vcf}" "~{gnomad_exomes_vcf_index}" gnomad_exomes.vcf.gz
-      custom_args+=(--custom gnomad_exomes.vcf.gz,gnomADe,vcf,exact,0,AF,AF_popmax,nhomalt)
-    fi
-    if [[ -n "~{clinvar_vcf}" ]]; then
-      test -s "~{clinvar_vcf_index}"
-      link_with_tbi "~{clinvar_vcf}" "~{clinvar_vcf_index}" clinvar.vcf.gz
-      custom_args+=(--custom clinvar.vcf.gz,ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT)
-    fi
 
     if [[ -n "~{cadd_snv}" ]]; then
       test -s "~{cadd_snv_index}"
@@ -589,7 +561,7 @@ task VepAnnotate {
 
     pred_args=()
     if [[ "~{vep_sift_polyphen}" == "true" ]]; then
-      # Cache-native SIFT/PolyPhen (prediction + score). No extra files required.
+      # Optional cache-native SIFT/PolyPhen; prefer dbNSFP columns when that plugin is set.
       pred_args+=(--sift b --polyphen b)
     fi
 
@@ -608,7 +580,7 @@ task VepAnnotate {
     vep --offline --cache --dir_cache "$cache_arg" --fasta ref.fa --assembly GRCh38 \
       --vcf --allele_number --symbol --hgvs --canonical --pick --force_overwrite \
       --fork ~{threads} \
-      "${pred_args[@]}" "${custom_args[@]}" "${plugin_args[@]}" ~{extra_args} \
+      "${pred_args[@]}" "${plugin_args[@]}" ~{extra_args} \
       -i ~{vcf} -o panel.vep.vcf
     bgzip -f panel.vep.vcf
     tabix -p vcf panel.vep.vcf.gz
@@ -626,95 +598,30 @@ task VepAnnotate {
   }
 }
 
+# Copy gnomAD4.1_joint_* (or legacy) AF from CSQ into INFO for Introme's rare filter.
 task LiftGnomadInfo {
   input {
     File vcf
     File vcf_index
-    String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
+    File lift_gnomad_from_csq_py
+    String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(vcf, "GiB") * 3 + size(vcf_index, "GiB") + 150)
   command <<<
     set -euo pipefail
-    header=$(bcftools view -h ~{vcf})
-    # Already has the Introme/pdvar unified keys.
-    if grep -q '^##INFO=<ID=gnomAD_AF,' <<<"$header"; then
-      bcftools view -Oz -o lifted.vcf.gz ~{vcf}
-      bcftools index -t lifted.vcf.gz
-      exit 0
-    fi
-    has_split=0
-    has_legacy=0
-    grep -qE '^##INFO=<ID=gnomAD[ge]?_AF,' <<<"$header" && has_split=1 || true
-    grep -q '^##INFO=<ID=gnomAD,' <<<"$header" && has_legacy=1 || true
-    if [[ "$has_split" -eq 0 && "$has_legacy" -eq 0 ]]; then
-      echo "No VEP custom gnomAD INFO field. Introme rare filter stays a no-op." >&2
-      bcftools view -Oz -o lifted.vcf.gz ~{vcf}
-      bcftools index -t lifted.vcf.gz
-      exit 0
-    fi
-    # Build unified gnomAD_AF / AF_popmax as the max across genomes (gnomADg) and exomes (gnomADe),
-    # or lift the legacy pipe-delimited INFO/gnomAD=AF|AF_popmax|nhomalt annotation.
-    bcftools view ~{vcf} | awk -v has_split="$has_split" -v has_legacy="$has_legacy" 'BEGIN { OFS="\t" }
-      function maxnum(a, b,   x, y) {
-        x = a + 0; y = b + 0
-        if (a == "" || a == ".") return b
-        if (b == "" || b == ".") return a
-        return (x > y) ? a : b
-      }
-      function info_get(info, key,   n, i, parts, prefix) {
-        prefix = key "="
-        n = split(info, parts, ";")
-        for (i = 1; i <= n; i++) {
-          if (parts[i] == key) return "."
-          if (index(parts[i], prefix) == 1) return substr(parts[i], length(prefix) + 1)
-        }
-        return ""
-      }
-      /^##/ { print; next }
-      /^#CHROM/ {
-        print "##INFO=<ID=gnomAD_AF,Number=1,Type=Float,Description=\"Max AF across VEP gnomADg/gnomADe (or legacy gnomAD) custom annotations\">"
-        print "##INFO=<ID=AF_popmax,Number=1,Type=Float,Description=\"Max AF_popmax across VEP gnomADg/gnomADe (or legacy gnomAD) custom annotations\">"
-        print
-        next
-      }
-      {
-        info = $8
-        af = ""
-        pop = ""
-        if (has_split) {
-          g_af = info_get(info, "gnomADg_AF")
-          e_af = info_get(info, "gnomADe_AF")
-          legacy_af = info_get(info, "gnomAD_AF")
-          af = maxnum(maxnum(g_af, e_af), legacy_af)
-          g_pop = info_get(info, "gnomADg_AF_popmax")
-          e_pop = info_get(info, "gnomADe_AF_popmax")
-          legacy_pop = info_get(info, "gnomAD_AF_popmax")
-          pop = maxnum(maxnum(g_pop, e_pop), legacy_pop)
-        }
-        if ((af == "" || af == ".") && has_legacy) {
-          val = info_get(info, "gnomAD")
-          if (val != "" && val != ".") {
-            split(val, fields, "|")
-            af = fields[1]
-            pop = fields[2]
-            sub(/^[A-Za-z0-9_]+=/, "", af)
-            sub(/^[A-Za-z0-9_]+=/, "", pop)
-          }
-        }
-        if (af != "" && af != ".") info = info ";gnomAD_AF=" af
-        if (pop != "" && pop != ".") info = info ";AF_popmax=" pop
-        $8 = info
-        print
-      }' | bcftools view -Oz -o lifted.vcf.gz
-    bcftools index -t lifted.vcf.gz
+    apt-get update -qq
+    apt-get install -y -qq tabix >/dev/null
+    python3 "~{lift_gnomad_from_csq_py}" --in-vcf "~{vcf}" --out-vcf lifted.vcf
+    bgzip -f lifted.vcf
+    tabix -p vcf lifted.vcf.gz
   >>>
   output {
     File lifted_vcf = "lifted.vcf.gz"
     File lifted_vcf_index = "lifted.vcf.gz.tbi"
   }
   runtime {
-    docker: bcftools_docker
+    docker: python_docker
     preemptible: preemptible
     memory: "4 GiB"
     disks: "local-disk ~{disk_gb} HDD"

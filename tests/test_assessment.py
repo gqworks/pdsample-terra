@@ -145,7 +145,7 @@ def test_biomarker_multiplier_needs_citation():
 
 def test_splicevault_keeps_highest_proportion_without_new_points():
     variants = pd.DataFrame(
-        [{"variant_id": "1-10-A-G", "evidence_score": 4, "evidence_reasons": "spliceai_high", "consequence": "splice_region_variant"}]
+        [{"variant_id": "1-10-A-G", "evidence_score": 4, "evidence_reasons": "introme_high", "consequence": "splice_region_variant"}]
     )
     vault = pd.DataFrame(
         [
