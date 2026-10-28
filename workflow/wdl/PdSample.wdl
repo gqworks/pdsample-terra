@@ -694,8 +694,6 @@ workflow PdSample {
 
   output {
     Array[File] candidates = Assess.candidates
-    File gvcf = HaplotypeCaller.gvcf
-    File gvcf_index = HaplotypeCaller.gvcf_index
     File small_vcf = NormPass.normalized_vcf
     File small_vcf_index = NormPass.normalized_vcf_index
     File vep_vcf = LiftGnomadInfo.lifted_vcf
