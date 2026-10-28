@@ -87,9 +87,9 @@ Single-sample hard filters are used because VQSR fits tranches on a cohort and t
 | Output | File |
 | --- | --- |
 | `candidates` | Array of Assess files: `report.html`, `qc_summary.json`, `liability.tsv`, `followup.tsv`, `candidates.tsv` |
-| `small_vcf` | Filtered, normalized small-variant VCF |
-| `vep_vcf` | VEP VCF after the gnomAD INFO lift |
-| `sv_vcf` / `sv_vcf_index` | GATK-SV single-sample VCF and index |
+| `small_vcf` | `{sample_id}.small.vcf.gz` — filtered, normalized small-variant VCF |
+| `vep_vcf` | `{sample_id}.vep.vcf.gz` — VEP VCF after the gnomAD INFO lift |
+| `sv_vcf` / `sv_vcf_index` | `{sample_id}.sv.vcf.gz` — GATK-SV single-sample VCF and index |
 | `expansionhunter_vcf`, `gauchian_json`, `mtdna_vcf` | STR, GBA1, and mtDNA callsets |
 | `introme_tsv`, `introme_vcf` | Introme scores |
 

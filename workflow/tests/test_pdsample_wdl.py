@@ -84,6 +84,11 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "VepAnnotate" in text
     assert "PrepareDbnsfpForVep" not in text
     assert "LiftGnomadInfo" in text
+    assert "sample_id = sample_id" in text.split("call Tasks.LiftGnomadInfo", 1)[1].split("call Tasks.ExpansionHunter", 1)[0]
+    assert 'name = sample_id + ".sv.vcf.gz"' in text
+    assert 'name = sample_id + ".sv.vcf.gz.tbi"' in text
+    assert "File sv_vcf = NameSvVcf.released" in text
+    assert "File sv_vcf_index = NameSvVcfIndex.released" in text
     assert "--plugin" in sample_tasks
     assert "gnomADg" not in sample_tasks
     assert "gnomADe" not in sample_tasks
@@ -102,6 +107,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "clinvar_clnsig" in sample_tasks
     assert "gnomAD4.1_joint_AF" in sample_tasks
     assert "lift_gnomad_from_csq.py" in sample_tasks
+    assert '"~{sample_id}.vep.vcf.gz"' in sample_tasks
+    assert '"lifted.vcf.gz"' not in sample_tasks
     assert "task PrepareDbnsfpForVep" not in sample_tasks
     assert "prepare_dbnsfp_vep.py" not in sample_tasks
     terra_json = json.loads((ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8"))

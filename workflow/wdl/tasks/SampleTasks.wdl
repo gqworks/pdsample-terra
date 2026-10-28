@@ -670,6 +670,7 @@ task LiftGnomadInfo {
     File vcf
     File vcf_index
     File lift_gnomad_from_csq_py
+    String sample_id
     String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 3
   }
@@ -678,13 +679,13 @@ task LiftGnomadInfo {
     set -euo pipefail
     apt-get update -qq
     apt-get install -y -qq tabix >/dev/null
-    python3 "~{lift_gnomad_from_csq_py}" --in-vcf "~{vcf}" --out-vcf lifted.vcf
-    bgzip -f lifted.vcf
-    tabix -p vcf lifted.vcf.gz
+    python3 "~{lift_gnomad_from_csq_py}" --in-vcf "~{vcf}" --out-vcf "~{sample_id}.vep.vcf"
+    bgzip -f "~{sample_id}.vep.vcf"
+    tabix -p vcf "~{sample_id}.vep.vcf.gz"
   >>>
   output {
-    File lifted_vcf = "lifted.vcf.gz"
-    File lifted_vcf_index = "lifted.vcf.gz.tbi"
+    File lifted_vcf = "~{sample_id}.vep.vcf.gz"
+    File lifted_vcf_index = "~{sample_id}.vep.vcf.gz.tbi"
   }
   runtime {
     docker: python_docker
