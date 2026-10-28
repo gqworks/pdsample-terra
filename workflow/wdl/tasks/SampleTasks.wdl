@@ -620,9 +620,16 @@ task VepAnnotate {
     fi
     if [[ -n "~{dbnsfp}" ]]; then
       test -s "~{dbnsfp_index}"
-      link_with_tbi "~{dbnsfp}" "~{dbnsfp_index}" dbnsfp.gz
+      # The dbNSFP plugin parses its version from the *filename* (e.g. 5.4a in
+      # dbNSFP5.4a_grch38.gz). A bare dbnsfp.gz fails with:
+      # "Could not retrieve dbNSFP version from filename".
+      dbnsfp_local=$(basename "~{dbnsfp}")
+      if [[ ! "$dbnsfp_local" =~ [3-9]\.[0-9]+([ac])? ]]; then
+        dbnsfp_local="dbNSFP5.4a_grch38.gz"
+      fi
+      link_with_tbi "~{dbnsfp}" "~{dbnsfp_index}" "$dbnsfp_local"
       # transcript_match keeps missense scores on the picked Ensembl transcript when possible.
-      plugin_args+=(--plugin "dbNSFP,dbnsfp.gz,transcript_match=1,~{dbnsfp_fields}")
+      plugin_args+=(--plugin "dbNSFP,$dbnsfp_local,transcript_match=1,~{dbnsfp_fields}")
     fi
 
     pred_args=()
@@ -670,6 +677,7 @@ task LiftGnomadInfo {
     File vcf
     File vcf_index
     File lift_gnomad_from_csq_py
+    String sample_id
     String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 3
   }
@@ -678,13 +686,13 @@ task LiftGnomadInfo {
     set -euo pipefail
     apt-get update -qq
     apt-get install -y -qq tabix >/dev/null
-    python3 "~{lift_gnomad_from_csq_py}" --in-vcf "~{vcf}" --out-vcf lifted.vcf
-    bgzip -f lifted.vcf
-    tabix -p vcf lifted.vcf.gz
+    python3 "~{lift_gnomad_from_csq_py}" --in-vcf "~{vcf}" --out-vcf "~{sample_id}.vep.vcf"
+    bgzip -f "~{sample_id}.vep.vcf"
+    tabix -p vcf "~{sample_id}.vep.vcf.gz"
   >>>
   output {
-    File lifted_vcf = "lifted.vcf.gz"
-    File lifted_vcf_index = "lifted.vcf.gz.tbi"
+    File lifted_vcf = "~{sample_id}.vep.vcf.gz"
+    File lifted_vcf_index = "~{sample_id}.vep.vcf.gz.tbi"
   }
   runtime {
     docker: python_docker

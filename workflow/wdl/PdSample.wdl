@@ -436,6 +436,7 @@ workflow PdSample {
       vcf = VepAnnotate.vep_vcf,
       vcf_index = VepAnnotate.vep_index,
       lift_gnomad_from_csq_py = FetchRepoAssets.lift_gnomad_from_csq_py,
+      sample_id = sample_id,
       preemptible = preemptible
   }
   call Tasks.ExpansionHunter {
@@ -647,7 +648,19 @@ workflow PdSample {
   }
   File sample_sv_vcf = select_first(flatten([SubsetJointSvVcf.vcf, GatkSvSingle.final_vcf]))
   File sample_sv_vcf_index = select_first(flatten([SubsetJointSvVcf.vcf_index, GatkSvSingle.final_vcf_idx]))
-
+  # Stage as sample_id.sv.vcf.gz (GATK-SV finals are opaque; joint subset already matches).
+  call Tasks.ReleaseAfterQc as NameSvVcf {
+    input:
+      payload = sample_sv_vcf,
+      gate = QcGate.gate,
+      name = sample_id + ".sv.vcf.gz"
+  }
+  call Tasks.ReleaseAfterQc as NameSvVcfIndex {
+    input:
+      payload = sample_sv_vcf_index,
+      gate = QcGate.gate,
+      name = sample_id + ".sv.vcf.gz.tbi"
+  }
   call IntromeWf.Introme as Introme {
     input:
       vcf = LiftGnomadInfo.lifted_vcf,
@@ -692,7 +705,7 @@ workflow PdSample {
       sex = QcGate.sex,
       vep_vcf = LiftGnomadInfo.lifted_vcf,
       small_vcf = NormPass.normalized_vcf,
-      sv_vcf = sample_sv_vcf,
+      sv_vcf = NameSvVcf.released,
       sv_status = if defined(sv_joint_vcf) then "joint" else "called",
       expansionhunter_vcf = ExpansionHunter.vcf,
       gauchian_json = Gauchian.json,
@@ -720,20 +733,9 @@ workflow PdSample {
 
   output {
     Array[File] candidates = Assess.candidates
-    File gvcf = HaplotypeCaller.gvcf
-    File gvcf_index = HaplotypeCaller.gvcf_index
-    File small_vcf = NormPass.normalized_vcf
-    File small_vcf_index = NormPass.normalized_vcf_index
     File vep_vcf = LiftGnomadInfo.lifted_vcf
     File vep_vcf_index = LiftGnomadInfo.lifted_vcf_index
-    File sv_vcf = sample_sv_vcf
-    File sv_vcf_index = sample_sv_vcf_index
-    File expansionhunter_vcf = ExpansionHunter.vcf
-    File expansionhunter_vcf_index = ExpansionHunter.vcf_index
-    File gauchian_json = Gauchian.json
-    File mtdna_vcf = Mito.out_vcf
-    File mtdna_vcf_index = Mito.out_vcf_index
-    File introme_tsv = Introme.introme_tsv
-    File introme_vcf = Introme.introme_vcf
+    File sv_vcf = NameSvVcf.released
+    File sv_vcf_index = NameSvVcfIndex.released
   }
 }
