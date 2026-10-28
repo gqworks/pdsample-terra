@@ -136,6 +136,10 @@ workflow PdSample {
     # counts + pe + sr + sd to skip evidence collection entirely; provide each
     # caller VCF to skip that caller. Indexes are not separate WDL inputs —
     # keep .tbi objects next to the primary paths in GCS when tools need them.
+    # Not bound in PdSample.terra_inputs.json: featured-workspace sample columns
+    # (Coverage_count, manta_vcf, pesr_*) often hold deleted submission paths;
+    # a missing counts file then fails SetBins on size(). Set these method
+    # inputs only to live gs:// objects you intend to reuse.
     File? sv_case_manta_vcf
     File? sv_case_wham_vcf
     File? sv_case_scramble_vcf

@@ -52,6 +52,22 @@ Full exact URIs are in `PdSample.example.json`. hg38 reference twins (`sv_genome
 
 Removed vs v0.29-beta: `sv_empty_file` / `empty_file` (not an input at v1.1.1).
 
+## Optional per-sample evidence (skip GatherSampleEvidence pieces)
+
+Unset by default in `PdSample.terra_inputs.json`. Set a method input only when the `gs://` object is still live:
+
+| PdSample input | GATK-SV input | Typical sample column (do not auto-bind) |
+| --- | --- | --- |
+| `sv_case_manta_vcf` | `case_manta_vcf` | `manta_vcf` |
+| `sv_case_wham_vcf` | `case_wham_vcf` | `wham_vcf` |
+| `sv_case_scramble_vcf` | `case_scramble_vcf` | `scramble_vcf` |
+| `sv_case_counts_file` | `case_counts_file` | `Coverage_count` |
+| `sv_case_pe_file` | `case_pe_file` | `pesr_disc` |
+| `sv_case_sr_file` | `case_sr_file` | `pesr_split` |
+| `sv_case_sd_file` | `case_sd_file` | `pesr_sd` |
+
+A stale `Coverage_count` makes GATK-SV skip `CollectCounts`; `SetBins` then fails on `size()` of the missing file.
+
 ## Caller flags
 
 | PdSample input | GATK-SV input | Default |
