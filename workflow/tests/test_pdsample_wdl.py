@@ -107,6 +107,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "clinvar_clnsig" in sample_tasks
     assert "gnomAD4.1_joint_AF" in sample_tasks
     assert "lift_gnomad_from_csq.py" in sample_tasks
+    # Plugin parses version from the local filename; never use a bare dbnsfp.gz.
+    assert 'dbnsfp_local="dbNSFP5.4a_grch38.gz"' in sample_tasks
+    assert 'link_with_tbi "~{dbnsfp}" "~{dbnsfp_index}" dbnsfp.gz' not in sample_tasks
     assert '"~{sample_id}.vep.vcf.gz"' in sample_tasks
     assert '"lifted.vcf.gz"' not in sample_tasks
     assert "task PrepareDbnsfpForVep" not in sample_tasks
