@@ -980,13 +980,13 @@ PY
       "${extra[@]}"
   >>>
   output {
-    File sample_json = "sample.json"
-    File candidates_tsv = "out/candidates.tsv"
-    File report_html = "out/report.html"
-    File report_md = "out/report.md"
-    File qc_summary = "out/qc_summary.json"
-    File liability_tsv = "out/liability.tsv"
-    File followup_tsv = "out/followup.tsv"
+    Array[File] candidates = [
+      "out/report.html",
+      "out/qc_summary.json",
+      "out/liability.tsv",
+      "out/followup.tsv",
+      "out/candidates.tsv"
+    ]
   }
   runtime {
     docker: pdvar_docker

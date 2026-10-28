@@ -86,18 +86,12 @@ Single-sample hard filters are used because VQSR fits tranches on a cohort and t
 
 | Output | File |
 | --- | --- |
-| `candidates_tsv` | Ranked variants that are not `not_qualifying` |
-| `report_md` / `report_html` | Per-sample triage report |
-| `qc_summary` | QC JSON, including module status and `sv_status` |
-| `liability_tsv` / `followup_tsv` | Explained-liability row and single-hit follow-up |
+| `candidates` | Array of Assess files: `report.html`, `qc_summary.json`, `liability.tsv`, `followup.tsv`, `candidates.tsv` |
 | `gvcf`, `small_vcf` | HaplotypeCaller GVCF and filtered small-variant VCF |
 | `vep_vcf` | VEP VCF after the gnomAD INFO lift |
 | `sv_vcf` / `sv_vcf_index` | GATK-SV single-sample VCF and index |
-| `sv_status` | `called` |
 | `expansionhunter_vcf`, `gauchian_json`, `mtdna_vcf` | STR, GBA1, and mtDNA callsets |
 | `introme_tsv`, `introme_vcf` | Introme scores |
-| `sex_used` | Provided sex, or the inferred value |
-| `sample_json` | Internal JSON the Assess task reads |
 
 ## Assess container
 
