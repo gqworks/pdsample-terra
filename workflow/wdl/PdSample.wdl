@@ -144,8 +144,9 @@ workflow PdSample {
     File? sv_case_sr_file
     File? sv_case_sd_file
     # Optional cohort joint-called SV VCF (e.g. GATK-SV CleanVcf / FinalizeGVCF
-    # multi-sample output). When set, SubsetJointSvVcf keeps only sample_id and
-    # GATKSVPipelineSingleSample is not called. sample_id must match a header
+    # multi-sample output). Bind as a workspace attribute (workspace.sv_joint_vcf),
+    # not a sample-table column. When set, SubsetJointSvVcf keeps only sample_id
+    # and GATKSVPipelineSingleSample is not called. sample_id must match a header
     # sample column. Panel / evidence inputs below are unused on this path but
     # remain required File inputs for the default single-sample call path.
     File? sv_joint_vcf

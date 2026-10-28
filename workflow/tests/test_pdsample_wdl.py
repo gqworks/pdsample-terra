@@ -522,8 +522,8 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert "task SubsetJointSvVcf" in tasks
     assert 'bcftools view -s "${sample}" --min-ac 1' in tasks
     assert "String sv_status = \"called\"" in tasks
-    assert '"PdSample.sv_joint_vcf": "${this.sv_joint_vcf}"' in terra
-    assert '"PdSample.sv_joint_vcf_index": "${this.sv_joint_vcf_index}"' in terra
+    assert '"PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}"' in terra
+    assert '"PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}"' in terra
 
 
 def test_runtime_disk_gb_is_integer_ceiled():
