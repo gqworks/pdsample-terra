@@ -535,20 +535,23 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
 
 
 def test_sv_joint_vcf_skips_gatksv_single():
-    """Optional joint-called SV VCF subsets by sample_id and skips GatkSvSingle."""
+    """Joint SV VCF subsets by sample_id; absent samples fall back to GatkSvSingle."""
     text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert "File? sv_joint_vcf" in text
     assert "File? sv_joint_vcf_index" in text
-    assert "scatter (unused in if !defined(sv_joint_vcf) then [1] else [])" in text
     assert "scatter (unused in if defined(sv_joint_vcf) then [1] else [])" in text
+    assert "Boolean use_joint_sv = select_first(flatten([SubsetJointSvVcf.sample_found, [false]]))" in text
+    assert "scatter (unused in if !use_joint_sv then [1] else [])" in text
     assert "call Tasks.SubsetJointSvVcf" in text
     assert "call GatkSv.GATKSVPipelineSingleSample as GatkSvSingle" in text
-    assert "sample_sv_vcf = select_first(flatten([SubsetJointSvVcf.vcf, GatkSvSingle.final_vcf]))" in text
-    assert 'sv_status = if defined(sv_joint_vcf) then "joint" else "called"' in text
+    assert "sample_sv_vcf = select_first(flatten([GatkSvSingle.final_vcf, SubsetJointSvVcf.vcf]))" in text
+    assert 'sv_status = if use_joint_sv then "joint" else "called"' in text
     assert "task SubsetJointSvVcf" in tasks
+    assert "Boolean sample_found = read_boolean(\"sample_found.txt\")" in tasks
     assert 'bcftools view -s "${sample}" --min-ac 1' in tasks
+    assert "falling back to GATKSVPipelineSingleSample" in tasks
     assert "String sv_status = \"called\"" in tasks
     assert '"PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}"' in terra
     assert '"PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}"' in terra
