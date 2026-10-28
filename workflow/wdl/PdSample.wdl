@@ -719,7 +719,5 @@ workflow PdSample {
     File gauchian_json = Gauchian.json
     File mtdna_vcf = Mito.out_vcf
     File mtdna_vcf_index = Mito.out_vcf_index
-    File introme_tsv = Introme.introme_tsv
-    File introme_vcf = Introme.introme_vcf
   }
 }
