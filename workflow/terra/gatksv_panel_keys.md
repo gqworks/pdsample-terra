@@ -13,6 +13,8 @@ python3 scripts/inputs/build_inputs.py inputs/values inputs/templates/test/GATKS
 
 PdSample imports a **vendored** copy of `GATKSVPipelineSingleSample.wdl` (`workflow/wdl/vendor/gatk-sv/`) that rewrites nested imports to absolute v1.1.1 URLs and pass-throughs `HERVK_reference`, `LINE1_reference`, and `RefineComplexVariants.n_per_split` so Cromwell accepts the workflow as a sub-workflow.
 
+To skip that sub-workflow, set workspace attributes `sv_joint_vcf` / optional `sv_joint_vcf_index` to a cohort joint-called SV VCF (`workspace.sv_joint_vcf`). `SubsetJointSvVcf` keeps only `sample_id` (must match a header sample column). Panel workspace attributes above are still required by the method config for the default path; they are unused when the joint VCF is set.
+
 ## Matched panel
 
 Use one panel bundle. Do not mix the old `gs://gatk-sv-ref-panel-1kg/...` v0.29-beta paths with the v1.1.1 `gatk-sv-ref-panel-1kg-v1-0-1` files. Swap every `ref_panel_*` attribute together when upgrading a workspace.

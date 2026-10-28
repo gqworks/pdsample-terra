@@ -7,7 +7,7 @@ import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai), including required GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai). GATK-SV v1.1.1 (Scramble on, MELT off) runs unless sv_joint_vcf is set, in which case that joint-called SV VCF is subset to sample_id and GATKSVPipelineSingleSample is skipped. A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
   }
   input {
     String sample_id
@@ -143,6 +143,14 @@ workflow PdSample {
     File? sv_case_pe_file
     File? sv_case_sr_file
     File? sv_case_sd_file
+    # Optional cohort joint-called SV VCF (e.g. GATK-SV CleanVcf / FinalizeGVCF
+    # multi-sample output). Bind as a workspace attribute (workspace.sv_joint_vcf),
+    # not a sample-table column. When set, SubsetJointSvVcf keeps only sample_id
+    # and GATKSVPipelineSingleSample is not called. sample_id must match a header
+    # sample column. Panel / evidence inputs below are unused on this path but
+    # remain required File inputs for the default single-sample call path.
+    File? sv_joint_vcf
+    File? sv_joint_vcf_index
     File sv_ref_samples_list
     File sv_ref_ped_file
     File sv_genome_file
@@ -504,136 +512,152 @@ workflow PdSample {
       compress_output_vcf = false,
       preemptible_tries = preemptible
   }
-  call GatkSv.GATKSVPipelineSingleSample as GatkSvSingle {
-    input:
-      sample_id = sample_id,
-      batch = "pd-sample",
-      bam_or_cram_file = ReleaseBam.released,
-      bam_or_cram_index = ReleaseBai.released,
-      reference_version = "38",
-      use_melt = sv_use_melt,
-      use_scramble = sv_use_scramble,
-      case_manta_vcf = sv_case_manta_vcf,
-      case_wham_vcf = sv_case_wham_vcf,
-      case_scramble_vcf = sv_case_scramble_vcf,
-      case_counts_file = sv_case_counts_file,
-      case_pe_file = sv_case_pe_file,
-      case_sr_file = sv_case_sr_file,
-      case_sd_file = sv_case_sd_file,
-      ref_samples_list = sv_ref_samples_list,
-      ref_ped_file = sv_ref_ped_file,
-      genome_file = sv_genome_file,
-      primary_contigs_list = sv_primary_contigs_list,
-      primary_contigs_fai = sv_primary_contigs_fai,
-      reference_fasta = sv_reference_fasta,
-      reference_index = sv_reference_index,
-      reference_dict = sv_reference_dict,
-      ref_panel_vcf = sv_ref_panel_vcf,
-      autosome_file = sv_autosome_file,
-      allosome_file = sv_allosome_file,
-      sv_base_mini_docker = sv_sv_base_mini_docker,
-      sv_base_docker = sv_sv_base_docker,
-      sv_pipeline_docker = sv_sv_pipeline_docker,
-      sv_pipeline_qc_docker = sv_sv_pipeline_qc_docker,
-      linux_docker = sv_linux_docker,
-      cnmops_docker = sv_cnmops_docker,
-      gatk_docker = sv_gatk_docker,
-      condense_counts_docker = sv_condense_counts_docker,
-      genomes_in_the_cloud_docker = sv_genomes_in_the_cloud_docker,
-      samtools_cloud_docker = sv_samtools_cloud_docker,
-      cloud_sdk_docker = sv_cloud_sdk_docker,
-      gq_recalibrator_gatk_docker = sv_gq_recalibrator_gatk_docker,
-      preprocessed_intervals = sv_preprocessed_intervals,
-      manta_region_bed = sv_manta_region_bed,
-      manta_region_bed_index = sv_manta_region_bed_index,
-      manta_jobs_per_cpu = sv_manta_jobs_per_cpu,
-      runtime_attr_manta = object {
-        cpu_cores: sv_caller_cpu_cores,
-        mem_gb: sv_caller_mem_gb
-      },
-      runtime_attr_wham = object {
-        cpu_cores: sv_caller_cpu_cores,
-        mem_gb: sv_caller_mem_gb
-      },
-      sd_locs_vcf = sv_sd_locs_vcf,
-      wham_include_list_bed_file = sv_wham_include_list_bed_file,
-      run_vcf_qc = sv_run_vcf_qc,
-      wgd_scoring_mask = sv_wgd_scoring_mask,
-      min_svsize = sv_min_svsize,
-      contig_ploidy_model_tar = sv_contig_ploidy_model_tar,
-      gcnv_model_tars_list = sv_gcnv_model_tars_list,
-      ref_panel_bincov_matrix = sv_ref_panel_bincov_matrix,
-      ref_pesr_disc_files_list = sv_ref_pesr_disc_files_list,
-      ref_pesr_split_files_list = sv_ref_pesr_split_files_list,
-      ref_pesr_sd_files_list = sv_ref_pesr_sd_files_list,
-      ref_copy_number_autosomal_contigs = sv_ref_copy_number_autosomal_contigs,
-      gcnv_qs_cutoff = sv_gcnv_qs_cutoff,
-      cnmops_exclude_list = sv_cnmops_exclude_list,
-      matrix_qc_distance = sv_matrix_qc_distance,
-      ref_std_manta_vcf_tar = sv_ref_std_manta_vcf_tar,
-      ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar,
-      ref_std_wham_vcf_tar = sv_ref_std_wham_vcf_tar,
-      ref_panel_del_bed = sv_ref_panel_del_bed,
-      ref_panel_dup_bed = sv_ref_panel_dup_bed,
-      depth_exclude_list = sv_depth_exclude_list,
-      depth_exclude_overlap_fraction = sv_depth_exclude_overlap_fraction,
-      depth_interval_overlap = sv_depth_interval_overlap,
-      pesr_exclude_intervals = sv_pesr_exclude_intervals,
-      pesr_interval_overlap = sv_pesr_interval_overlap,
-      pesr_breakend_window = sv_pesr_breakend_window,
-      rmsk = sv_rmsk,
-      segdups = sv_segdups,
-      genotyping_n_per_split = sv_genotyping_n_per_split,
-      n_RD_genotype_bins = sv_n_RD_genotype_bins,
-      cutoffs = sv_cutoffs,
-      genotype_pesr_pesr_sepcutoff = sv_genotype_pesr_pesr_sepcutoff,
-      genotype_pesr_depth_sepcutoff = sv_genotype_pesr_depth_sepcutoff,
-      genotype_depth_pesr_sepcutoff = sv_genotype_depth_pesr_sepcutoff,
-      genotype_depth_depth_sepcutoff = sv_genotype_depth_depth_sepcutoff,
-      SR_metrics = sv_SR_metrics,
-      PE_metrics = sv_PE_metrics,
-      bin_exclude = sv_bin_exclude,
-      clean_vcf_min_sr_background_fail_batches = sv_clean_vcf_min_sr_background_fail_batches,
-      cytobands = sv_cytobands,
-      mei_bed = sv_mei_bed,
-      max_shard_size_resolve = sv_max_shard_size_resolve,
-      clean_vcf_max_shards_per_chrom_clean_vcf_step1 = sv_clean_vcf_max_shards_per_chrom_clean_vcf_step1,
-      clean_vcf_min_records_per_shard_clean_vcf_step1 = sv_clean_vcf_min_records_per_shard_clean_vcf_step1,
-      clean_vcf_samples_per_clean_vcf_step2_shard = sv_clean_vcf_samples_per_clean_vcf_step2_shard,
-      clean_vcf5_records_per_shard = sv_clean_vcf5_records_per_shard,
-      clean_vcf1b_records_per_shard = sv_clean_vcf1b_records_per_shard,
-      protein_coding_gtf = sv_protein_coding_gtf,
-      noncoding_bed = sv_noncoding_bed,
-      annotation_sv_per_shard = sv_annotation_sv_per_shard,
-      qc_definitions = sv_qc_definitions,
-      clustering_config_part1 = sv_clustering_config_part1,
-      clustering_config_part2 = sv_clustering_config_part2,
-      stratification_config_part1 = sv_stratification_config_part1,
-      stratification_config_part2 = sv_stratification_config_part2,
-      clustering_track_bed_files = sv_clustering_track_bed_files,
-      clustering_track_names = sv_clustering_track_names,
-      gq_recalibrator_model_file = sv_gq_recalibrator_model_file,
-      genome_tracks = sv_genome_tracks,
-      recalibrate_gq_args = sv_recalibrate_gq_args,
-      sl_filter_args = sv_sl_filter_args,
-      HERVK_reference = sv_hervk_reference,
-      LINE1_reference = sv_line1_reference,
-      refine_complex_n_per_split = sv_refine_complex_n_per_split,
-      svtk_to_gatk_script = FetchRepoAssets.svtk_to_gatk_script,
-      manta_docker = sv_manta_docker,
-      scramble_docker = sv_scramble_docker,
-      wham_docker = sv_wham_docker
+  # Default: run GATK-SV single-sample. When sv_joint_vcf is set, subset that
+  # joint-called VCF to sample_id and skip GatkSvSingle entirely. scatter+if
+  # keeps Array[File] outputs (same pattern as reference_dict_files above).
+  scatter (unused in if !defined(sv_joint_vcf) then [1] else []) {
+    call GatkSv.GATKSVPipelineSingleSample as GatkSvSingle {
+      input:
+        sample_id = sample_id,
+        batch = "pd-sample",
+        bam_or_cram_file = ReleaseBam.released,
+        bam_or_cram_index = ReleaseBai.released,
+        reference_version = "38",
+        use_melt = sv_use_melt,
+        use_scramble = sv_use_scramble,
+        case_manta_vcf = sv_case_manta_vcf,
+        case_wham_vcf = sv_case_wham_vcf,
+        case_scramble_vcf = sv_case_scramble_vcf,
+        case_counts_file = sv_case_counts_file,
+        case_pe_file = sv_case_pe_file,
+        case_sr_file = sv_case_sr_file,
+        case_sd_file = sv_case_sd_file,
+        ref_samples_list = sv_ref_samples_list,
+        ref_ped_file = sv_ref_ped_file,
+        genome_file = sv_genome_file,
+        primary_contigs_list = sv_primary_contigs_list,
+        primary_contigs_fai = sv_primary_contigs_fai,
+        reference_fasta = sv_reference_fasta,
+        reference_index = sv_reference_index,
+        reference_dict = sv_reference_dict,
+        ref_panel_vcf = sv_ref_panel_vcf,
+        autosome_file = sv_autosome_file,
+        allosome_file = sv_allosome_file,
+        sv_base_mini_docker = sv_sv_base_mini_docker,
+        sv_base_docker = sv_sv_base_docker,
+        sv_pipeline_docker = sv_sv_pipeline_docker,
+        sv_pipeline_qc_docker = sv_sv_pipeline_qc_docker,
+        linux_docker = sv_linux_docker,
+        cnmops_docker = sv_cnmops_docker,
+        gatk_docker = sv_gatk_docker,
+        condense_counts_docker = sv_condense_counts_docker,
+        genomes_in_the_cloud_docker = sv_genomes_in_the_cloud_docker,
+        samtools_cloud_docker = sv_samtools_cloud_docker,
+        cloud_sdk_docker = sv_cloud_sdk_docker,
+        gq_recalibrator_gatk_docker = sv_gq_recalibrator_gatk_docker,
+        preprocessed_intervals = sv_preprocessed_intervals,
+        manta_region_bed = sv_manta_region_bed,
+        manta_region_bed_index = sv_manta_region_bed_index,
+        manta_jobs_per_cpu = sv_manta_jobs_per_cpu,
+        runtime_attr_manta = object {
+          cpu_cores: sv_caller_cpu_cores,
+          mem_gb: sv_caller_mem_gb
+        },
+        runtime_attr_wham = object {
+          cpu_cores: sv_caller_cpu_cores,
+          mem_gb: sv_caller_mem_gb
+        },
+        sd_locs_vcf = sv_sd_locs_vcf,
+        wham_include_list_bed_file = sv_wham_include_list_bed_file,
+        run_vcf_qc = sv_run_vcf_qc,
+        wgd_scoring_mask = sv_wgd_scoring_mask,
+        min_svsize = sv_min_svsize,
+        contig_ploidy_model_tar = sv_contig_ploidy_model_tar,
+        gcnv_model_tars_list = sv_gcnv_model_tars_list,
+        ref_panel_bincov_matrix = sv_ref_panel_bincov_matrix,
+        ref_pesr_disc_files_list = sv_ref_pesr_disc_files_list,
+        ref_pesr_split_files_list = sv_ref_pesr_split_files_list,
+        ref_pesr_sd_files_list = sv_ref_pesr_sd_files_list,
+        ref_copy_number_autosomal_contigs = sv_ref_copy_number_autosomal_contigs,
+        gcnv_qs_cutoff = sv_gcnv_qs_cutoff,
+        cnmops_exclude_list = sv_cnmops_exclude_list,
+        matrix_qc_distance = sv_matrix_qc_distance,
+        ref_std_manta_vcf_tar = sv_ref_std_manta_vcf_tar,
+        ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar,
+        ref_std_wham_vcf_tar = sv_ref_std_wham_vcf_tar,
+        ref_panel_del_bed = sv_ref_panel_del_bed,
+        ref_panel_dup_bed = sv_ref_panel_dup_bed,
+        depth_exclude_list = sv_depth_exclude_list,
+        depth_exclude_overlap_fraction = sv_depth_exclude_overlap_fraction,
+        depth_interval_overlap = sv_depth_interval_overlap,
+        pesr_exclude_intervals = sv_pesr_exclude_intervals,
+        pesr_interval_overlap = sv_pesr_interval_overlap,
+        pesr_breakend_window = sv_pesr_breakend_window,
+        rmsk = sv_rmsk,
+        segdups = sv_segdups,
+        genotyping_n_per_split = sv_genotyping_n_per_split,
+        n_RD_genotype_bins = sv_n_RD_genotype_bins,
+        cutoffs = sv_cutoffs,
+        genotype_pesr_pesr_sepcutoff = sv_genotype_pesr_pesr_sepcutoff,
+        genotype_pesr_depth_sepcutoff = sv_genotype_pesr_depth_sepcutoff,
+        genotype_depth_pesr_sepcutoff = sv_genotype_depth_pesr_sepcutoff,
+        genotype_depth_depth_sepcutoff = sv_genotype_depth_depth_sepcutoff,
+        SR_metrics = sv_SR_metrics,
+        PE_metrics = sv_PE_metrics,
+        bin_exclude = sv_bin_exclude,
+        clean_vcf_min_sr_background_fail_batches = sv_clean_vcf_min_sr_background_fail_batches,
+        cytobands = sv_cytobands,
+        mei_bed = sv_mei_bed,
+        max_shard_size_resolve = sv_max_shard_size_resolve,
+        clean_vcf_max_shards_per_chrom_clean_vcf_step1 = sv_clean_vcf_max_shards_per_chrom_clean_vcf_step1,
+        clean_vcf_min_records_per_shard_clean_vcf_step1 = sv_clean_vcf_min_records_per_shard_clean_vcf_step1,
+        clean_vcf_samples_per_clean_vcf_step2_shard = sv_clean_vcf_samples_per_clean_vcf_step2_shard,
+        clean_vcf5_records_per_shard = sv_clean_vcf5_records_per_shard,
+        clean_vcf1b_records_per_shard = sv_clean_vcf1b_records_per_shard,
+        protein_coding_gtf = sv_protein_coding_gtf,
+        noncoding_bed = sv_noncoding_bed,
+        annotation_sv_per_shard = sv_annotation_sv_per_shard,
+        qc_definitions = sv_qc_definitions,
+        clustering_config_part1 = sv_clustering_config_part1,
+        clustering_config_part2 = sv_clustering_config_part2,
+        stratification_config_part1 = sv_stratification_config_part1,
+        stratification_config_part2 = sv_stratification_config_part2,
+        clustering_track_bed_files = sv_clustering_track_bed_files,
+        clustering_track_names = sv_clustering_track_names,
+        gq_recalibrator_model_file = sv_gq_recalibrator_model_file,
+        genome_tracks = sv_genome_tracks,
+        recalibrate_gq_args = sv_recalibrate_gq_args,
+        sl_filter_args = sv_sl_filter_args,
+        HERVK_reference = sv_hervk_reference,
+        LINE1_reference = sv_line1_reference,
+        refine_complex_n_per_split = sv_refine_complex_n_per_split,
+        svtk_to_gatk_script = FetchRepoAssets.svtk_to_gatk_script,
+        manta_docker = sv_manta_docker,
+        scramble_docker = sv_scramble_docker,
+        wham_docker = sv_wham_docker
     }
-  # GATK-SV final filenames are opaque (*final_cleanup*). Stage as sample_id.sv.vcf.gz.
+  }
+  scatter (unused in if defined(sv_joint_vcf) then [1] else []) {
+    call Tasks.SubsetJointSvVcf {
+      input:
+        joint_vcf = select_first([sv_joint_vcf]),
+        joint_vcf_index = sv_joint_vcf_index,
+        sample_id = sample_id,
+        preemptible = preemptible
+    }
+  }
+  File sample_sv_vcf = select_first(flatten([SubsetJointSvVcf.vcf, GatkSvSingle.final_vcf]))
+  File sample_sv_vcf_index = select_first(flatten([SubsetJointSvVcf.vcf_index, GatkSvSingle.final_vcf_idx]))
+  # Stage as sample_id.sv.vcf.gz (GATK-SV finals are opaque; joint subset already matches).
   call Tasks.ReleaseAfterQc as NameSvVcf {
     input:
-      payload = GatkSvSingle.final_vcf,
+      payload = sample_sv_vcf,
       gate = QcGate.gate,
       name = sample_id + ".sv.vcf.gz"
   }
   call Tasks.ReleaseAfterQc as NameSvVcfIndex {
     input:
-      payload = GatkSvSingle.final_vcf_idx,
+      payload = sample_sv_vcf_index,
       gate = QcGate.gate,
       name = sample_id + ".sv.vcf.gz.tbi"
   }
@@ -682,6 +706,7 @@ workflow PdSample {
       vep_vcf = LiftGnomadInfo.lifted_vcf,
       small_vcf = NormPass.normalized_vcf,
       sv_vcf = NameSvVcf.released,
+      sv_status = if defined(sv_joint_vcf) then "joint" else "called",
       expansionhunter_vcf = ExpansionHunter.vcf,
       gauchian_json = Gauchian.json,
       mtdna_vcf = Mito.out_vcf,

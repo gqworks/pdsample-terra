@@ -154,8 +154,10 @@ def assess_sample(
         snv_samples=[sample_id],
     )
     frames.append(_relabel(table, sample_id))
-    notes["gatk_sv"] = "called"
-    sv_status = "called"
+    # Workflow may set sv_status to "joint" when subsetting a pre-existing
+    # joint-called SV VCF (skips GATKSVPipelineSingleSample).
+    sv_status = str(sample.get("sv_status") or "called")
+    notes["gatk_sv"] = sv_status
 
     callset_table, callset_assessment = callsets.ingest_sample_callsets(
         sample_id,

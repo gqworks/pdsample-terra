@@ -826,6 +826,60 @@ task ReleaseAfterQc {
   }
 }
 
+# Extract one sample from a cohort joint-called SV VCF (GATK-SV CleanVcf /
+# final multi-sample style). Used when PdSample.sv_joint_vcf is set so
+# GATKSVPipelineSingleSample is skipped. sample_id must match a VCF header
+# sample column exactly.
+task SubsetJointSvVcf {
+  input {
+    File joint_vcf
+    File? joint_vcf_index
+    String sample_id
+    String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(joint_vcf, "GiB") * 2 + size(select_first([joint_vcf_index, joint_vcf]), "GiB") + 50)
+  command <<<
+    set -euo pipefail
+    sample="~{sample_id}"
+    vcf="~{joint_vcf}"
+    idx='~{default="" joint_vcf_index}'
+    # Prefer a sidecar index when Cromwell localized one; otherwise build it.
+    if [[ -n "${idx}" ]]; then
+      base="$(basename "${vcf}")"
+      if [[ ! -e "${base}" ]]; then
+        ln -s "${vcf}" "${base}"
+      fi
+      if [[ ! -e "${base}.tbi" && ! -e "${base}.csi" ]]; then
+        ln -s "${idx}" "${base}.tbi" 2>/dev/null || ln -s "${idx}" "${base}.csi"
+      fi
+      vcf="${base}"
+    elif [[ ! -e "${vcf}.tbi" && ! -e "${vcf}.csi" ]]; then
+      bcftools index -t "${vcf}" || bcftools index "${vcf}"
+    fi
+    if ! bcftools query -l "${vcf}" | grep -Fxq "${sample}"; then
+      echo "sample_id '${sample}' is not in the joint SV VCF header. Available samples:" >&2
+      bcftools query -l "${vcf}" >&2
+      exit 1
+    fi
+    # Keep sites where this sample is a non-ref carrier; drop other samples.
+    bcftools view -s "${sample}" --min-ac 1 -Oz -o "${sample}.sv.vcf.gz" "${vcf}"
+    bcftools index -t "${sample}.sv.vcf.gz"
+    bcftools query -l "${sample}.sv.vcf.gz" | grep -Fxq "${sample}"
+  >>>
+  output {
+    File vcf = "~{sample_id}.sv.vcf.gz"
+    File vcf_index = "~{sample_id}.sv.vcf.gz.tbi"
+  }
+  runtime {
+    docker: bcftools_docker
+    preemptible: preemptible
+    memory: "4 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 1
+  }
+}
+
 task AnnotateAvi {
   input {
     File vcf
@@ -873,6 +927,8 @@ task Assess {
     File vep_vcf
     File small_vcf
     File sv_vcf
+    # "called" from GATKSVPipelineSingleSample; "joint" when subset from sv_joint_vcf.
+    String sv_status = "called"
     File expansionhunter_vcf
     File gauchian_json
     File mtdna_vcf
@@ -923,6 +979,7 @@ task Assess {
     export VEP_VCF="~{vep_vcf}"
     export SMALL_VCF="~{small_vcf}"
     export SV_VCF="~{sv_vcf}"
+    export SV_STATUS="~{sv_status}"
     export EH_VCF="~{expansionhunter_vcf}"
     export GAUCHIAN_JSON="~{gauchian_json}"
     export MTDNA_VCF="~{mtdna_vcf}"
@@ -960,7 +1017,7 @@ document = {
     "vep_vcf": os.environ["VEP_VCF"],
     "small_vcf": os.environ["SMALL_VCF"],
     "sv_vcf": os.environ["SV_VCF"],
-    "sv_status": "called",
+    "sv_status": os.environ.get("SV_STATUS") or "called",
     "expansionhunter_vcf": os.environ["EH_VCF"],
     "gauchian_json": os.environ["GAUCHIAN_JSON"],
     "mtdna_vcf": os.environ["MTDNA_VCF"],

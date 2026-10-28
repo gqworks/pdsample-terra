@@ -23,9 +23,17 @@ workflow GATKSVPipelineSingleSample {
     Boolean use_scramble = true
     Boolean use_manta = true
     Boolean use_wham = true
+    File? case_manta_vcf
+    File? case_wham_vcf
+    File? case_scramble_vcf
+    File? case_counts_file
+    File? case_pe_file
+    File? case_sr_file
+    File? case_sd_file
     File HERVK_reference
     File LINE1_reference
     Int refine_complex_n_per_split = 15000
+    File? svtk_to_gatk_script
     File ref_samples_list
     File ref_ped_file
     File genome_file
