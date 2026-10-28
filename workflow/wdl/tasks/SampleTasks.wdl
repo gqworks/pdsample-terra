@@ -620,9 +620,16 @@ task VepAnnotate {
     fi
     if [[ -n "~{dbnsfp}" ]]; then
       test -s "~{dbnsfp_index}"
-      link_with_tbi "~{dbnsfp}" "~{dbnsfp_index}" dbnsfp.gz
+      # The dbNSFP plugin parses its version from the *filename* (e.g. 5.4a in
+      # dbNSFP5.4a_grch38.gz). A bare dbnsfp.gz fails with:
+      # "Could not retrieve dbNSFP version from filename".
+      dbnsfp_local=$(basename "~{dbnsfp}")
+      if [[ ! "$dbnsfp_local" =~ [3-9]\.[0-9]+([ac])? ]]; then
+        dbnsfp_local="dbNSFP5.4a_grch38.gz"
+      fi
+      link_with_tbi "~{dbnsfp}" "~{dbnsfp_index}" "$dbnsfp_local"
       # transcript_match keeps missense scores on the picked Ensembl transcript when possible.
-      plugin_args+=(--plugin "dbNSFP,dbnsfp.gz,transcript_match=1,~{dbnsfp_fields}")
+      plugin_args+=(--plugin "dbNSFP,$dbnsfp_local,transcript_match=1,~{dbnsfp_fields}")
     fi
 
     pred_args=()
