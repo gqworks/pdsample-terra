@@ -160,7 +160,22 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File reference_report" not in text
     assert "File gvcf =" not in text
     assert "File gvcf_index =" not in text
-    assert "File small_vcf = NormPass.normalized_vcf" in text
+    assert "File introme_tsv =" not in text
+    assert "File introme_vcf =" not in text
+    assert "File expansionhunter_vcf =" not in text
+    assert "File expansionhunter_vcf_index =" not in text
+    assert "File small_vcf =" not in text
+    assert "File small_vcf_index =" not in text
+    assert "File gauchian_json =" not in text
+    assert "File mtdna_vcf =" not in text
+    assert "File mtdna_vcf_index =" not in text
+    assert "introme_tsv = Introme.introme_tsv" in text
+    assert "expansionhunter_vcf = ExpansionHunter.vcf" in text
+    assert "small_vcf = NormPass.normalized_vcf" in text
+    assert "gauchian_json = Gauchian.json" in text
+    assert "mtdna_vcf = Mito.out_vcf" in text
+    assert "File vep_vcf = LiftGnomadInfo.lifted_vcf" in text
+    assert "File sv_vcf = NameSvVcf.released" in text
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert 'Array[File] candidates = [' in tasks
     assert '"out/report.html"' in tasks

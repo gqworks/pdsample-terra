@@ -708,18 +708,9 @@ workflow PdSample {
 
   output {
     Array[File] candidates = Assess.candidates
-    File small_vcf = NormPass.normalized_vcf
-    File small_vcf_index = NormPass.normalized_vcf_index
     File vep_vcf = LiftGnomadInfo.lifted_vcf
     File vep_vcf_index = LiftGnomadInfo.lifted_vcf_index
     File sv_vcf = NameSvVcf.released
     File sv_vcf_index = NameSvVcfIndex.released
-    File expansionhunter_vcf = ExpansionHunter.vcf
-    File expansionhunter_vcf_index = ExpansionHunter.vcf_index
-    File gauchian_json = Gauchian.json
-    File mtdna_vcf = Mito.out_vcf
-    File mtdna_vcf_index = Mito.out_vcf_index
-    File introme_tsv = Introme.introme_tsv
-    File introme_vcf = Introme.introme_vcf
   }
 }
