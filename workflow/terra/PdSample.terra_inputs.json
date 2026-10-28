@@ -50,6 +50,8 @@
   "PdSample.sv_case_pe_file": "${this.pesr_disc}",
   "PdSample.sv_case_sr_file": "${this.pesr_split}",
   "PdSample.sv_case_sd_file": "${this.pesr_sd}",
+  "PdSample.sv_joint_vcf": "${this.sv_joint_vcf}",
+  "PdSample.sv_joint_vcf_index": "${this.sv_joint_vcf_index}",
   "PdSample.sv_ref_samples_list": "${workspace.ref_panel_samples_list}",
   "PdSample.sv_ref_ped_file": "${workspace.ref_panel_ped_file}",
   "PdSample.sv_ref_panel_vcf": "${workspace.ref_panel_vcf}",

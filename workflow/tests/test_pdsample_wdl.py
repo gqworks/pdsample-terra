@@ -506,6 +506,26 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert 'File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"' in tasks
 
 
+def test_sv_joint_vcf_skips_gatksv_single():
+    """Optional joint-called SV VCF subsets by sample_id and skips GatkSvSingle."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
+    assert "File? sv_joint_vcf" in text
+    assert "File? sv_joint_vcf_index" in text
+    assert "scatter (unused in if !defined(sv_joint_vcf) then [1] else [])" in text
+    assert "scatter (unused in if defined(sv_joint_vcf) then [1] else [])" in text
+    assert "call Tasks.SubsetJointSvVcf" in text
+    assert "call GatkSv.GATKSVPipelineSingleSample as GatkSvSingle" in text
+    assert "sample_sv_vcf = select_first(flatten([SubsetJointSvVcf.vcf, GatkSvSingle.final_vcf]))" in text
+    assert 'sv_status = if defined(sv_joint_vcf) then "joint" else "called"' in text
+    assert "task SubsetJointSvVcf" in tasks
+    assert 'bcftools view -s "${sample}" --min-ac 1' in tasks
+    assert "String sv_status = \"called\"" in tasks
+    assert '"PdSample.sv_joint_vcf": "${this.sv_joint_vcf}"' in terra
+    assert '"PdSample.sv_joint_vcf_index": "${this.sv_joint_vcf_index}"' in terra
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"

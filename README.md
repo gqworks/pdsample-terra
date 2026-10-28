@@ -54,8 +54,10 @@ Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https:
 | `symptoms` | no | Free-text clinical features. Keywords are matched to each gene profile in `config/gene_phenotypes.yaml` (for example dementia, tremor, dystonia, levodopa responsive, hallucinations, autonomic). |
 | `ethnicity` | no | Ancestry text. Matched against `enriched_ancestry` on the gene profile (for example Ashkenazi Jewish for GBA1 and LRRK2). |
 | `phenotype_report` | no | `gs://` text file in the GP2-style sheet layout (`GP2ID`, sex, age at onset, levodopa, exposures and comorbidities). Leave the cell empty when the patient has no report. |
+| `sv_joint_vcf` | no | Cohort joint-called SV VCF. When set, skips `GATKSVPipelineSingleSample` and subsets to `sample_id`. |
+| `sv_joint_vcf_index` | no | Tabix/CSI index for `sv_joint_vcf`. Optional; built in-task when missing. |
 
-Add `age_onset`, `symptoms`, `ethnicity`, and `phenotype_report` to the sample table even when a row leaves them blank. `workflow/terra/PdSample.terra_inputs.json` binds those columns. A phenotype report is parsed into age at onset, levodopa, sampling age, diagnosis, and the comorbidity list. Explicit `age_onset`, `symptoms`, and `ethnicity` override the same fields from the report. The same text pasted into `symptoms` is recognized and parsed instead of being searched as free-text keywords.
+Add `age_onset`, `symptoms`, `ethnicity`, `phenotype_report`, `sv_joint_vcf`, and `sv_joint_vcf_index` to the sample table even when a row leaves them blank. `workflow/terra/PdSample.terra_inputs.json` binds those columns. A phenotype report is parsed into age at onset, levodopa, sampling age, diagnosis, and the comorbidity list. Explicit `age_onset`, `symptoms`, and `ethnicity` override the same fields from the report. The same text pasted into `symptoms` is recognized and parsed instead of being searched as free-text keywords.
 
 Assess writes `clinical_match` on each candidate, including risk variants (`risk_carrier`, `risk_biallelic`, and genes flagged `risk_allele_exception`). Onset, symptom keywords, and ancestry drive that match. Levodopa use is stored as a biomarker note on early-onset recessive genes. Comorbidities are printed on the report. They are not gene-profile keywords, so hypertension, constipation, hearing loss, and the other lines on the example sheet do not by themselves mark a risk variant as clinically matched. Genes with no profile stay `no_profile`. A blank phenotype leaves `clinical_match` as `not_assessed`.
 
@@ -69,7 +71,7 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 2. **Reference check.** The alignment header `@SQ` MD5s are compared with the reference dictionary. A missing `chr` prefix fails the check.
 3. **QC.** VerifyBamID2 contamination (`FREEMIX` above 0.02 fails the sample by default), somalier extract plus relate on this sample only (sex; relatedness is not run), and mosdepth on the calling BED. Callers wait on the QC gate.
 4. **Small variants.** GATK 4.6.1.0 HaplotypeCaller in GVCF mode, then GenotypeGVCFs, then GATK hard filters, then `bcftools view -f PASS` and `bcftools norm -m -both`. Intervals default to `workflow/assets/monopdaus-genes.grch38.bed`. Set `wgs_small_variants` true to call the whole genome.
-5. **Structural variants.** `GATKSVPipelineSingleSample` v1.1.1 runs on every sample. The reference-panel and hg38 resource inputs are required. `sv_status` is `called`. A missing SV VCF is an error in `pdvar assess`.
+5. **Structural variants.** By default `GATKSVPipelineSingleSample` v1.1.1 runs on every sample (`sv_status` `called`). Set optional `sv_joint_vcf` (and optional `sv_joint_vcf_index`) to a cohort joint-called SV VCF to skip that pipeline: `SubsetJointSvVcf` keeps only the row's `sample_id` and Assess uses that single-sample VCF (`sv_status` `joint`). `sample_id` must match a VCF header sample column. Reference-panel inputs stay required for the default call path; they are unused when `sv_joint_vcf` is set. A missing SV VCF is an error in `pdvar assess`.
 6. **STRs.** ExpansionHunter 5.0.0 with the vendored 19-locus catalog `workflow/assets/expansionhunter_pd.hg38.json`.
 7. **GBA1.** Gauchian 1.0.2.
 8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0.
@@ -89,7 +91,7 @@ Single-sample hard filters are used because VQSR fits tranches on a cohort and t
 | `candidates` | Array of Assess files: `report.html`, `qc_summary.json`, `liability.tsv`, `followup.tsv`, `candidates.tsv` |
 | `gvcf`, `small_vcf` | HaplotypeCaller GVCF and filtered small-variant VCF |
 | `vep_vcf` | VEP VCF after the gnomAD INFO lift |
-| `sv_vcf` / `sv_vcf_index` | GATK-SV single-sample VCF and index |
+| `sv_vcf` / `sv_vcf_index` | GATK-SV single-sample VCF, or the sample subset from `sv_joint_vcf` |
 | `expansionhunter_vcf`, `gauchian_json`, `mtdna_vcf` | STR, GBA1, and mtDNA callsets |
 | `introme_tsv`, `introme_vcf` | Introme scores |
 
