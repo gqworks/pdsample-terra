@@ -4,14 +4,15 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 
 ## Files
 
+Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `liability.tsv`, `followup.tsv`, `candidates.tsv`.
+
 | File | Contents |
 | --- | --- |
 | `candidates.tsv` | Ranked variants for the Terra row |
-| `report.md`, `report.html` | The same triage narrative |
+| `report.html` | Per-sample triage report |
 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module status |
 | `liability.tsv` | `solved`, `partially_explained`, or `unexplained`, plus a null explained-liability until penetrance is cited |
 | `followup.tsv` | Recessive genes that still have a single heterozygous hit |
-| `sample.json` | Paths the Assess task passed in |
 
 ## Candidate columns
 

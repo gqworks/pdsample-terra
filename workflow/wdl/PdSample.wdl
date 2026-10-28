@@ -693,12 +693,7 @@ workflow PdSample {
   }
 
   output {
-    File candidates_tsv = Assess.candidates_tsv
-    File report_html = Assess.report_html
-    File report_md = Assess.report_md
-    File qc_summary = Assess.qc_summary
-    File liability_tsv = Assess.liability_tsv
-    File followup_tsv = Assess.followup_tsv
+    Array[File] candidates = Assess.candidates
     File gvcf = HaplotypeCaller.gvcf
     File gvcf_index = HaplotypeCaller.gvcf_index
     File small_vcf = NormPass.normalized_vcf
@@ -707,7 +702,6 @@ workflow PdSample {
     File vep_vcf_index = LiftGnomadInfo.lifted_vcf_index
     File sv_vcf = GatkSvSingle.final_vcf
     File sv_vcf_index = GatkSvSingle.final_vcf_idx
-    String sv_status = "called"
     File expansionhunter_vcf = ExpansionHunter.vcf
     File expansionhunter_vcf_index = ExpansionHunter.vcf_index
     File gauchian_json = Gauchian.json
@@ -715,8 +709,5 @@ workflow PdSample {
     File mtdna_vcf_index = Mito.out_vcf_index
     File introme_tsv = Introme.introme_tsv
     File introme_vcf = Introme.introme_vcf
-    String sex_used = QcGate.sex
-    File reference_report = CheckReference.report
-    File sample_json = Assess.sample_json
   }
 }

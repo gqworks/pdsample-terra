@@ -137,7 +137,26 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "pheno[Phenotype report or age, symptoms, ancestry] --> assess" in readme
     assert '"PdSample.phenotype_report": "${this.phenotype_report}"' in terra
     assert "File? phenotype_report" in text
+    assert "Array[File] candidates = Assess.candidates" in text
+    assert "File candidates_tsv" not in text
+    assert "File report_html" not in text
+    assert "File report_md" not in text
+    assert "File qc_summary =" not in text
+    assert "File liability_tsv" not in text
+    assert "File followup_tsv" not in text
+    assert "File sample_json" not in text
+    assert "String sex_used" not in text
+    assert "String sv_status" not in text
+    assert "File reference_report" not in text
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert 'Array[File] candidates = [' in tasks
+    assert '"out/report.html"' in tasks
+    assert '"out/qc_summary.json"' in tasks
+    assert '"out/liability.tsv"' in tasks
+    assert '"out/followup.tsv"' in tasks
+    assert '"out/candidates.tsv"' in tasks
+    assert "File sample_json" not in tasks
+    assert "File report_md" not in tasks
     assert "PHENOTYPE_REPORT" in tasks
     assert "String? ethnicity" in text
     assert "ethnicity = ethnicity" in text
