@@ -827,9 +827,10 @@ task ReleaseAfterQc {
 }
 
 # Extract one sample from a cohort joint-called SV VCF (GATK-SV CleanVcf /
-# final multi-sample style). Used when PdSample.sv_joint_vcf is set so
-# GATKSVPipelineSingleSample is skipped. sample_id must match a VCF header
-# sample column exactly.
+# final multi-sample style). Used when PdSample.sv_joint_vcf is set.
+# sample_found is true only when sample_id is a header sample column; when
+# false, PdSample falls back to GATKSVPipelineSingleSample. Placeholder
+# VCF outputs are still written so WDL File outputs stay defined.
 task SubsetJointSvVcf {
   input {
     File joint_vcf
@@ -857,17 +858,24 @@ task SubsetJointSvVcf {
     elif [[ ! -e "${vcf}.tbi" && ! -e "${vcf}.csi" ]]; then
       bcftools index -t "${vcf}" || bcftools index "${vcf}"
     fi
-    if ! bcftools query -l "${vcf}" | grep -Fxq "${sample}"; then
-      echo "sample_id '${sample}' is not in the joint SV VCF header. Available samples:" >&2
-      bcftools query -l "${vcf}" >&2
-      exit 1
+    if bcftools query -l "${vcf}" | grep -Fxq "${sample}"; then
+      # Keep sites where this sample is a non-ref carrier; drop other samples.
+      bcftools view -s "${sample}" --min-ac 1 -Oz -o "${sample}.sv.vcf.gz" "${vcf}"
+      bcftools index -t "${sample}.sv.vcf.gz"
+      bcftools query -l "${sample}.sv.vcf.gz" | grep -Fxq "${sample}"
+      echo true > sample_found.txt
+    else
+      echo "sample_id '${sample}' is not in the joint SV VCF header; falling back to GATKSVPipelineSingleSample." >&2
+      bcftools query -l "${vcf}" | head -n 20 >&2 || true
+      # Minimal placeholder so File outputs exist; PdSample prefers GatkSvSingle.
+      printf '##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n' "${sample}" \
+        | bgzip -c > "${sample}.sv.vcf.gz"
+      bcftools index -t "${sample}.sv.vcf.gz"
+      echo false > sample_found.txt
     fi
-    # Keep sites where this sample is a non-ref carrier; drop other samples.
-    bcftools view -s "${sample}" --min-ac 1 -Oz -o "${sample}.sv.vcf.gz" "${vcf}"
-    bcftools index -t "${sample}.sv.vcf.gz"
-    bcftools query -l "${sample}.sv.vcf.gz" | grep -Fxq "${sample}"
   >>>
   output {
+    Boolean sample_found = read_boolean("sample_found.txt")
     File vcf = "~{sample_id}.sv.vcf.gz"
     File vcf_index = "~{sample_id}.sv.vcf.gz.tbi"
   }
