@@ -46,7 +46,7 @@
   "PdSample.sv_case_manta_vcf": "${this.manta_vcf}",
   "PdSample.sv_case_wham_vcf": "${this.wham_vcf}",
   "PdSample.sv_case_scramble_vcf": "${this.scramble_vcf}",
-  "PdSample.sv_case_counts_file": "${this.Coverage_count}",
+  "PdSample.sv_case_counts_file": "${this.coverage_counts}",
   "PdSample.sv_case_pe_file": "${this.pesr_disc}",
   "PdSample.sv_case_sr_file": "${this.pesr_split}",
   "PdSample.sv_case_sd_file": "${this.pesr_sd}",

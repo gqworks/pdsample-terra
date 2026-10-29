@@ -717,19 +717,10 @@ workflow GATKSVPipelineSingleSample {
   File case_sr_file_ = select_first([case_sr_file, GatherSampleEvidence.pesr_split])
   File case_sd_file_ = select_first([case_sd_file, GatherSampleEvidence.pesr_sd])
   # Caller VCFs: provided case_* or GatherSampleEvidence (manta/wham/scramble on by default).
+  # Only products that skip GatherSampleEvidence work when passed back as case_*.
   File evidence_manta_vcf = select_first([case_manta_vcf, GatherSampleEvidence.manta_vcf])
   File evidence_wham_vcf = select_first([case_wham_vcf, GatherSampleEvidence.wham_vcf])
   File evidence_scramble_vcf = select_first([case_scramble_vcf, GatherSampleEvidence.scramble_vcf])
-  # Indexes / scramble extras are optional (absent when that product was skipped).
-  File? evidence_manta_index = GatherSampleEvidence.manta_index
-  File? evidence_wham_index = GatherSampleEvidence.wham_index
-  File? evidence_scramble_index = GatherSampleEvidence.scramble_index
-  File? evidence_scramble_clusters = GatherSampleEvidence.scramble_clusters
-  File? evidence_scramble_table = GatherSampleEvidence.scramble_table
-  File? evidence_pesr_disc_index = GatherSampleEvidence.pesr_disc_index
-  File? evidence_pesr_split_index = GatherSampleEvidence.pesr_split_index
-  File? evidence_pesr_sd_index = GatherSampleEvidence.pesr_sd_index
-  Array[File] evidence_sample_metrics_files = select_first([GatherSampleEvidence.sample_metrics_files, []])
 
   call evidenceqc.EvidenceQC as EvidenceQC {
     input:
@@ -1577,8 +1568,7 @@ workflow GATKSVPipelineSingleSample {
     File non_genotyped_unique_depth_calls = GetUniqueNonGenotypedDepthCalls.out
     File non_genotyped_unique_depth_calls_idx = GetUniqueNonGenotypedDepthCalls.out_idx
 
-    # GatherSampleEvidence products (or passthrough of case_* inputs). Indexes /
-    # scramble extras are optional when that product was not generated.
+    # GatherSampleEvidence products reusable as case_* inputs (or passthrough).
     File coverage_counts = case_counts_file_
     File pesr_disc = case_pe_file_
     File pesr_split = case_sr_file_
@@ -1586,14 +1576,5 @@ workflow GATKSVPipelineSingleSample {
     File manta_vcf = evidence_manta_vcf
     File wham_vcf = evidence_wham_vcf
     File scramble_vcf = evidence_scramble_vcf
-    File? pesr_disc_index = evidence_pesr_disc_index
-    File? pesr_split_index = evidence_pesr_split_index
-    File? pesr_sd_index = evidence_pesr_sd_index
-    File? manta_index = evidence_manta_index
-    File? wham_index = evidence_wham_index
-    File? scramble_index = evidence_scramble_index
-    File? scramble_clusters = evidence_scramble_clusters
-    File? scramble_table = evidence_scramble_table
-    Array[File] sample_metrics_files = evidence_sample_metrics_files
   }
 }
