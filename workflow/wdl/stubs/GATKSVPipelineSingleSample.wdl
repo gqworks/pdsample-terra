@@ -136,17 +136,17 @@ workflow GATKSVPipelineSingleSample {
     File pesr_disc = bam_or_cram_file
     File pesr_split = bam_or_cram_file
     File pesr_sd = bam_or_cram_file
-    Array[File] pesr_disc_index = []
-    Array[File] pesr_split_index = []
-    Array[File] pesr_sd_index = []
-    Array[File] manta_vcf = []
-    Array[File] manta_index = []
-    Array[File] wham_vcf = []
-    Array[File] wham_index = []
-    Array[File] scramble_vcf = []
-    Array[File] scramble_index = []
-    Array[File] scramble_clusters = []
-    Array[File] scramble_table = []
+    File? pesr_disc_index = bam_or_cram_index
+    File? pesr_split_index = bam_or_cram_index
+    File? pesr_sd_index = bam_or_cram_index
+    File manta_vcf = bam_or_cram_file
+    File? manta_index = bam_or_cram_index
+    File wham_vcf = bam_or_cram_file
+    File? wham_index = bam_or_cram_index
+    File scramble_vcf = bam_or_cram_file
+    File? scramble_index = bam_or_cram_index
+    File? scramble_clusters = bam_or_cram_file
+    File? scramble_table = bam_or_cram_file
     Array[File] sample_metrics_files = []
   }
 }

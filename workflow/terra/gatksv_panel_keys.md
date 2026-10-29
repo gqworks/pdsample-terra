@@ -15,7 +15,7 @@ PdSample imports a **vendored** copy of `GATKSVPipelineSingleSample.wdl` (`workf
 
 To skip that sub-workflow for samples in a cohort callset, set workspace attributes `sv_joint_vcf` / optional `sv_joint_vcf_index` (`workspace.sv_joint_vcf`). `SubsetJointSvVcf` keeps only `sample_id` when it is a header sample column; if the sample is absent, `GATKSVPipelineSingleSample` still runs. Panel workspace attributes above are still required by the method config for the single-sample path.
 
-When `GATKSVPipelineSingleSample` runs, PdSample also emits GatherSampleEvidence intermediates as `Array[File]` outputs (`coverage_counts`, `manta_vcf`, `manta_index`, `pesr_disc`, `pesr_disc_index`, `pesr_sd`, `pesr_sd_index`, `pesr_split`, `pesr_split_index`, `scramble_clusters`, `scramble_index`, `scramble_table`, `scramble_vcf`, `wham_index`, `wham_vcf`, `sample_metrics_files`). Write them back to the sample table and bind the matching `sv_case_*` inputs on the next run to skip regenerating those products.
+When `GATKSVPipelineSingleSample` runs, PdSample also emits GatherSampleEvidence intermediates as singular `File?` outputs (`coverage_counts`, `manta_vcf`, `manta_index`, `pesr_disc`, `pesr_disc_index`, `pesr_sd`, `pesr_sd_index`, `pesr_split`, `pesr_split_index`, `scramble_clusters`, `scramble_index`, `scramble_table`, `scramble_vcf`, `wham_index`, `wham_vcf`) plus `sample_metrics_files` as `Array[File]`. Write them back to the sample table and bind the matching `sv_case_*` inputs on the next run to skip regenerating those products. Caller VCF indexes are always materialised when GATK-SV runs (`PreferOrBuildTabix`); other indexes are unset when that product was skipped (e.g. only a case VCF was supplied).
 
 ## Matched panel
 
