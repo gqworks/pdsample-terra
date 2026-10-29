@@ -557,6 +557,35 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert '"PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}"' in terra
 
 
+def test_gatksv_evidence_outputs_for_terra():
+    """GatkSvSingle evidence intermediates are workflow outputs for Terra write-back."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    vendor = (
+        ROOT / "workflow" / "wdl" / "vendor" / "gatk-sv" / "GATKSVPipelineSingleSample.wdl"
+    ).read_text(encoding="utf-8")
+    assert "Boolean sv_run_sampleevidence_metrics = true" in text
+    assert "run_sampleevidence_metrics = sv_run_sampleevidence_metrics" in text
+    assert "Array[File] coverage_counts = GatkSvSingle.coverage_counts" in text
+    assert "Array[File] manta_vcf = flatten(GatkSvSingle.manta_vcf)" in text
+    assert "Array[File] manta_index = flatten(GatkSvSingle.manta_index)" in text
+    assert "Array[File] pesr_disc = GatkSvSingle.pesr_disc" in text
+    assert "Array[File] pesr_disc_index = flatten(GatkSvSingle.pesr_disc_index)" in text
+    assert "Array[File] pesr_sd = GatkSvSingle.pesr_sd" in text
+    assert "Array[File] pesr_sd_index = flatten(GatkSvSingle.pesr_sd_index)" in text
+    assert "Array[File] pesr_split = GatkSvSingle.pesr_split" in text
+    assert "Array[File] pesr_split_index = flatten(GatkSvSingle.pesr_split_index)" in text
+    assert "Array[File] scramble_clusters = flatten(GatkSvSingle.scramble_clusters)" in text
+    assert "Array[File] scramble_index = flatten(GatkSvSingle.scramble_index)" in text
+    assert "Array[File] scramble_table = flatten(GatkSvSingle.scramble_table)" in text
+    assert "Array[File] scramble_vcf = flatten(GatkSvSingle.scramble_vcf)" in text
+    assert "Array[File] wham_index = flatten(GatkSvSingle.wham_index)" in text
+    assert "Array[File] wham_vcf = flatten(GatkSvSingle.wham_vcf)" in text
+    assert "Array[File] sample_metrics_files = flatten(GatkSvSingle.sample_metrics_files)" in text
+    assert "File coverage_counts = case_counts_file_" in vendor
+    assert "primary_contigs_fai = primary_contigs_fai" in vendor
+    assert "Array[File] sample_metrics_files = evidence_sample_metrics_files" in vendor
+
+
 def test_runtime_disk_gb_is_integer_ceiled():
     """GCP Batch rejects fractional local-disk sizes (e.g. 13.026... HDD)."""
     wdl_root = ROOT / "workflow" / "wdl"

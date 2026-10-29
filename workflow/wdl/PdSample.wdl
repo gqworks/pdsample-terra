@@ -169,6 +169,8 @@ workflow PdSample {
     File sv_sd_locs_vcf
     File sv_wham_include_list_bed_file
     Boolean sv_run_vcf_qc = false
+    # When true, GatherSampleEvidence writes sample_metrics_files (manta/wham/SR/PE/counts).
+    Boolean sv_run_sampleevidence_metrics = true
     File sv_wgd_scoring_mask
     Int sv_min_svsize = 50
     # Manta runs one local job per core and accounts 2 GiB to each job.
@@ -581,6 +583,7 @@ workflow PdSample {
         sd_locs_vcf = sv_sd_locs_vcf,
         wham_include_list_bed_file = sv_wham_include_list_bed_file,
         run_vcf_qc = sv_run_vcf_qc,
+        run_sampleevidence_metrics = sv_run_sampleevidence_metrics,
         wgd_scoring_mask = sv_wgd_scoring_mask,
         min_svsize = sv_min_svsize,
         contig_ploidy_model_tar = sv_contig_ploidy_model_tar,
@@ -741,5 +744,24 @@ workflow PdSample {
     File vep_vcf_index = LiftGnomadInfo.lifted_vcf_index
     File sv_vcf = NameSvVcf.released
     File sv_vcf_index = NameSvVcfIndex.released
+    # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
+    # Empty when the joint-SV path skipped GatkSvSingle. Length 0 or 1 for the
+    # single-file arrays; sample_metrics_files may have several entries.
+    Array[File] coverage_counts = GatkSvSingle.coverage_counts
+    Array[File] manta_vcf = flatten(GatkSvSingle.manta_vcf)
+    Array[File] manta_index = flatten(GatkSvSingle.manta_index)
+    Array[File] pesr_disc = GatkSvSingle.pesr_disc
+    Array[File] pesr_disc_index = flatten(GatkSvSingle.pesr_disc_index)
+    Array[File] pesr_sd = GatkSvSingle.pesr_sd
+    Array[File] pesr_sd_index = flatten(GatkSvSingle.pesr_sd_index)
+    Array[File] pesr_split = GatkSvSingle.pesr_split
+    Array[File] pesr_split_index = flatten(GatkSvSingle.pesr_split_index)
+    Array[File] scramble_clusters = flatten(GatkSvSingle.scramble_clusters)
+    Array[File] scramble_index = flatten(GatkSvSingle.scramble_index)
+    Array[File] scramble_table = flatten(GatkSvSingle.scramble_table)
+    Array[File] scramble_vcf = flatten(GatkSvSingle.scramble_vcf)
+    Array[File] wham_index = flatten(GatkSvSingle.wham_index)
+    Array[File] wham_vcf = flatten(GatkSvSingle.wham_vcf)
+    Array[File] sample_metrics_files = flatten(GatkSvSingle.sample_metrics_files)
   }
 }

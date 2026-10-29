@@ -688,6 +688,7 @@ workflow GATKSVPipelineSingleSample {
         manta_vcf_index_input = manta_vcf_index_input,
         wham_include_list_bed_file=wham_include_list_bed_file,
         run_module_metrics = run_sampleevidence_metrics,
+        primary_contigs_fai = primary_contigs_fai,
         sv_pipeline_docker=sv_pipeline_docker,
         sv_base_mini_docker=sv_base_mini_docker,
         manta_docker=manta_docker_,
@@ -715,6 +716,21 @@ workflow GATKSVPipelineSingleSample {
   File case_pe_file_ = select_first([case_pe_file, GatherSampleEvidence.pesr_disc])
   File case_sr_file_ = select_first([case_sr_file, GatherSampleEvidence.pesr_split])
   File case_sd_file_ = select_first([case_sd_file, GatherSampleEvidence.pesr_sd])
+  # Caller VCFs: provided case_* or GatherSampleEvidence. Only evaluated when that
+  # caller is enabled (same select_first as manta_vcfs_ / wham_vcfs_ / scramble_vcfs_).
+  Array[File] evidence_manta_vcf = if use_manta then [select_first([case_manta_vcf, GatherSampleEvidence.manta_vcf])] else []
+  Array[File] evidence_wham_vcf = if use_wham then [select_first([case_wham_vcf, GatherSampleEvidence.wham_vcf])] else []
+  Array[File] evidence_scramble_vcf = if use_scramble then [select_first([case_scramble_vcf, GatherSampleEvidence.scramble_vcf])] else []
+  # Indexes and scramble extras exist only when GatherSampleEvidence produced them.
+  Array[File] evidence_manta_index = select_all(GatherSampleEvidence.manta_index)
+  Array[File] evidence_wham_index = select_all(GatherSampleEvidence.wham_index)
+  Array[File] evidence_scramble_index = select_all(GatherSampleEvidence.scramble_index)
+  Array[File] evidence_scramble_clusters = select_all(GatherSampleEvidence.scramble_clusters)
+  Array[File] evidence_scramble_table = select_all(GatherSampleEvidence.scramble_table)
+  Array[File] evidence_pesr_disc_index = select_all(GatherSampleEvidence.pesr_disc_index)
+  Array[File] evidence_pesr_split_index = select_all(GatherSampleEvidence.pesr_split_index)
+  Array[File] evidence_pesr_sd_index = select_all(GatherSampleEvidence.pesr_sd_index)
+  Array[File] evidence_sample_metrics_files = flatten(select_all(GatherSampleEvidence.sample_metrics_files))
 
   call evidenceqc.EvidenceQC as EvidenceQC {
     input:
@@ -1561,5 +1577,25 @@ workflow GATKSVPipelineSingleSample {
     # in the case sample and do not match a depth-based call from the reference panel.
     File non_genotyped_unique_depth_calls = GetUniqueNonGenotypedDepthCalls.out
     File non_genotyped_unique_depth_calls_idx = GetUniqueNonGenotypedDepthCalls.out_idx
+
+    # GatherSampleEvidence products (or passthrough of case_* inputs). Indexes /
+    # scramble extras / sample_metrics_files are empty when that product was not
+    # generated (e.g. case_* provided and the matching caller/collection skipped).
+    File coverage_counts = case_counts_file_
+    File pesr_disc = case_pe_file_
+    File pesr_split = case_sr_file_
+    File pesr_sd = case_sd_file_
+    Array[File] pesr_disc_index = evidence_pesr_disc_index
+    Array[File] pesr_split_index = evidence_pesr_split_index
+    Array[File] pesr_sd_index = evidence_pesr_sd_index
+    Array[File] manta_vcf = evidence_manta_vcf
+    Array[File] manta_index = evidence_manta_index
+    Array[File] wham_vcf = evidence_wham_vcf
+    Array[File] wham_index = evidence_wham_index
+    Array[File] scramble_vcf = evidence_scramble_vcf
+    Array[File] scramble_index = evidence_scramble_index
+    Array[File] scramble_clusters = evidence_scramble_clusters
+    Array[File] scramble_table = evidence_scramble_table
+    Array[File] sample_metrics_files = evidence_sample_metrics_files
   }
 }

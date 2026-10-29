@@ -66,6 +66,7 @@ workflow GATKSVPipelineSingleSample {
     File sd_locs_vcf
     File wham_include_list_bed_file
     Boolean run_vcf_qc
+    Boolean? run_sampleevidence_metrics = false
     File wgd_scoring_mask
     Int min_svsize
     File contig_ploidy_model_tar
@@ -131,5 +132,21 @@ workflow GATKSVPipelineSingleSample {
   output {
     File final_vcf = bam_or_cram_file
     File final_vcf_idx = bam_or_cram_index
+    File coverage_counts = bam_or_cram_file
+    File pesr_disc = bam_or_cram_file
+    File pesr_split = bam_or_cram_file
+    File pesr_sd = bam_or_cram_file
+    Array[File] pesr_disc_index = []
+    Array[File] pesr_split_index = []
+    Array[File] pesr_sd_index = []
+    Array[File] manta_vcf = []
+    Array[File] manta_index = []
+    Array[File] wham_vcf = []
+    Array[File] wham_index = []
+    Array[File] scramble_vcf = []
+    Array[File] scramble_index = []
+    Array[File] scramble_clusters = []
+    Array[File] scramble_table = []
+    Array[File] sample_metrics_files = []
   }
 }
