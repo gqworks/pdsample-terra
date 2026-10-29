@@ -169,9 +169,8 @@ workflow PdSample {
     File sv_sd_locs_vcf
     File sv_wham_include_list_bed_file
     Boolean sv_run_vcf_qc = false
-    # GatherSampleEvidence metrics (manta/wham/SR/PE/counts). Off by default —
-    # metrics are not reused as sv_case_* inputs.
-    Boolean sv_run_sampleevidence_metrics = false
+    # When true, GatherSampleEvidence writes sample_metrics_files (manta/wham/SR/PE/counts).
+    Boolean sv_run_sampleevidence_metrics = true
     File sv_wgd_scoring_mask
     Int sv_min_svsize = 50
     # Manta runs one local job per core and accounts 2 GiB to each job.
@@ -652,6 +651,28 @@ workflow PdSample {
         scramble_docker = sv_scramble_docker,
         wham_docker = sv_wham_docker
     }
+    # Ensure caller VCF indexes exist for Terra write-back even when case_* skipped GSE.
+    call Tasks.PreferOrBuildTabix as EvidenceMantaIndex {
+      input:
+        vcf = GatkSvSingle.manta_vcf,
+        index = GatkSvSingle.manta_index,
+        name = sample_id + ".manta.vcf.gz.tbi",
+        preemptible = preemptible
+    }
+    call Tasks.PreferOrBuildTabix as EvidenceWhamIndex {
+      input:
+        vcf = GatkSvSingle.wham_vcf,
+        index = GatkSvSingle.wham_index,
+        name = sample_id + ".wham.vcf.gz.tbi",
+        preemptible = preemptible
+    }
+    call Tasks.PreferOrBuildTabix as EvidenceScrambleIndex {
+      input:
+        vcf = GatkSvSingle.scramble_vcf,
+        index = GatkSvSingle.scramble_index,
+        name = sample_id + ".scramble.vcf.gz.tbi",
+        preemptible = preemptible
+    }
   }
   # Prefer GatkSv when both ran (sample absent from joint → fallback). Prefer
   # the joint subset when GatkSv was skipped (sample_found). select_all turns
@@ -747,15 +768,24 @@ workflow PdSample {
     File vep_vcf_index = LiftGnomadInfo.lifted_vcf_index
     File sv_vcf = NameSvVcf.released
     File sv_vcf_index = NameSvVcfIndex.released
-    # GatherSampleEvidence products that skip matching work on a later run via
-    # sv_case_* (Terra: this.<name>). Unset when the joint-SV path skipped
-    # GatkSvSingle. Indexes are not WDL inputs yet — keep .tbi sidecars in GCS.
+    # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
+    # File? is unset when the joint-SV path skipped GatkSvSingle. Metrics stay
+    # Array[File] (empty on the joint path).
     File? coverage_counts = GatkSvSingle.coverage_counts
     File? manta_vcf = GatkSvSingle.manta_vcf
+    File? manta_index = EvidenceMantaIndex.out
     File? pesr_disc = GatkSvSingle.pesr_disc
+    File? pesr_disc_index = GatkSvSingle.pesr_disc_index
     File? pesr_sd = GatkSvSingle.pesr_sd
+    File? pesr_sd_index = GatkSvSingle.pesr_sd_index
     File? pesr_split = GatkSvSingle.pesr_split
+    File? pesr_split_index = GatkSvSingle.pesr_split_index
+    File? scramble_clusters = GatkSvSingle.scramble_clusters
+    File? scramble_index = EvidenceScrambleIndex.out
+    File? scramble_table = GatkSvSingle.scramble_table
     File? scramble_vcf = GatkSvSingle.scramble_vcf
+    File? wham_index = EvidenceWhamIndex.out
     File? wham_vcf = GatkSvSingle.wham_vcf
+    Array[File] sample_metrics_files = select_first([GatkSvSingle.sample_metrics_files, []])
   }
 }

@@ -89,7 +89,8 @@ Single-sample hard filters are used because VQSR fits tranches on a cohort and t
 | `candidates` | Array of Assess files: `report.html`, `qc_summary.json`, `liability.tsv`, `followup.tsv`, `candidates.tsv` |
 | `vep_vcf` | `{sample_id}.vep.vcf.gz` — VEP VCF after the gnomAD INFO lift |
 | `sv_vcf` / `sv_vcf_index` | `{sample_id}.sv.vcf.gz` — GATK-SV single-sample VCF, or the sample subset from `workspace.sv_joint_vcf` |
-| `coverage_counts`, `manta_vcf`, `pesr_disc`, `pesr_sd`, `pesr_split`, `scramble_vcf`, `wham_vcf` | GatherSampleEvidence products (`File?`) that skip matching work on a later run via `sv_case_*` (`this.coverage_counts`, `this.manta_vcf`, …). Set when `GatkSvSingle` runs; unset on the joint-SV path. Indexes are not WDL inputs yet. |
+| `coverage_counts`, `manta_vcf`, `manta_index`, `pesr_disc`, `pesr_disc_index`, `pesr_sd`, `pesr_sd_index`, `pesr_split`, `pesr_split_index`, `scramble_vcf`, `scramble_index`, `scramble_clusters`, `scramble_table`, `wham_vcf`, `wham_index` | GatherSampleEvidence intermediates (`File?`). Set when `GatkSvSingle` runs; unset on the joint-SV path. Reuse as `sv_case_*` inputs on later runs. |
+| `sample_metrics_files` | `Array[File]` of GatherSampleEvidence metrics (manta/wham/SR/PE/counts) when `sv_run_sampleevidence_metrics` is true (default); empty on the joint-SV path |
 
 ## Assess container
 

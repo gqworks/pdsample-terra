@@ -506,7 +506,7 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
-    assert '"PdSample.sv_case_counts_file": "${this.coverage_counts}"' in terra
+    assert '"PdSample.sv_case_counts_file": "${this.Coverage_count}"' in terra
     assert '"PdSample.sv_case_pe_file": "${this.pesr_disc}"' in terra
     assert '"PdSample.sv_case_sr_file": "${this.pesr_split}"' in terra
     assert '"PdSample.sv_case_sd_file": "${this.pesr_sd}"' in terra
@@ -561,31 +561,38 @@ def test_sv_joint_vcf_skips_gatksv_single():
 
 
 def test_gatksv_evidence_outputs_for_terra():
-    """Only GatherSampleEvidence products that skip work via sv_case_* are Terra outputs."""
+    """GatkSvSingle evidence intermediates are singular File? Terra outputs (metrics stay Array)."""
     text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     vendor = (
         ROOT / "workflow" / "wdl" / "vendor" / "gatk-sv" / "GATKSVPipelineSingleSample.wdl"
     ).read_text(encoding="utf-8")
-    terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
-    assert "Boolean sv_run_sampleevidence_metrics = false" in text
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    assert "Boolean sv_run_sampleevidence_metrics = true" in text
     assert "run_sampleevidence_metrics = sv_run_sampleevidence_metrics" in text
     assert "if (!use_joint_sv)" in text
+    assert "task PreferOrBuildTabix" in tasks
+    assert "call Tasks.PreferOrBuildTabix as EvidenceMantaIndex" in text
     assert "File? coverage_counts = GatkSvSingle.coverage_counts" in text
     assert "File? manta_vcf = GatkSvSingle.manta_vcf" in text
+    assert "File? manta_index = EvidenceMantaIndex.out" in text
     assert "File? pesr_disc = GatkSvSingle.pesr_disc" in text
+    assert "File? pesr_disc_index = GatkSvSingle.pesr_disc_index" in text
     assert "File? pesr_sd = GatkSvSingle.pesr_sd" in text
+    assert "File? pesr_sd_index = GatkSvSingle.pesr_sd_index" in text
     assert "File? pesr_split = GatkSvSingle.pesr_split" in text
+    assert "File? pesr_split_index = GatkSvSingle.pesr_split_index" in text
+    assert "File? scramble_clusters = GatkSvSingle.scramble_clusters" in text
+    assert "File? scramble_index = EvidenceScrambleIndex.out" in text
+    assert "File? scramble_table = GatkSvSingle.scramble_table" in text
     assert "File? scramble_vcf = GatkSvSingle.scramble_vcf" in text
+    assert "File? wham_index = EvidenceWhamIndex.out" in text
     assert "File? wham_vcf = GatkSvSingle.wham_vcf" in text
-    # Indexes / metrics / scramble extras are not reusable as case_* inputs yet.
-    assert "manta_index" not in text.split("output {")[-1]
-    assert "sample_metrics_files" not in text.split("output {")[-1]
-    assert "scramble_clusters" not in text.split("output {")[-1]
-    assert '"PdSample.sv_case_counts_file": "${this.coverage_counts}"' in terra
-    assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
+    assert "Array[File] sample_metrics_files = select_first([GatkSvSingle.sample_metrics_files, []])" in text
     assert "File coverage_counts = case_counts_file_" in vendor
     assert "File manta_vcf = evidence_manta_vcf" in vendor
+    assert "File? manta_index = evidence_manta_index" in vendor
     assert "primary_contigs_fai = primary_contigs_fai" in vendor
+    assert "Array[File] sample_metrics_files = evidence_sample_metrics_files" in vendor
 
 
 def test_runtime_disk_gb_is_integer_ceiled():
