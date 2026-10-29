@@ -169,6 +169,8 @@ workflow PdSample {
     File sv_sd_locs_vcf
     File sv_wham_include_list_bed_file
     Boolean sv_run_vcf_qc = false
+    # When true, GatherSampleEvidence writes sample_metrics_files (manta/wham/SR/PE/counts).
+    Boolean sv_run_sampleevidence_metrics = true
     File sv_wgd_scoring_mask
     Int sv_min_svsize = 50
     # Manta runs one local job per core and accounts 2 GiB to each job.
@@ -515,7 +517,7 @@ workflow PdSample {
   }
   # When sv_joint_vcf is set, probe/subset first. If sample_id is in the header,
   # use that subset and skip GatkSvSingle. If absent, fall back to GatkSvSingle.
-  # scatter+if keeps Array[File] outputs (same pattern as reference_dict_files).
+  # scatter+if keeps Array[File] outputs for flatten with the GatkSv if-branch.
   scatter (unused in if defined(sv_joint_vcf) then [1] else []) {
     call Tasks.SubsetJointSvVcf {
       input:
@@ -526,7 +528,8 @@ workflow PdSample {
     }
   }
   Boolean use_joint_sv = select_first(flatten([SubsetJointSvVcf.sample_found, [false]]))
-  scatter (unused in if !use_joint_sv then [1] else []) {
+  # if (not scatter) so evidence intermediates are singular File? for Terra columns.
+  if (!use_joint_sv) {
     call GatkSv.GATKSVPipelineSingleSample as GatkSvSingle {
       input:
         sample_id = sample_id,
@@ -581,6 +584,7 @@ workflow PdSample {
         sd_locs_vcf = sv_sd_locs_vcf,
         wham_include_list_bed_file = sv_wham_include_list_bed_file,
         run_vcf_qc = sv_run_vcf_qc,
+        run_sampleevidence_metrics = sv_run_sampleevidence_metrics,
         wgd_scoring_mask = sv_wgd_scoring_mask,
         min_svsize = sv_min_svsize,
         contig_ploidy_model_tar = sv_contig_ploidy_model_tar,
@@ -647,11 +651,34 @@ workflow PdSample {
         scramble_docker = sv_scramble_docker,
         wham_docker = sv_wham_docker
     }
+    # Ensure caller VCF indexes exist for Terra write-back even when case_* skipped GSE.
+    call Tasks.PreferOrBuildTabix as EvidenceMantaIndex {
+      input:
+        vcf = GatkSvSingle.manta_vcf,
+        index = GatkSvSingle.manta_index,
+        name = sample_id + ".manta.vcf.gz.tbi",
+        preemptible = preemptible
+    }
+    call Tasks.PreferOrBuildTabix as EvidenceWhamIndex {
+      input:
+        vcf = GatkSvSingle.wham_vcf,
+        index = GatkSvSingle.wham_index,
+        name = sample_id + ".wham.vcf.gz.tbi",
+        preemptible = preemptible
+    }
+    call Tasks.PreferOrBuildTabix as EvidenceScrambleIndex {
+      input:
+        vcf = GatkSvSingle.scramble_vcf,
+        index = GatkSvSingle.scramble_index,
+        name = sample_id + ".scramble.vcf.gz.tbi",
+        preemptible = preemptible
+    }
   }
   # Prefer GatkSv when both ran (sample absent from joint → fallback). Prefer
-  # the joint subset when GatkSv was skipped (sample_found).
-  File sample_sv_vcf = select_first(flatten([GatkSvSingle.final_vcf, SubsetJointSvVcf.vcf]))
-  File sample_sv_vcf_index = select_first(flatten([GatkSvSingle.final_vcf_idx, SubsetJointSvVcf.vcf_index]))
+  # the joint subset when GatkSv was skipped (sample_found). select_all turns
+  # the optional if-branch File? into a 0-or-1 Array for flatten with SubsetJoint.
+  File sample_sv_vcf = select_first(flatten([select_all([GatkSvSingle.final_vcf]), SubsetJointSvVcf.vcf]))
+  File sample_sv_vcf_index = select_first(flatten([select_all([GatkSvSingle.final_vcf_idx]), SubsetJointSvVcf.vcf_index]))
   # Stage as sample_id.sv.vcf.gz (GATK-SV finals are opaque; joint subset already matches).
   call Tasks.ReleaseAfterQc as NameSvVcf {
     input:
@@ -741,5 +768,24 @@ workflow PdSample {
     File vep_vcf_index = LiftGnomadInfo.lifted_vcf_index
     File sv_vcf = NameSvVcf.released
     File sv_vcf_index = NameSvVcfIndex.released
+    # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
+    # File? is unset when the joint-SV path skipped GatkSvSingle. Metrics stay
+    # Array[File] (empty on the joint path).
+    File? coverage_counts = GatkSvSingle.coverage_counts
+    File? manta_vcf = GatkSvSingle.manta_vcf
+    File? manta_index = EvidenceMantaIndex.out
+    File? pesr_disc = GatkSvSingle.pesr_disc
+    File? pesr_disc_index = GatkSvSingle.pesr_disc_index
+    File? pesr_sd = GatkSvSingle.pesr_sd
+    File? pesr_sd_index = GatkSvSingle.pesr_sd_index
+    File? pesr_split = GatkSvSingle.pesr_split
+    File? pesr_split_index = GatkSvSingle.pesr_split_index
+    File? scramble_clusters = GatkSvSingle.scramble_clusters
+    File? scramble_index = EvidenceScrambleIndex.out
+    File? scramble_table = GatkSvSingle.scramble_table
+    File? scramble_vcf = GatkSvSingle.scramble_vcf
+    File? wham_index = EvidenceWhamIndex.out
+    File? wham_vcf = GatkSvSingle.wham_vcf
+    Array[File] sample_metrics_files = select_first([GatkSvSingle.sample_metrics_files, []])
   }
 }
