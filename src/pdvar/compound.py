@@ -3,6 +3,8 @@
 SNV, indel, SV, and splice rows are already in one table. This step:
 
 - marks an apparent homozygous SNV inside a heterozygous deletion as hemizygous
+- pairs a LoF / exon-disrupting SV with a coding (or ClinVar P/LP) allele as
+  ``AR_comphet_candidate``, and demotes same-gene Introme-only intron "solves"
 - uses phased genotypes (``|`` plus a shared ``PS``) when they are present
 - leaves every other pair ``unphased``
 - lists recessive genes that still have only one heterozygous hit
@@ -21,6 +23,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .scoring import NULL_CONSEQUENCES
 from .vcf_stream import chrom_bare, iter_vcf
 
 SINGLE_HET_REASON = "single heterozygous hit in recessive gene, second allele not found"
@@ -31,6 +34,16 @@ SOLVED_AR = {
     "AR_comphet_phased",
     "AR_hemizygous",
     "AR_second_hit_splice",
+}
+# Intronic Introme support kept visible but ranked below coding / SV solves.
+INTRONIC_SUPPORT_STATUS = "AR_intronic_candidate"
+CODING_CONSEQUENCES = NULL_CONSEQUENCES | {
+    "missense_variant",
+    "inframe_insertion",
+    "inframe_deletion",
+    "protein_altering_variant",
+    "stop_lost",
+    "splice_region_variant",
 }
 FOLLOWUP_COLUMNS = [
     "sample_id", "gene", "moi", "variant_ids", "variant_classes", "zygosities",
@@ -135,6 +148,88 @@ def _looks_hom_alt(row: pd.Series) -> bool:
     return _text(row.get("zygosity")) == "hom"
 
 
+def _consequence_terms(row: pd.Series) -> set[str]:
+    return {t.strip() for t in _text(row.get("consequence")).replace(",", "&").split("&") if t.strip()}
+
+
+def _is_lof_sv(row: pd.Series) -> bool:
+    """Exon-disrupting / LoF SV that can act as an AR second hit (DEL or DUP)."""
+    if _text(row.get("variant_class")) != "SV" and _text(row.get("hit_source")) != "sv":
+        return False
+    if _text(row.get("dosage_mechanism")).lower() == "lof":
+        return True
+    if _text(row.get("scored_dosage")) in {"True", "true", "1"} or row.get("scored_dosage") is True:
+        if _text(row.get("svtype")) in {"DEL", "DUP", "CNV"} or _text(row.get("dosage_event")) in {
+            "deletion",
+            "duplication",
+            "triplication_or_higher",
+        }:
+            return True
+    return bool(_consequence_terms(row) & {"transcript_ablation"})
+
+
+def _is_coding_support(row: pd.Series) -> bool:
+    """Coding / ClinVar P/LP small-variant support (not intron-only Introme noise)."""
+    if _is_lof_sv(row):
+        return False
+    if _text(row.get("variant_class")) == "SV":
+        return False
+    if _text(row.get("clinvar_class")) == "P/LP":
+        return True
+    terms = _consequence_terms(row)
+    if terms & CODING_CONSEQUENCES:
+        return True
+    return False
+
+
+def _is_weak_intronic(row: pd.Series) -> bool:
+    """Deep-intronic / Introme-rescued row without coding or ClinVar P/LP evidence."""
+    if _is_lof_sv(row) or _is_coding_support(row):
+        return False
+    terms = _consequence_terms(row)
+    if not terms:
+        return False
+    if terms & CODING_CONSEQUENCES:
+        return False
+    return "intron_variant" in terms or terms <= {"intron_variant", "non_coding_transcript_variant"}
+
+
+def _locked_status(status: str) -> bool:
+    return status in {"AR_hemizygous", "AR_comphet_phased", "review_conflict"}
+
+
+def _pair_sv_with_coding(df: pd.DataFrame, idx: list) -> None:
+    """Promote LoF SV + coding allele to comp-het; demote same-gene weak intron solves."""
+    lof_svs = [i for i in idx if _is_lof_sv(df.loc[i]) and _qualifying(df, i)]
+    coding = [i for i in idx if _is_coding_support(df.loc[i]) and _qualifying(df, i)]
+    # Also rescue coding rows left as AR_single_het / not yet paired.
+    coding += [
+        i
+        for i in idx
+        if i not in coding
+        and _is_coding_support(df.loc[i])
+        and _text(df.at[i, "inheritance_status"]) in {"AR_single_het", "not_qualifying", ""}
+    ]
+    if not lof_svs or not coding:
+        return
+    partners = sorted(set(lof_svs + coding))
+    for i in partners:
+        status = _text(df.at[i, "inheritance_status"])
+        if _locked_status(status):
+            continue
+        df.at[i, "inheritance_status"] = "AR_comphet_candidate"
+        if _text(df.at[i, "phase_relation"]) in {"", "unphased"}:
+            df.at[i, "phase_relation"] = "sv_coding_pair"
+    for i in idx:
+        if i in partners:
+            continue
+        if not _is_weak_intronic(df.loc[i]):
+            continue
+        status = _text(df.at[i, "inheritance_status"])
+        if status in SOLVED_AR or status == "AR_single_het":
+            df.at[i, "inheritance_status"] = INTRONIC_SUPPORT_STATUS
+
+
 def _interval(row: pd.Series) -> tuple[int, int] | None:
     try:
         start = int(row["pos"])
@@ -186,6 +281,7 @@ def refine(df: pd.DataFrame, cfg: dict | None = None) -> tuple[pd.DataFrame, pd.
     for (_, _), grp in df[ar].groupby(["sample_id", "gene"], sort=False):
         idx = list(grp.index)
         _apply_hemizygosity(df, idx)
+        _pair_sv_with_coding(df, idx)
         _apply_phase(df, idx)
 
     follow_rows = []

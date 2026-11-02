@@ -138,3 +138,77 @@ def test_single_het_followup_string():
     df["inheritance_status"] = "AR_single_het"
     _out, follow = refine(df, {})
     assert follow.iloc[0]["reason"] == SINGLE_HET_REASON
+
+
+def test_prkn_dup_pairs_with_pathogenic_missense_over_intronic_introme():
+    """MH03900-style: exon DUP + ClinVar P/LP missense become the AR solve."""
+    df = pd.DataFrame(
+        [
+            {
+                "sample_id": "MH03900",
+                "gene": "PRKN",
+                "moi": "AR",
+                "variant_id": "6-161350208-C-T",
+                "variant_class": "SNV",
+                "chrom": "6",
+                "pos": 161350208,
+                "end": 161350208,
+                "ref": "C",
+                "alt": "T",
+                "genotype": "0/1",
+                "zygosity": "het",
+                "consequence": "missense_variant",
+                "clinvar_class": "P/LP",
+                "inheritance_status": "AR_single_het",
+                "evidence_score": 21,
+                "tier": 1,
+            },
+            {
+                "sample_id": "MH03900",
+                "gene": "PRKN",
+                "moi": "AR",
+                "variant_id": "dup-exons",
+                "variant_class": "SV",
+                "svtype": "DUP",
+                "hit_source": "sv",
+                "chrom": "6",
+                "pos": 161959762,
+                "end": 162315211,
+                "genotype": "0/1",
+                "zygosity": "het",
+                "consequence": "transcript_ablation",
+                "dosage_mechanism": "lof",
+                "dosage_event": "duplication",
+                "scored_dosage": True,
+                "clinvar_class": "none",
+                "inheritance_status": "AR_single_het",
+                "evidence_score": 8,
+                "tier": 2,
+            },
+            {
+                "sample_id": "MH03900",
+                "gene": "PRKN",
+                "moi": "AR",
+                "variant_id": "6-162326073-T-A",
+                "variant_class": "SNV",
+                "chrom": "6",
+                "pos": 162326073,
+                "end": 162326073,
+                "ref": "T",
+                "alt": "A",
+                "genotype": "1/1",
+                "zygosity": "hom",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "inheritance_status": "AR_hom",
+                "evidence_score": 7,
+                "tier": 2,
+                "introme_class": "high",
+            },
+        ]
+    )
+    out, follow = refine(df, {})
+    solved = out[out["inheritance_status"] == "AR_comphet_candidate"]
+    assert set(solved["variant_id"]) == {"6-161350208-C-T", "dup-exons"}
+    assert (out.loc[out["variant_id"] == "6-162326073-T-A", "inheritance_status"] == "AR_intronic_candidate").all()
+    assert follow.empty

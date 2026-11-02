@@ -23,6 +23,8 @@ STATUS_PRIORITY = {
     "mtdna_variant": 2,
     "str_expanded": 1,
     "MOI_unknown_candidate": 4,
+    # Introme-only intron support demoted below coding / SV AR solves.
+    "AR_intronic_candidate": 5,
     "incidental": 5,
     "not_qualifying": 9,
 }
@@ -44,16 +46,31 @@ CURATION_COLUMNS = [
 ]
 
 
+def _intronic_rank_penalty(df: pd.DataFrame) -> pd.Series:
+    """Push intron-only Introme AR labels below coding/SV rows of the same status."""
+    cons = df["consequence"].fillna("").astype(str) if "consequence" in df.columns else pd.Series("", index=df.index)
+    clin = df["clinvar_class"].fillna("").astype(str) if "clinvar_class" in df.columns else pd.Series("", index=df.index)
+    intron = cons.str.contains("intron_variant", regex=False)
+    codingish = cons.str.contains(
+        r"missense|frameshift|stop_|start_lost|splice_acceptor|splice_donor|transcript_ablation|"
+        r"inframe_|protein_altering|structural_variant|copy_number",
+        regex=True,
+        na=False,
+    )
+    return (intron & ~codingish & (clin != "P/LP")).astype(int)
+
+
 def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["status_priority"] = df["inheritance_status"].map(STATUS_PRIORITY).fillna(9)
+    df["_intronic_penalty"] = _intronic_rank_penalty(df)
     if "weighted_evidence_score" in df.columns:
         df["_rank_score"] = df["weighted_evidence_score"].where(df["weighted_evidence_score"].notna(), df["evidence_score"])
     else:
         df["_rank_score"] = df["evidence_score"]
-    sort_cols = ["sample_id", "status_priority", "tier", "_rank_score"]
-    asc = [True, True, True, False]
-    drop_cols = ["_rank_score"]
+    sort_cols = ["sample_id", "status_priority", "_intronic_penalty", "tier", "_rank_score"]
+    asc = [True, True, True, True, False]
+    drop_cols = ["_rank_score", "_intronic_penalty"]
     if "avi_phred" in df.columns:
         df["_avi"] = pd.to_numeric(df["avi_phred"], errors="coerce").fillna(-1)
         sort_cols.append("_avi")
