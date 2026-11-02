@@ -34,6 +34,20 @@ filters:
   min_depth: 10
   min_gq: 20
   min_allele_balance: 0.2
+  # Soften depth-only QC failures (GQ / allele balance still enforced):
+  # - near-miss: HIGH-impact panel alleles with depth >= min_depth / factor (e.g. 10/2 -> 5)
+  # - lof_del: alleles inside a same-sample LoF / exon-disrupting DEL down to this floor
+  # Set either key to null to disable that rescue path.
+  depth_rescue_near_miss_factor: 2.0
+  depth_rescue_lof_del_min_depth: 5
+  depth_rescue_high_impact_consequences:
+    - transcript_ablation
+    - splice_acceptor_variant
+    - splice_donor_variant
+    - stop_gained
+    - frameshift_variant
+    - stop_lost
+    - start_lost
   # Consequences retained (VEP terms). Splice-region / intronic kept so Introme can rescue them.
   keep_consequences:
     - transcript_ablation
