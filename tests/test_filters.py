@@ -66,6 +66,25 @@ def test_common_variant_removed(cfg):
     assert filters.apply_filters(_variants(gnomad_af=0.2), PANEL, cfg["filters"]).empty
 
 
+def test_sv_cohort_af_not_hard_filtered(cfg):
+    """In-callset SV AF must not drop a rare gnomAD PRKN exon DUP (MH03900-style)."""
+    row = _lof_del(
+        gnomad_af=2.4e-05,
+        gnomad_popmax_af=3e-05,
+        sv_panel_af=None,
+    )
+    # cohort_af mirrors joint VCF INFO/AF (~1.5% in a small PD callset)
+    row["cohort_af"] = [0.014925]
+    out = filters.apply_filters(row, PANEL, cfg["filters"])
+    assert len(out) == 1
+    assert out.loc[0, "pass_frequency"]
+
+
+def test_sv_panel_af_still_hard_filtered(cfg):
+    row = _lof_del(gnomad_af=2.4e-05, gnomad_popmax_af=3e-05, sv_panel_af=0.05)
+    assert filters.apply_filters(row, PANEL, cfg["filters"]).empty
+
+
 def test_missing_gnomad_treated_as_rare(cfg):
     out = filters.apply_filters(_variants(gnomad_af=None, gnomad_popmax_af=None), PANEL, cfg["filters"])
     assert len(out) == 1

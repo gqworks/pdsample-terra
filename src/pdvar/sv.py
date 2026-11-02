@@ -393,8 +393,13 @@ def ingest_sv(
                         "gq": gq,
                         "allele_balance": pd.NA,
                         "depth": pd.NA,
-                        "sv_panel_af": cohort_af,
-                        "cohort_af": pd.NA,
+                        # INFO AF / CN_NONREF_FREQ is the callset (cohort) frequency on
+                        # joint or cohort-genotyped SV VCFs — annotate only. Do not store
+                        # it as sv_panel_af; that field is reserved for a true GATK-SV
+                        # reference-panel AF when available, and hard frequency filters
+                        # must not treat in-cohort AF as population frequency.
+                        "sv_panel_af": pd.NA,
+                        "cohort_af": cohort_af,
                         "gnomad_af": gnomad_af,
                         "gnomad_popmax_af": popmax,
                         "cadd": pd.NA,

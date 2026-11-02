@@ -36,9 +36,12 @@ def panel_mask(df: pd.DataFrame, panel: pd.DataFrame) -> pd.Series:
 
 
 def frequency_mask(df: pd.DataFrame, fcfg: dict) -> pd.Series:
-    """gnomAD and, when present, the GATK-SV reference-panel allele frequency.
+    """Population frequency ceilings (gnomAD; optional true GATK-SV ref-panel AF).
 
-    There is no in-cohort allele frequency. A sample is one Terra row.
+    ``cohort_af`` (in-callset AF on a joint SV VCF) is never applied here — a
+    pathogenic SV that happens to recur in a small PD cohort must not be dropped.
+    ``sv_panel_af`` is filtered only when present and is reserved for reference-panel
+    AF, not cohort INFO/AF.
     """
     mask = pd.Series(True, index=df.index)
     for col, key in (
