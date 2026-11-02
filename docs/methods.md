@@ -1,6 +1,6 @@
 # Methods
 
-`PdSample` interprets one genome. Every call is made from that sample's BAM (`EnsureBam` converts a CRAM input first). Scores are additive points from `config/config.yaml`. They are a triage rank in the style of ACMG evidence categories, and they are not an ACMG/AMP classification.
+`PdSample` interprets one genome. Every call is made from that sample's BAM (`EnsureBam` converts a CRAM input first). Scores are additive points from `config/config.yaml`. They are a triage rank in the style of ACMG evidence categories, and they are not an ACMG/AMP classification. Scored LoF structural variants get `null_variant` points via `transcript_ablation` plus a configurable `sv_dosage_lof` bonus (default 8), because SVs do not carry ClinVar/CADD/REVEL/AVI in-silico fields used for SNVs.
 
 ## Callers
 

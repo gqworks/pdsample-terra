@@ -21,6 +21,36 @@ def test_null_variant_with_high_cadd_is_tier1(cfg):
     assert row["tier"] == 1
 
 
+def test_lof_sv_dosage_bonus_reaches_tier1(cfg):
+    """PRKN-style exon DUP/DEL: null_variant via transcript_ablation + sv_dosage_lof."""
+    from pdvar import sv
+
+    base = scoring.score_variants(
+        pd.DataFrame(
+            [
+                {
+                    "consequence": "transcript_ablation",
+                    "clinvar_class": "none",
+                    "gnomad_af": 2.4e-05,
+                    "dosage_mechanism": "lof",
+                    "scored_dosage": True,
+                }
+            ]
+        ),
+        cfg["scoring"],
+    )
+    assert base.loc[0, "evidence_score"] == cfg["scoring"]["points"]["null_variant"]
+    assert base.loc[0, "tier"] == 2
+    out = sv.apply_dosage_evidence(base, cfg["scoring"])
+    expected = cfg["scoring"]["points"]["null_variant"] + cfg["scoring"]["points"]["sv_dosage_lof"]
+    assert out.loc[0, "evidence_score"] == expected
+    assert out.loc[0, "tier"] == 1
+    assert "sv_dosage_lof" in out.loc[0, "evidence_reasons"]
+    # Idempotent if applied twice
+    again = sv.apply_dosage_evidence(out, cfg["scoring"])
+    assert again.loc[0, "evidence_score"] == expected
+
+
 def test_benign_is_tier4(cfg):
     row = _score(cfg, consequence="synonymous_variant", clinvar_class="B/LB", cadd=2.0, gnomad_af=0.2)
     assert row["tier"] == 4

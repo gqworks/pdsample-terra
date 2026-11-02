@@ -186,7 +186,8 @@ def classify_dosage(
 
     ``scored`` is true for configured dosage genes and for exon-disrupting
     deletions. Copy gains are scored only for genes whose rule says ``copy_gain``
-    (SNCA duplication/triplication). The score itself reuses ``null_variant`` points.
+    (SNCA duplication/triplication). LoF SVs use ``null_variant`` plus
+    ``sv_dosage_lof``; copy-gain reuses ``null_variant`` as ``sv_dosage_gain``.
     """
     rules = rules if rules is not None else DEFAULT_DOSAGE_RULES
     event = dosage_event(svtype, cn, ecn, predicted)
@@ -442,27 +443,34 @@ def ingest_sv(
 
 
 def apply_dosage_evidence(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
-    """Add the existing ``null_variant`` points once for scored dosage SVs.
+    """Adjust evidence for scored dosage SVs.
 
-    LoF SVs already receive those points via ``transcript_ablation``. Copy-gain
-    events on configured genes (SNCA) receive the same configured point value,
-    recorded as ``sv_dosage_gain``. No new point value is introduced.
+    LoF SVs already get ``null_variant`` via ``transcript_ablation``. They also
+    receive ``sv_dosage_lof`` bonus points (SVs lack ClinVar/CADD/REVEL/AVI).
+    Copy-gain events on configured genes (SNCA) receive ``null_variant`` points
+    recorded as ``sv_dosage_gain``.
     """
     if df.empty or "dosage_mechanism" not in df.columns or "evidence_score" not in df.columns:
         return df
     df = df.copy()
-    points = scfg["points"]["null_variant"]
+    points = scfg["points"]
+    null_pts = int(points["null_variant"])
+    lof_bonus = int(points.get("sv_dosage_lof") or 0)
     reasons = df["evidence_reasons"].fillna("").astype(str)
     if "scored_dosage" in df.columns:
         scored = df["scored_dosage"].fillna(False).astype(bool)
     else:
         scored = df["dosage_mechanism"].isin(["lof", "copy_gain"])
-    gain = scored & (df["dosage_mechanism"] == "copy_gain") & ~reasons.str.contains("null_variant|sv_dosage")
-    df.loc[gain, "evidence_score"] = df.loc[gain, "evidence_score"] + points
+    gain = scored & (df["dosage_mechanism"] == "copy_gain") & ~reasons.str.contains(
+        "null_variant|sv_dosage", regex=True
+    )
+    df.loc[gain, "evidence_score"] = df.loc[gain, "evidence_score"] + null_pts
     df.loc[gain, "evidence_reasons"] = (reasons.loc[gain] + ";sv_dosage_gain").str.strip(";")
     reasons = df["evidence_reasons"].fillna("").astype(str)
-    label = scored & (df["dosage_mechanism"] == "lof") & ~reasons.str.contains("sv_dosage")
-    df.loc[label, "evidence_reasons"] = (reasons.loc[label] + ";sv_dosage_lof").str.strip(";")
+    lof = scored & (df["dosage_mechanism"] == "lof") & ~reasons.str.contains("sv_dosage_lof", regex=False)
+    if lof_bonus:
+        df.loc[lof, "evidence_score"] = df.loc[lof, "evidence_score"] + lof_bonus
+    df.loc[lof, "evidence_reasons"] = (reasons.loc[lof] + ";sv_dosage_lof").str.strip(";")
     df["tier"] = assign_tier(df["evidence_score"], scfg["tiers"])
     return df
 
