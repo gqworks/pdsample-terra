@@ -48,3 +48,58 @@ def test_sv_coding_comphet_outranks_intronic_ar_hom_flood():
     assert ranked.iloc[0]["variant_id"] == "missense"
     assert ranked.iloc[1]["variant_id"] == "dup"
     assert set(top.head(2)["variant_id"]) == {"missense", "dup"}
+
+
+def test_plp_and_lof_sv_force_kept_when_buried_by_intron_flood():
+    """If pairing never ran, P/LP + LoF SV must still survive the top-N cut."""
+    rows = [
+        {
+            "sample_id": "MH03900",
+            "gene": "PRKN",
+            "variant_id": "missense",
+            "consequence": "missense_variant",
+            "clinvar_class": "P/LP",
+            "inheritance_status": "AR_single_het",
+            "hit_source": "small_variant",
+            "dosage_mechanism": "other",
+            "scored_dosage": False,
+            "evidence_score": 13,
+            "tier": 1,
+            "weighted_evidence_score": 13,
+        },
+        {
+            "sample_id": "MH03900",
+            "gene": "PRKN",
+            "variant_id": "dup",
+            "consequence": "transcript_ablation",
+            "clinvar_class": "none",
+            "inheritance_status": "AR_single_het",
+            "hit_source": "sv",
+            "dosage_mechanism": "lof",
+            "scored_dosage": True,
+            "evidence_score": 16,
+            "tier": 1,
+            "weighted_evidence_score": 16,
+        },
+    ]
+    for i in range(25):
+        rows.append(
+            {
+                "sample_id": "MH03900",
+                "gene": f"GENE{i}",
+                "variant_id": f"intron{i}",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "inheritance_status": "AR_hom",
+                "hit_source": "small_variant",
+                "dosage_mechanism": "other",
+                "scored_dosage": False,
+                "evidence_score": 7,
+                "tier": 2,
+                "weighted_evidence_score": 7,
+            }
+        )
+    top = patient_candidates(pd.DataFrame(rows), max_per_patient=20)
+    ids = set(top["variant_id"])
+    assert "missense" in ids
+    assert "dup" in ids

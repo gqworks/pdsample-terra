@@ -5,9 +5,10 @@
 #   docker push REGISTRY/pdvar:COMMIT
 #
 # Without this image, leave pdvar_docker at python:3.11.11-slim-bookworm and
-# set pdvar_git_commit. The Assess task then installs
-# git+https://github.com/gqworks/pdsample-terra.git@main.
-# Pin pdvar_git_commit to a commit SHA of gqworks/pdsample-terra for a reproducible run.
+# set pdvar_git_commit to a commit SHA of gqworks/pdsample-terra. The Assess
+# task force-installs git+https://github.com/gqworks/pdsample-terra.git@SHA.
+# Do not pin "main": Cromwell call-cache keys on the input string, so a moving
+# branch tip will reuse a stale Assess result.
 FROM python:3.11.11-slim-bookworm
 
 WORKDIR /opt/src

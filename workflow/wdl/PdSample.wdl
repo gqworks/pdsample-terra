@@ -82,7 +82,9 @@ workflow PdSample {
     String gauchian_docker = "python:3.11.11-slim-bookworm"
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
-    String pdvar_git_commit = "main"
+    # Pin a SHA so Assess/FetchRepoAssets call-cache invalidates when pdvar changes.
+    # "main" does not change as an input string when the tip of main moves.
+    String pdvar_git_commit = "4a4ba0e6fb82ff7d769bc0fbd0211607e7d87219"
     File? expression_tsv
     File? splicevault_tsv
     File? prs_weights

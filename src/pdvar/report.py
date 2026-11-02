@@ -84,10 +84,47 @@ def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=drop_cols)
 
 
+def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
+    """Rows that must not be crowded out of the per-sample shortlist.
+
+    ClinVar P/LP coding alleles and scored LoF SVs are the findings a rereview
+    must see even when Introme fills the top-N with intron AR labels.
+    """
+    status = df["inheritance_status"].fillna("").astype(str) if "inheritance_status" in df.columns else pd.Series("", index=df.index)
+    clin = df["clinvar_class"].fillna("").astype(str) if "clinvar_class" in df.columns else pd.Series("", index=df.index)
+    hit = df["hit_source"].fillna("").astype(str) if "hit_source" in df.columns else pd.Series("", index=df.index)
+    mech = (
+        df["dosage_mechanism"].fillna("").astype(str).str.lower()
+        if "dosage_mechanism" in df.columns
+        else pd.Series("", index=df.index)
+    )
+    scored = (
+        df["scored_dosage"].fillna(False).astype(bool)
+        if "scored_dosage" in df.columns
+        else pd.Series(False, index=df.index)
+    )
+    comphet = status.isin(
+        {"AR_comphet_candidate", "AR_comphet_phased", "AR_hemizygous", "AR_second_hit_splice"}
+    )
+    plp = clin.eq("P/LP")
+    lof_sv = hit.eq("sv") & (mech.eq("lof") | scored)
+    return comphet | plp | lof_sv
+
+
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
+    """Top-N per sample among qualifying rows, plus forced clinical keepers."""
     ranked = rank_candidates(df)
-    ranked = ranked[ranked["inheritance_status"] != "not_qualifying"]
-    return ranked[ranked["rank"] <= max_per_patient]
+    qualifying = ranked[ranked["inheritance_status"] != "not_qualifying"].copy()
+    if qualifying.empty:
+        return qualifying
+    # Re-rank after dropping not_qualifying so rank<=N is among reportable rows.
+    qualifying["rank"] = qualifying.groupby("sample_id", sort=False).cumcount() + 1
+    top = qualifying[qualifying["rank"] <= max_per_patient]
+    must = qualifying[_must_keep_mask(qualifying)]
+    out = pd.concat([top, must], ignore_index=False).drop_duplicates()
+    out = out.sort_values(["sample_id", "rank"], kind="mergesort")
+    out["rank"] = out.groupby("sample_id", sort=False).cumcount() + 1
+    return out.reset_index(drop=True)
 
 
 def gene_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -196,13 +233,20 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
         lines.append(f"- {name}: {status}")
     if qc.get("sv_status"):
         lines.append(f"- gatk_sv status field: {qc.get('sv_status')}")
+    if qc.get("pdvar_version"):
+        lines.append(f"- pdvar: {qc.get('pdvar_version')}")
+    if qc.get("pdvar_git_commit"):
+        lines.append(f"- pdvar_git_commit: {qc.get('pdvar_git_commit')}")
     lines.extend(["", "## Callsets", ""])
     callsets = qc.get("callsets") or []
-    if not callsets:
-        lines.append("No STR, GBA1, or mtDNA assessment rows.")
+    sv_rows = qc.get("sv") or []
+    if not callsets and not sv_rows:
+        lines.append("No STR, GBA1, mtDNA, or SV assessment rows.")
     else:
         for row in callsets:
             lines.append(f"- {row.get('module')}: {row.get('callset_status')}")
+        for row in sv_rows:
+            lines.append(f"- gatk_sv: {row.get('sv_status')}")
     incidental = pd.DataFrame()
     if candidates is not None and not candidates.empty and "incidental" in candidates.columns:
         incidental = candidates[candidates["incidental"].fillna("").astype(str).str.len() > 0]

@@ -200,7 +200,16 @@ def _locked_status(status: str) -> bool:
 
 def _pair_sv_with_coding(df: pd.DataFrame, idx: list) -> None:
     """Promote LoF SV + coding allele to comp-het; demote same-gene weak intron solves."""
+    rescue_statuses = {"AR_single_het", "not_qualifying", ""}
     lof_svs = [i for i in idx if _is_lof_sv(df.loc[i]) and _qualifying(df, i)]
+    # Rescue LoF SVs left not_qualifying (tier floor) so they can still pair.
+    lof_svs += [
+        i
+        for i in idx
+        if i not in lof_svs
+        and _is_lof_sv(df.loc[i])
+        and _text(df.at[i, "inheritance_status"]) in rescue_statuses
+    ]
     coding = [i for i in idx if _is_coding_support(df.loc[i]) and _qualifying(df, i)]
     # Also rescue coding rows left as AR_single_het / not yet paired.
     coding += [
@@ -208,7 +217,7 @@ def _pair_sv_with_coding(df: pd.DataFrame, idx: list) -> None:
         for i in idx
         if i not in coding
         and _is_coding_support(df.loc[i])
-        and _text(df.at[i, "inheritance_status"]) in {"AR_single_het", "not_qualifying", ""}
+        and _text(df.at[i, "inheritance_status"]) in rescue_statuses
     ]
     if not lof_svs or not coding:
         return

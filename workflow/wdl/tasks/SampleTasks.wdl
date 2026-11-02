@@ -996,7 +996,8 @@ task Assess {
     File? phenotype_report
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
-    String pdvar_git_commit = "main"
+    # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
+    String pdvar_git_commit = "4a4ba0e6fb82ff7d769bc0fbd0211607e7d87219"
   }
   String age_value = select_first([age_onset, ""])
   String symptoms_value = select_first([symptoms, ""])
@@ -1010,16 +1011,28 @@ task Assess {
   Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + 150)
   command <<<
     set -euo pipefail
-    if ! python3 -c "import pdvar" >/dev/null 2>&1; then
-      if [[ -z "~{pdvar_git_commit}" ]]; then
-        echo "pdvar is not in the image. Set pdvar_git_commit or pdvar_docker to an image built from workflow/containers/pdvar." >&2
-        exit 1
-      fi
+    # Always (re)install when a commit is set. A pre-baked pdvar image otherwise
+    # skips git install forever, and pinning "main" does not bust Cromwell cache
+    # when the tip of main moves.
+    if [[ -n "~{pdvar_git_commit}" ]]; then
       apt-get update
       apt-get install -y --no-install-recommends git ca-certificates
       rm -rf /var/lib/apt/lists/*
-      pip install --no-cache-dir "git+~{pdvar_git_url}@~{pdvar_git_commit}"
+      pip install --no-cache-dir --upgrade --force-reinstall "git+~{pdvar_git_url}@~{pdvar_git_commit}"
+    elif ! python3 -c "import pdvar" >/dev/null 2>&1; then
+      echo "pdvar is not in the image. Set pdvar_git_commit or pdvar_docker to an image built from workflow/containers/pdvar." >&2
+      exit 1
     fi
+    python3 - <<'PY'
+import importlib.metadata
+from pathlib import Path
+try:
+    version = importlib.metadata.version("pdvar")
+except importlib.metadata.PackageNotFoundError:
+    version = "unknown"
+Path("pdvar_version.txt").write_text(version + "\n", encoding="utf-8")
+print("pdvar_version", version)
+PY
     export SAMPLE_ID="~{sample_id}"
     export SEX="~{sex}"
     export VEP_VCF="~{vep_vcf}"
@@ -1039,6 +1052,8 @@ task Assess {
     export AVI_TSV="~{avi_tsv}"
     export PHENOTYPE_JSON="~{phenotype_json}"
     export PHENOTYPE_REPORT="~{phenotype_report}"
+    export PDVAR_GIT_COMMIT="~{pdvar_git_commit}"
+    export PDVAR_VERSION="$(tr -d '\n' < pdvar_version.txt)"
     python3 - <<'PY'
 import json, os
 from pathlib import Path
@@ -1057,6 +1072,10 @@ for key in ("age_onset", "symptoms", "ethnicity"):
 report_path = os.environ.get("PHENOTYPE_REPORT", "").strip()
 if report_path:
     phenotype["report_text"] = Path(report_path).read_text(encoding="utf-8")
+if os.environ.get("PDVAR_VERSION"):
+    qc["pdvar_version"] = os.environ["PDVAR_VERSION"]
+if os.environ.get("PDVAR_GIT_COMMIT"):
+    qc["pdvar_git_commit"] = os.environ["PDVAR_GIT_COMMIT"]
 document = {
     "sample_id": os.environ["SAMPLE_ID"],
     "sex": os.environ.get("SEX") or qc.get("sex", {}).get("value") or "unknown",

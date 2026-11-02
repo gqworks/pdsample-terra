@@ -71,4 +71,6 @@ docker build -f workflow/containers/pdvar/Dockerfile -t REGISTRY/pdvar:COMMIT .
 docker push REGISTRY/pdvar:COMMIT
 ```
 
-Set `PdSample.pdvar_docker` to that image. Leave `pdvar_git_commit` empty when the image already contains `pdvar`.
+Set `PdSample.pdvar_docker` to that image. Leave `pdvar_git_commit` empty when the image already contains `pdvar` and you do not want Assess to force-reinstall from git.
+
+Prefer pinning `PdSample.pdvar_git_commit` to a **commit SHA**, not `main`. Cromwell call-cache keys on the input string, so a moving `main` tip reuses a stale Assess (and FetchRepoAssets) result.
