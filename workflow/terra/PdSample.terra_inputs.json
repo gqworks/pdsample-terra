@@ -21,7 +21,7 @@
   "PdSample.introme_gtf": "gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz",
   "PdSample.pdvar_docker": "python:3.11.11-slim-bookworm",
   "PdSample.pdvar_git_url": "https://github.com/gqworks/pdsample-terra.git",
-  "PdSample.pdvar_git_commit": "4a4ba0e6fb82ff7d769bc0fbd0211607e7d87219",
+  "PdSample.pdvar_git_commit": "a908aa84beb24979ebde74c6a21526e4378af60e",
   "PdSample.mt_dict": "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.dict",
   "PdSample.mt_fasta": "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta",
   "PdSample.mt_fasta_index": "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta.fai",

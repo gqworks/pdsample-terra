@@ -997,7 +997,7 @@ task Assess {
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
-    String pdvar_git_commit = "4a4ba0e6fb82ff7d769bc0fbd0211607e7d87219"
+    String pdvar_git_commit = "a908aa84beb24979ebde74c6a21526e4378af60e"
   }
   String age_value = select_first([age_onset, ""])
   String symptoms_value = select_first([symptoms, ""])

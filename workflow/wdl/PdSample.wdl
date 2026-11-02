@@ -84,7 +84,7 @@ workflow PdSample {
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a SHA so Assess/FetchRepoAssets call-cache invalidates when pdvar changes.
     # "main" does not change as an input string when the tip of main moves.
-    String pdvar_git_commit = "4a4ba0e6fb82ff7d769bc0fbd0211607e7d87219"
+    String pdvar_git_commit = "a908aa84beb24979ebde74c6a21526e4378af60e"
     File? expression_tsv
     File? splicevault_tsv
     File? prs_weights
