@@ -135,7 +135,31 @@ def _csq_map(fields: list[str], value: str) -> dict[str, str]:
     return {name: (parts[i] if i < len(parts) else "") for i, name in enumerate(fields)}
 
 
-def _pick_csq(info: dict, fields: list[str], alt: str) -> dict[str, str]:
+def _csq_allele_matches(csq_allele: str, ref: str, alt: str) -> bool:
+    """Match VEP ``Allele`` to a VCF ALT, including indel encodings.
+
+    VEP writes ``-`` for deletions (REF longer than ALT) and the inserted
+    sequence for insertions. Matching only the raw ALT string drops frameshifts
+    such as PRKN c.155del (REF=AT ALT=A → CSQ Allele ``-``).
+    """
+    allele = (csq_allele or "").strip()
+    if not allele:
+        return False
+    alt0 = alt.split(",")[0]
+    if allele in {alt, alt0}:
+        return True
+    if allele == "-" and len(ref) > len(alt0):
+        return True
+    if len(alt0) > len(ref) >= 1:
+        if alt0.startswith(ref) and allele == alt0[len(ref) :]:
+            return True
+        # Left-aligned VCF: shared first base, remainder is the insertion.
+        if alt0[0] == ref[0] and allele == alt0[1:]:
+            return True
+    return False
+
+
+def _pick_csq(info: dict, fields: list[str], alt: str, ref: str = "") -> dict[str, str]:
     raw = info.get("CSQ")
     if not raw or raw is True or not fields:
         return {}
@@ -143,7 +167,7 @@ def _pick_csq(info: dict, fields: list[str], alt: str) -> dict[str, str]:
     for item in str(raw).split(","):
         mapped = _csq_map(fields, item)
         allele = mapped.get("Allele") or ""
-        if allele and allele not in {alt, alt.split(",")[0]}:
+        if allele and not _csq_allele_matches(allele, ref or "", alt):
             continue
         if mapped.get("CANONICAL") == "YES" or mapped.get("PICK") == "1":
             return mapped
@@ -273,7 +297,7 @@ def parse_vep(path: str | Path, sample_id: str) -> pd.DataFrame:
         info_af, info_pop = _gnomad_from_info(info)
         info_clinvar = _clinvar_from_info(info)
         for index, alt in enumerate(alts, start=1):
-            csq = _pick_csq(info, fields, alt)
+            csq = _pick_csq(info, fields, alt, ref=str(record["ref"]))
             gnomad_af = info_af if info_af is not None else _csq_float(csq, _GNOMAD_AF_CSQ)
             popmax = info_pop if info_pop is not None else _csq_float(csq, _GNOMAD_POP_CSQ)
             clinvar_raw = info_clinvar or _csq_first(csq, _CLINVAR_CSQ) or ""

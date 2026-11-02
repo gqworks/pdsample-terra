@@ -2,7 +2,23 @@
 
 from pathlib import Path
 
-from pdvar.vep import _clinvar_from_info, _gnomad_from_info, _in_silico_from_csq, parse_vep
+from pdvar.vep import (
+    _clinvar_from_info,
+    _csq_allele_matches,
+    _gnomad_from_info,
+    _in_silico_from_csq,
+    parse_vep,
+)
+
+
+def test_csq_allele_matches_deletion_dash_and_insertion():
+    # PRKN c.155del style: REF=AT ALT=A, VEP Allele is '-'.
+    assert _csq_allele_matches("-", "AT", "A")
+    assert not _csq_allele_matches("-", "A", "G")
+    assert _csq_allele_matches("G", "A", "G")
+    # Insertion: REF=A ALT=AT → Allele 'T'.
+    assert _csq_allele_matches("T", "A", "AT")
+    assert _csq_allele_matches("GT", "A", "AGT")
 
 
 def test_gnomad_from_info_prefers_lifted_unified_keys():
@@ -124,3 +140,35 @@ def test_parse_vep_accepts_plugin_cadd_revel_names(tmp_path: Path):
     row = parse_vep(path, "S1").iloc[0]
     assert row["cadd"] == 22.1
     assert row["revel"] == 0.71
+
+
+def test_parse_vep_deletion_allele_dash_keeps_frameshift(tmp_path: Path):
+    """VEP encodes deletions as Allele='-'; must not fall back to sequence_variant."""
+    csq = "Allele|Consequence|SYMBOL|HGVSc|HGVSp|CANONICAL"
+    path = tmp_path / "prkn_c155del.vep.vcf"
+    path.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                f'##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: {csq}">',
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=AD>",
+                "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=DP>",
+                "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=GQ>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1",
+                "chr6\t162443325\t.\tAT\tA\t323\tPASS\t"
+                "CSQ=-|frameshift_variant|PRKN|ENST00000366898.6:c.155del|"
+                "ENSP00000355865.1:p.Asn52MetfsTer29|YES\t"
+                "GT:AD:DP:GQ\t1/1:0,9:9:27",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    frame = parse_vep(path, "S1")
+    assert len(frame) == 1
+    row = frame.iloc[0]
+    assert row["consequence"] == "frameshift_variant"
+    assert "c.155del" in str(row["hgvsc"])
+    assert row["depth"] == 9.0
+    assert row["zygosity"] == "hom"
