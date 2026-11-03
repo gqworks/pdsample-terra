@@ -45,6 +45,26 @@ CODING_CONSEQUENCES = NULL_CONSEQUENCES | {
     "stop_lost",
     "splice_region_variant",
 }
+# Gene-level demotion: require true coding/null/P-LP/LoF-SV, not splice_region+intron noise.
+STRONG_CODING_CONSEQUENCES = NULL_CONSEQUENCES | {
+    "missense_variant",
+    "inframe_insertion",
+    "inframe_deletion",
+    "protein_altering_variant",
+    "stop_lost",
+}
+WEAK_NONCODING_TERMS = {
+    "intron_variant",
+    "non_coding_transcript_variant",
+    "splice_region_variant",
+    "splice_polypyrimidine_tract_variant",
+    "donor_canonical",
+    "acceptor_canonical",
+    "donor_region",
+    "acceptor_region",
+    "3_prime_UTR_variant",
+    "5_prime_UTR_variant",
+}
 FOLLOWUP_COLUMNS = [
     "sample_id", "gene", "moi", "variant_ids", "variant_classes", "zygosities",
     "phase_relation", "inheritance_status", "reason",
@@ -174,6 +194,8 @@ def _is_coding_support(row: pd.Series) -> bool:
         return False
     if _text(row.get("variant_class")) == "SV":
         return False
+    if _text(row.get("hit_source")) == "introme_lookup":
+        return False
     if _text(row.get("clinvar_class")) == "P/LP":
         return True
     terms = _consequence_terms(row)
@@ -182,16 +204,43 @@ def _is_coding_support(row: pd.Series) -> bool:
     return False
 
 
-def _is_weak_intronic(row: pd.Series) -> bool:
-    """Deep-intronic / Introme-rescued row without coding or ClinVar P/LP evidence."""
-    if _is_lof_sv(row) or _is_coding_support(row):
+def _is_strong_allele(row: pd.Series) -> bool:
+    """True coding/null, ClinVar P/LP, or LoF SV — not Introme lookup or intron/splice noise."""
+    if _text(row.get("hit_source")) == "introme_lookup":
         return False
+    if _is_lof_sv(row):
+        return True
+    if _text(row.get("clinvar_class")) == "P/LP":
+        return True
+    if _text(row.get("variant_class")) == "SV":
+        return False
+    terms = _consequence_terms(row)
+    return bool(terms & STRONG_CODING_CONSEQUENCES)
+
+
+def _is_weak_intronic(row: pd.Series) -> bool:
+    """Deep-intronic / Introme-rescued / splice-region noise without strong coding evidence."""
+    if _is_strong_allele(row):
+        return False
+    if _text(row.get("hit_source")) == "introme_lookup":
+        return True
     terms = _consequence_terms(row)
     if not terms:
         return False
-    if terms & CODING_CONSEQUENCES:
+    if terms & STRONG_CODING_CONSEQUENCES:
         return False
-    return "intron_variant" in terms or terms <= {"intron_variant", "non_coding_transcript_variant"}
+    if "intron_variant" in terms or "non_coding_transcript_variant" in terms:
+        return True
+    if terms <= WEAK_NONCODING_TERMS:
+        return True
+    if terms & {
+        "donor_canonical",
+        "acceptor_canonical",
+        "donor_region",
+        "acceptor_region",
+    }:
+        return True
+    return False
 
 
 def _locked_status(status: str) -> bool:
@@ -236,6 +285,20 @@ def _pair_sv_with_coding(df: pd.DataFrame, idx: list) -> None:
             continue
         status = _text(df.at[i, "inheritance_status"])
         if status in SOLVED_AR or status == "AR_single_het":
+            df.at[i, "inheritance_status"] = INTRONIC_SUPPORT_STATUS
+
+
+def _demote_intron_only_ar(df: pd.DataFrame, idx: list) -> None:
+    """If an AR gene has no strong allele, demote intron/Introme 'solves' to support-only."""
+    if any(_is_strong_allele(df.loc[i]) for i in idx):
+        return
+    for i in idx:
+        status = _text(df.at[i, "inheritance_status"])
+        if _locked_status(status):
+            continue
+        if status not in SOLVED_AR and status != "AR_single_het":
+            continue
+        if _is_weak_intronic(df.loc[i]):
             df.at[i, "inheritance_status"] = INTRONIC_SUPPORT_STATUS
 
 
@@ -291,6 +354,7 @@ def refine(df: pd.DataFrame, cfg: dict | None = None) -> tuple[pd.DataFrame, pd.
         idx = list(grp.index)
         _apply_hemizygosity(df, idx)
         _pair_sv_with_coding(df, idx)
+        _demote_intron_only_ar(df, idx)
         _apply_phase(df, idx)
 
     follow_rows = []

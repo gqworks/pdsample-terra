@@ -124,10 +124,7 @@ scoring:
 splicing:
   introme_high: 0.7          # placeholder - set from Introme documentation / calibration
   introme_moderate: 0.6
-  # Second-allele lookup inside this sample. gnomAD AF is applied only when the
-  # Introme table already carries gnomad_af (from the VEP custom annotation).
-  lookup_min_score: 0.7
-  lookup_max_gnomad_af: 0.01
+  # Introme scores are merged onto sample-callset alleles only (no carrier-table injection).
   # Consequences where Introme is expected to add information beyond SpliceAI
   consider_consequences:
     - splice_region_variant

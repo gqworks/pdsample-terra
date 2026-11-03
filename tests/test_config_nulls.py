@@ -12,7 +12,8 @@ def test_shipped_config_has_null_penetrance():
     assert cfg["expression"]["min_brain_pext"] is None
     assert cfg["expression"]["unexpressed_weight"] is None
     assert "cohort_size" not in cfg
-    assert "lookup_max_gnomad_af" in cfg["splicing"]
+    assert "lookup_max_gnomad_af" not in cfg["splicing"]
+    assert "lookup_min_score" not in cfg["splicing"]
 
 
 def test_str_loci_pd_panel_has_cited_cutoffs():
