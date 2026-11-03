@@ -103,3 +103,74 @@ def test_plp_and_lof_sv_force_kept_when_buried_by_intron_flood():
     ids = set(top["variant_id"])
     assert "missense" in ids
     assert "dup" in ids
+
+
+def test_str_expanded_survives_intronic_ar_flood():
+    """ATXN8OS-style expansion must stay in the shortlist vs intron AR priority-0 noise."""
+    rows = [
+        {
+            "sample_id": "MH06257",
+            "gene": "ATXN8OS",
+            "variant_id": "ATXN8OS_CAG",
+            "consequence": "short_tandem_repeat_expansion",
+            "clinvar_class": "none",
+            "inheritance_status": "str_expanded",
+            "hit_source": "str",
+            "dosage_mechanism": "other",
+            "scored_dosage": False,
+            "evidence_score": 8,
+            "tier": 2,
+            "weighted_evidence_score": 8,
+        },
+    ]
+    for i in range(30):
+        rows.append(
+            {
+                "sample_id": "MH06257",
+                "gene": f"GENE{i}",
+                "variant_id": f"intron{i}",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "inheritance_status": "AR_hom",
+                "hit_source": "small_variant",
+                "dosage_mechanism": "other",
+                "scored_dosage": False,
+                "evidence_score": 7,
+                "tier": 2,
+                "weighted_evidence_score": 7,
+            }
+        )
+    df = pd.DataFrame(rows)
+    # AR_hom (priority 0) still outranks str_expanded (1) before demotion; must-keep saves it.
+    top = patient_candidates(df, max_per_patient=20)
+    assert "ATXN8OS_CAG" in set(top["variant_id"])
+    assert len(top) > 20  # force-kept beyond top-N cut
+
+
+def test_str_expanded_outranks_demoted_intronic_candidate():
+    rows = [
+        {
+            "sample_id": "MH06257",
+            "gene": "ATXN8OS",
+            "variant_id": "ATXN8OS_CAG",
+            "consequence": "short_tandem_repeat_expansion",
+            "clinvar_class": "none",
+            "inheritance_status": "str_expanded",
+            "evidence_score": 8,
+            "tier": 2,
+            "weighted_evidence_score": 8,
+        },
+        {
+            "sample_id": "MH06257",
+            "gene": "PRKRA",
+            "variant_id": "lookup",
+            "consequence": "donor_canonical",
+            "clinvar_class": "none",
+            "inheritance_status": "AR_intronic_candidate",
+            "evidence_score": 20,
+            "tier": 1,
+            "weighted_evidence_score": 20,
+        },
+    ]
+    ranked = rank_candidates(pd.DataFrame(rows))
+    assert list(ranked["variant_id"]) == ["ATXN8OS_CAG", "lookup"]

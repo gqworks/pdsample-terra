@@ -182,16 +182,15 @@ def assess_sample(
 
     introme_path = _exists(sample.get("introme_tsv"))
     introme_variants = pd.DataFrame()
-    introme_carriers = pd.DataFrame()
     if introme_path is None:
         notes["introme"] = "not_assessed"
     else:
         raw_introme = io.read_table(introme_path)
         if not raw_introme.empty:
-            introme_variants, introme_carriers = normalize.normalize_introme(
+            # Scores only; do not inject Introme carrier alleles absent from the sample callset.
+            introme_variants, _carriers = normalize.normalize_introme(
                 raw_introme, cfg["columns"]["introme"], cfg.get("gene_aliases")
             )
-            introme_carriers = _relabel(introme_carriers, sample_id)
         notes["introme"] = "called"
     notes["vep"] = "called"
 
@@ -218,10 +217,6 @@ def assess_sample(
             vault = _exists(sample.get("splicevault"))
             if vault is not None:
                 scored = splicing.merge_splicevault(scored, io.read_table(vault))
-            hits = splicing.find_second_hits(scored, introme_carriers, introme_variants, panel, cfg)
-            if not hits.empty:
-                hits["sample_id"] = sample_id
-                scored = pd.concat([scored, hits], ignore_index=True)
             scored = splicing.summarize_splice_scores(scored)
             scored = inheritance.annotate_moi(scored, panel)
             scored = inheritance.evaluate_inheritance(scored, cfg["inheritance"])

@@ -212,3 +212,127 @@ def test_prkn_dup_pairs_with_pathogenic_missense_over_intronic_introme():
     assert set(solved["variant_id"]) == {"6-161350208-C-T", "dup-exons"}
     assert (out.loc[out["variant_id"] == "6-162326073-T-A", "inheritance_status"] == "AR_intronic_candidate").all()
     assert follow.empty
+
+
+def test_intron_only_ar_gene_demoted_to_intronic_candidate():
+    """Genes whose only AR 'solves' are intron / splice-region noise drop to support status."""
+    df = pd.DataFrame(
+        [
+            {
+                "sample_id": "MH06257",
+                "gene": "PRKRA",
+                "moi": "AR",
+                "variant_id": "2-178450414-A-AT",
+                "variant_class": "INDEL",
+                "chrom": "2",
+                "pos": 178450414,
+                "end": 178450414,
+                "ref": "A",
+                "alt": "AT",
+                "genotype": "0/1",
+                "zygosity": "het",
+                "consequence": "splice_region_variant&intron_variant",
+                "clinvar_class": "none",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_comphet_candidate",
+                "evidence_score": 7,
+                "tier": 2,
+            },
+            {
+                "sample_id": "MH06257",
+                "gene": "PRKRA",
+                "moi": "AR",
+                "variant_id": "2-178450500-C-T",
+                "variant_class": "SNV",
+                "chrom": "2",
+                "pos": 178450500,
+                "end": 178450500,
+                "ref": "C",
+                "alt": "T",
+                "genotype": "0/1",
+                "zygosity": "het",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_comphet_candidate",
+                "evidence_score": 7,
+                "tier": 2,
+            },
+            {
+                "sample_id": "MH06257",
+                "gene": "NOISE1",
+                "moi": "AR",
+                "variant_id": "1-100-A-G",
+                "variant_class": "SNV",
+                "chrom": "1",
+                "pos": 100,
+                "end": 100,
+                "ref": "A",
+                "alt": "G",
+                "genotype": "1/1",
+                "zygosity": "hom",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_hom",
+                "evidence_score": 7,
+                "tier": 2,
+            },
+        ]
+    )
+    out, follow = refine(df, {})
+    assert (out["inheritance_status"] == "AR_intronic_candidate").all()
+    assert follow.empty
+
+
+def test_coding_plus_intron_keeps_coding_solved():
+    """Coding allele keeps solved status; gene-level demotion does not fire when strong exists."""
+    df = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "PARK7",
+                "moi": "AR",
+                "variant_id": "missense",
+                "variant_class": "SNV",
+                "chrom": "1",
+                "pos": 10,
+                "end": 10,
+                "ref": "A",
+                "alt": "G",
+                "genotype": "0/1",
+                "zygosity": "het",
+                "consequence": "missense_variant",
+                "clinvar_class": "none",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_comphet_candidate",
+                "evidence_score": 10,
+                "tier": 1,
+            },
+            {
+                "sample_id": "S1",
+                "gene": "PARK7",
+                "moi": "AR",
+                "variant_id": "intron",
+                "variant_class": "SNV",
+                "chrom": "1",
+                "pos": 20,
+                "end": 20,
+                "ref": "C",
+                "alt": "T",
+                "genotype": "0/1",
+                "zygosity": "het",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_comphet_candidate",
+                "evidence_score": 7,
+                "tier": 2,
+            },
+        ]
+    )
+    out, _follow = refine(df, {})
+    by_id = out.set_index("variant_id")["inheritance_status"]
+    assert by_id["missense"] == "AR_comphet_candidate"
+    # Strong allele present → intron partner is not gene-level demoted.
+    assert by_id["intron"] == "AR_comphet_candidate"

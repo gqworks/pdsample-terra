@@ -103,12 +103,18 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
         if "scored_dosage" in df.columns
         else pd.Series(False, index=df.index)
     )
-    comphet = status.isin(
-        {"AR_comphet_candidate", "AR_comphet_phased", "AR_hemizygous", "AR_second_hit_splice"}
+    force_status = status.isin(
+        {
+            "AR_comphet_candidate",
+            "AR_comphet_phased",
+            "AR_hemizygous",
+            "AR_second_hit_splice",
+            "str_expanded",
+        }
     )
     plp = clin.eq("P/LP")
     lof_sv = hit.eq("sv") & (mech.eq("lof") | scored)
-    return comphet | plp | lof_sv
+    return force_status | plp | lof_sv
 
 
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:

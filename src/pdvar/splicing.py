@@ -19,68 +19,6 @@ def merge_introme(variants: pd.DataFrame, introme: pd.DataFrame) -> pd.DataFrame
     return variants.merge(introme[cols], on="variant_id", how="left")
 
 
-def _lookup_consequence(region: pd.Series, intronic: pd.Series) -> pd.Series:
-    region = region.fillna(".").astype(str)
-    fallback = intronic.fillna("").astype(str).map({"intronic": "intron_variant", "exonic": "exonic_introme"})
-    return region.where(region != ".", fallback.fillna("introme_variant"))
-
-
-def find_second_hits(
-    df: pd.DataFrame,
-    carriers: pd.DataFrame,
-    introme: pd.DataFrame,
-    panel: pd.DataFrame,
-    cfg: dict,
-) -> pd.DataFrame:
-    """Look up Introme splice variants as second alleles in the same sample.
-
-    For every sample x AR-gene pair that already has a qualifying first hit,
-    return that sample's Introme variants in the same gene that are not already
-    in ``df`` and pass ``lookup_min_score``. When ``gnomad_af`` is present,
-    alleles above ``lookup_max_gnomad_af`` are dropped. A missing AF is kept.
-    There is no cohort allele frequency.
-    Returned rows have ``hit_source = "introme_lookup"`` and only count as
-    second hits.
-    """
-    spcfg, scfg, icfg = cfg["splicing"], cfg["scoring"], cfg["inheritance"]
-    ar_genes = set(panel.loc[panel["moi"] == "AR", "gene"])
-    is_first = df["gene"].isin(ar_genes) & (df["tier"] <= icfg["ar_first_hit_min_tier"])
-    if "hit_source" in df.columns:
-        is_first &= df["hit_source"] != "introme_lookup"
-    pairs = df.loc[is_first, ["sample_id", "gene"]].astype(str).drop_duplicates()
-    if pairs.empty or carriers.empty:
-        return pd.DataFrame()
-
-    cand = carriers.merge(pairs, on=["sample_id", "gene"])
-    present = df[["sample_id", "variant_id"]].astype(str).drop_duplicates()
-    cand = cand.merge(present, on=["sample_id", "variant_id"], how="left", indicator=True)
-    cand = cand[cand["_merge"] == "left_only"].drop(columns="_merge")
-    cand = cand.merge(introme, on="variant_id", how="left")
-    max_af = spcfg.get("lookup_max_gnomad_af", 0.01)
-    if "gnomad_af" in cand.columns and max_af is not None:
-        af = pd.to_numeric(cand["gnomad_af"], errors="coerce")
-        cand = cand[af.isna() | (af <= float(max_af))]
-    cand = cand[cand["introme_score"] >= spcfg["lookup_min_score"]].reset_index(drop=True)
-    if cand.empty:
-        return pd.DataFrame()
-
-    parts = cand["variant_id"].str.split("-", n=3, expand=True)
-    cand["chrom"], cand["ref"], cand["alt"] = parts[0], parts[2], parts[3]
-    cand["pos"] = parts[1].astype("Int64")
-    cand["consequence"] = _lookup_consequence(
-        cand.get("introme_gene_region", pd.Series(index=cand.index, dtype=object)),
-        cand.get("introme_intronic", pd.Series(index=cand.index, dtype=object)),
-    )
-    cand["introme_class"] = classify_introme(cand["introme_score"], spcfg)
-    high = cand["introme_class"] == "high"
-    cand["evidence_score"] = high.astype(int) * scfg["points"]["introme_high"]
-    cand["evidence_reasons"] = high.map({True: "introme_lookup;introme_high", False: "introme_lookup"})
-    cand["tier"] = assign_tier(cand["evidence_score"], scfg["tiers"])
-    cand["splice_candidate"] = True
-    cand["hit_source"] = "introme_lookup"
-    return cand.drop(columns=["allele_count"])
-
-
 def apply_introme_evidence(df: pd.DataFrame, spcfg: dict, scfg: dict) -> pd.DataFrame:
     """Add ``introme_class`` and add Introme points to the score for relevant consequences.
 

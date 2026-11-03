@@ -30,29 +30,21 @@ def test_parse_introme_carriers(cfg):
     assert hom["zygosity"].tolist() == ["hom"]
 
 
-def test_find_second_hits_only_for_first_hit_pairs(cfg):
-    variants, carriers = _parsed(cfg)
-    panel = pd.DataFrame({"gene": ["PINK1", "PRKN"], "moi": ["AR", "AR"]})
-    scored = pd.DataFrame({
-        "sample_id": ["P003", "P005"],
-        "gene": ["PINK1", "PRKN"],
-        "variant_id": ["1-20650000-G-A", "6-161360000-C-T"],
-        "tier": [2, 4],  # P005 hit does not qualify -> no lookup for P005
-    })
-    variants = variants.copy()
-    variants.loc[variants["variant_id"] == "1-20670000-C-T", "gnomad_af"] = 0.2
-    hits = splicing.find_second_hits(scored, carriers, variants, panel, cfg)
-    assert hits["variant_id"].tolist() == ["1-20660000-A-G"]
-    assert hits["hit_source"].eq("introme_lookup").all()
-    assert hits["consequence"].tolist() == ["donor_region"]
-    assert hits["introme_class"].tolist() == ["high"]
-
-
-def test_find_second_hits_af_threshold(cfg):
-    variants, carriers = _parsed(cfg)
-    panel = pd.DataFrame({"gene": ["PINK1"], "moi": ["AR"]})
-    scored = pd.DataFrame({"sample_id": ["P003"], "gene": ["PINK1"], "variant_id": ["x"], "tier": [1]})
-    variants = variants.copy()
-    variants["gnomad_af"] = 0.2
-    hits = splicing.find_second_hits(scored, carriers, variants, panel, cfg)
-    assert hits.empty
+def test_merge_introme_scores_onto_callset_alleles_only(cfg):
+    """Introme annotates existing callset rows; it does not invent missing alleles."""
+    variants, _carriers = _parsed(cfg)
+    scored = pd.DataFrame(
+        {
+            "sample_id": ["P003"],
+            "gene": ["PINK1"],
+            "variant_id": ["1-20660000-A-G"],
+            "consequence": "intron_variant",
+            "evidence_score": 0,
+            "evidence_reasons": "",
+        }
+    )
+    merged = splicing.merge_introme(scored, variants)
+    out = splicing.apply_introme_evidence(merged, cfg["splicing"], cfg["scoring"])
+    assert len(out) == 1
+    assert out.loc[0, "variant_id"] == "1-20660000-A-G"
+    assert out.loc[0, "introme_class"] == "high"
