@@ -1,12 +1,12 @@
 # Map canonical column names to the Introme TSV, phenotype table, and panel CSV.
 
-introme:                        # Introme v2 TSV (gene and samples_with_alt are added by the WDL)
+introme:                        # Introme v2 TSV
   chrom: CHROM
   pos: POS
   ref: REF
   alt: ALT                      # "('C',)" or a plain base from vcf2pandas
   gene: gene                    # optional; Python list, bare symbol, or comma/semicolon list
-  carriers: samples_with_alt    # optional; "[('SAMPLE_A', 1)]". Absent on a raw v2 TSV.
+  carriers: samples_with_alt    # legacy cohort exports only; PdSample no longer writes it
   introme_rsid: ID
   introme_qual: QUAL
   introme_score: introme_score
