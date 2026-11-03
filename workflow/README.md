@@ -73,4 +73,6 @@ docker push REGISTRY/pdvar:COMMIT
 
 Set `PdSample.pdvar_docker` to that image. Leave `pdvar_git_commit` empty when the image already contains `pdvar` and you do not want Assess to force-reinstall from git.
 
-Prefer pinning `PdSample.pdvar_git_commit` to a **commit SHA**, not `main`. Cromwell call-cache keys on the input string, so a moving `main` tip reuses a stale Assess (and FetchRepoAssets) result.
+`FetchRepoAssets` is marked `volatile` and uses `PdSample.assets_git_commit` (default `main`) for scripts, config, and panel assets. It always re-downloads; downstream tasks still call-cache on the content hashes of those `File`s, so only consumers of changed assets rerun. Pin `assets_git_commit` to a SHA to freeze assets.
+
+Prefer pinning `PdSample.pdvar_git_commit` to a **commit SHA**, not `main`. Cromwell call-cache keys Assess on that input string, so a moving `main` tip reuses a stale Assess result. Bump the SHA when `src/pdvar` changes.
