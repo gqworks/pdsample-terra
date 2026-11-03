@@ -62,7 +62,8 @@ def test_sample_callsets_ingested_and_kept(tmp_path, cfg):
     rfc1 = table[table["str_locus"] == "RFC1"].iloc[0]
     assert rfc1["sample_id"] == "SAMPLE_A"
     assert rfc1["gene"] == "RFC1"
-    assert pd.isna(rfc1["str_expanded"])
+    # Fixture allele 11/80 is below the cited RFC1 AAGGG floor (250).
+    assert bool(rfc1["str_expanded"]) is False
     deletion = table[table["hit_source"] == "gauchian"].iloc[0]
     assert deletion["consequence"] == "transcript_ablation"
     assert deletion["zygosity"] == "hom"
@@ -83,6 +84,31 @@ def test_sample_callsets_ingested_and_kept(tmp_path, cfg):
     panel = pd.DataFrame({"gene": ["PRKN"], "risk_allele_exception": [False]})
     kept = filters.apply_filters(table, panel, cfg["filters"])
     assert set(kept["hit_source"]) == {"expansionhunter", "gauchian", "mtdna"}
+
+
+def test_atxn8os_above_cutoff_is_expanded(tmp_path, cfg):
+    path = tmp_path / "eh_atxn8.vcf"
+    path.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                "##INFO=<ID=END,Number=1,Type=Integer,Description=End>",
+                "##INFO=<ID=REPID,Number=1,Type=String,Description=Locus>",
+                "##INFO=<ID=REF,Number=1,Type=Integer,Description=Reference repeats>",
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "##FORMAT=<ID=REPCN,Number=1,Type=String,Description=Repeat counts>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_A",
+                "chr13\t70139383\t.\tA\t<STR>\t.\tPASS\tEND=70139428;REPID=ATXN8OS;REF=15\tGT:REPCN\t1/2:9/101",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    table, _ = callsets.ingest_sample_callsets("SAMPLE_A", expansionhunter=path, cfg=cfg)
+    row = table[table["str_locus"] == "ATXN8OS"].iloc[0]
+    assert row["repeat_count"] == 101
+    assert bool(row["str_expanded"]) is True
+    assert "NBK1268" in str(row["str_citation"])
 
 
 def test_absent_callsets_are_not_assessed():

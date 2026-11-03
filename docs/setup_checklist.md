@@ -55,7 +55,8 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 - SV overlap BEDs: `resources/panel/monopdaus-genes.grch38.bed`, `resources/panel/monopdaus-exons.grch38.bed`
 - Inheritance table: `resources/panel/monopdaus-gene-inheritance.csv` (placeholder labels)
 - ExpansionHunter catalog: `workflow/assets/expansionhunter_pd.hg38.json` (19 loci; NOTCH2NLC, FGF14, BEAN1, and LRP12 are not in this catalog)
+- STR pathogenicity floors: `config/config.yaml` → `str_loci` (GeneReviews-cited; covers EH loci plus NOTCH2NLC, FGF14, FXN; BEAN1/LRP12 cited but null count)
 - Config: `config/config.yaml`, `config/columns.yaml`, `config/gene_phenotypes.yaml`
 - QC scripts: `workflow/scripts/check_reference.py`, `workflow/scripts/qc_summary.py`
 
-Panel inheritance labels, penetrance, PRS beta, expression cutoffs, and STR pathogenic repeat counts are null or placeholder until you cite them. The workflow will still rank variants.
+Panel inheritance labels, penetrance, PRS beta, and expression cutoffs stay null or placeholder until you cite them. STR pathogenic repeat floors are populated under `str_loci`. The workflow will still rank variants.

@@ -1,6 +1,7 @@
 # Expected phenotype profile per gene, used for phenotype-genotype concordance.
 # Covers every Symbol in resources/panel/monopdaus-gene-inheritance.csv (GBA is keyed as GBA1,
-# C19orf12 as C19ORF12 because lookups upper-case the gene symbol).
+# C19orf12 as C19ORF12 because lookups upper-case the gene symbol), plus PD-relevant
+# repeat-expansion loci from config.yaml str_loci (even when not on the coding panel).
 # This is a starter literature synthesis (GeneReviews, OMIM, MDSGene reviews), not a formal
 # systematic review. It must be reviewed by a clinician / movement-disorder expert before the
 # concordance output is used for anything beyond triage. Sources and confidence per gene are in
@@ -955,3 +956,176 @@ DCAF17:
   key_features: [hypogonadism, alopecia, diabetes, hearing loss, dystonia]
   atypical_features: [intellectual disability]
   enriched_ancestry: [Saudi]
+
+# ---- Repeat-expansion disorders (PD / adult ataxia / phenocopy differentials)
+# Keys match str_loci gene symbols. Keywords favour ataxia, oculomotor, neuropathy,
+# cognitive, and motor-neuron signs over generic PD words so typical PD alone does
+# not false-match every SCA locus.
+
+ATXN1:
+  moi: AD
+  onset_range: [15, 55]
+  key_features: [ataxia, dysarthria, hyperreflexia, bulbar, dysphagia]
+  atypical_features: [neuropathy, cognitive]
+  enriched_ancestry: []
+
+ATXN2:
+  moi: AD
+  onset_range: [15, 60]
+  key_features: [ataxia, slow saccade, ophthalmoparesis, dysarthria, neuropathy]
+  atypical_features: [parkinsonism, dementia, areflexia]
+  enriched_ancestry: [Cuban]
+
+ATXN3:
+  moi: AD
+  onset_range: [10, 70]
+  key_features: [ataxia, pyramidal, fasciculation, lid retraction, dysarthria]
+  atypical_features: [parkinsonism, dystonia, neuropathy]
+  enriched_ancestry: [Portuguese, Azorean]
+
+CACNA1A:
+  moi: AD
+  onset_range: [20, 75]
+  key_features: [ataxia, nystagmus, dysarthria, episodic ataxia]
+  atypical_features: [vertigo]
+  enriched_ancestry: []
+
+ATXN7:
+  moi: AD
+  onset_range: [0, 60]
+  key_features: [ataxia, visual loss, retinopathy, dysarthria, ophthalmoplegia]
+  atypical_features: [cone-rod]
+  enriched_ancestry: []
+
+ATXN8OS:
+  moi: AD
+  onset_range: [18, 65]
+  key_features: [ataxia, dysarthria, nystagmus]
+  atypical_features: [spasticity, cognitive]
+  enriched_ancestry: []
+
+ATXN10:
+  moi: AD
+  onset_range: [12, 50]
+  key_features: [ataxia, seizure, epilepsy, dysarthria]
+  atypical_features: []
+  enriched_ancestry: [Mexican]
+
+PPP2R2B:
+  moi: AD
+  onset_range: [25, 65]
+  key_features: [action tremor, ataxia, dysarthria, cognitive]
+  atypical_features: [psychiatric]
+  enriched_ancestry: [Indian]
+
+TBP:
+  moi: AD
+  onset_range: [3, 55]
+  key_features: [ataxia, dementia, psychiatric, chorea, dystonia]
+  atypical_features: [parkinsonism, myoclonus, epilepsy]
+  enriched_ancestry: []
+
+FMR1:
+  moi: XL
+  onset_range: [45, 80]
+  key_features: [ataxia, intention tremor, cognitive decline, neuropathy]
+  atypical_features: [parkinsonism, psychiatric, middle cerebellar peduncle]
+  enriched_ancestry: []
+
+C9ORF72:
+  moi: AD
+  onset_range: [35, 75]
+  key_features: [frontotemporal, dementia, amyotrophic, motor neuron, bulbar]
+  atypical_features: [parkinsonism, psychosis]
+  enriched_ancestry: []
+
+RFC1:
+  moi: AR
+  onset_range: [25, 80]
+  key_features: [ataxia, neuropathy, vestibular, chronic cough, sensory]
+  atypical_features: [dysautonomia]
+  enriched_ancestry: []
+
+HTT:
+  moi: AD
+  onset_range: [15, 65]
+  key_features: [chorea, cognitive decline, psychiatric, personality]
+  atypical_features: [rigidity, juvenile]
+  enriched_ancestry: []
+
+AR:
+  moi: XL
+  onset_range: [25, 65]
+  key_features: [bulbar, fasciculation, gynecomastia, proximal weakness, dysarthria]
+  atypical_features: [tremor, sensory]
+  enriched_ancestry: []
+
+ATN1:
+  moi: AD
+  onset_range: [0, 55]
+  key_features: [ataxia, chorea, myoclonus, seizure, dementia]
+  atypical_features: [psychiatric]
+  enriched_ancestry: [Japanese]
+
+NOP56:
+  moi: AD
+  onset_range: [30, 70]
+  key_features: [ataxia, fasciculation, tongue atrophy, hyperreflexia, dysarthria]
+  atypical_features: [motor neuron]
+  enriched_ancestry: [Japanese, Galician]
+
+JPH3:
+  moi: AD
+  onset_range: [20, 60]
+  key_features: [chorea, dementia, psychiatric, cognitive decline]
+  atypical_features: [parkinsonism]
+  enriched_ancestry: [African, African American]
+
+GIPC1:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [ptosis, dysphagia, distal weakness, ophthalmoplegia]
+  atypical_features: [myopathy]
+  enriched_ancestry: []
+
+CSTB:
+  moi: AR
+  onset_range: [6, 16]
+  key_features: [myoclonus, ataxia, seizure, stimulus-sensitive]
+  atypical_features: []
+  enriched_ancestry: [Finnish]
+
+NOTCH2NLC:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [cognitive decline, leukoencephalopathy, neuropathy, miosis]
+  atypical_features: [parkinsonism, tremor, bladder]
+  enriched_ancestry: [Chinese, Japanese, East Asian]
+
+FGF14:
+  moi: AD
+  onset_range: [40, 80]
+  key_features: [ataxia, episodic ataxia, downbeat nystagmus, vertigo]
+  atypical_features: [neuropathy, diplopia]
+  enriched_ancestry: [French-Canadian]
+
+BEAN1:
+  moi: AD
+  onset_range: [45, 80]
+  key_features: [ataxia, dysarthria, nystagmus]
+  atypical_features: []
+  enriched_ancestry: [Japanese]
+
+LRP12:
+  moi: AD
+  onset_range: [20, 70]
+  key_features: [ptosis, dysphagia, distal weakness, ophthalmoplegia]
+  atypical_features: [myopathy]
+  enriched_ancestry: []
+
+FXN:
+  moi: AR
+  onset_range: [5, 40]
+  key_features: [ataxia, areflexia, sensory loss, cardiomyopathy, scoliosis]
+  atypical_features: [diabetes, late-onset]
+  enriched_ancestry: []
