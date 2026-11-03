@@ -218,3 +218,37 @@ Main references used across genes:
 | EPM2A | AR | 8-20 | high | GeneReviews Progressive Myoclonus Epilepsy, Lafora Type (https://www.ncbi.nlm.nih.gov/books/NBK1389/) |
 | NHLRC1 | AR | 8-25 | high | GeneReviews Progressive Myoclonus Epilepsy, Lafora Type (https://www.ncbi.nlm.nih.gov/books/NBK1389/) |
 | DCAF17 | AR | 10-30 | high | OMIM: https://omim.org/search?search=DCAF17; GeneReviews Woodhouse-Sakati Syndrome |
+
+## Differential: repeat-expansion disorders (PD / adult ataxia / phenocopy)
+
+Aligned with `config/config.yaml` `str_loci`. Onset spans the usual neurological
+presentation, including documented parkinsonism or late-onset forms. These genes
+are not all on `monopdaus-gene-inheritance.csv`; profiles support STR candidate
+concordance when ExpansionHunter (or a future catalog extension) returns them.
+
+| Gene | MOI | Onset | Confidence | Sources |
+| --- | --- | --- | --- | --- |
+| ATXN1 | AD | 15-55 | high | GeneReviews SCA1 (https://www.ncbi.nlm.nih.gov/books/NBK1184/); GeneReviews Hereditary Ataxia Overview (https://www.ncbi.nlm.nih.gov/books/NBK1138/) |
+| ATXN2 | AD | 15-60 | high | GeneReviews SCA2 (https://www.ncbi.nlm.nih.gov/books/NBK1275/); L-dopa-responsive parkinsonism phenotype noted |
+| ATXN3 | AD | 10-70 | high | GeneReviews SCA3 (https://www.ncbi.nlm.nih.gov/books/NBK1196/) |
+| CACNA1A | AD | 20-75 | high | GeneReviews SCA6 (https://www.ncbi.nlm.nih.gov/books/NBK1140/) |
+| ATXN7 | AD | 0-60 | high | GeneReviews SCA7 (https://www.ncbi.nlm.nih.gov/books/NBK1256/) |
+| ATXN8OS | AD | 18-65 | high | GeneReviews SCA8 (https://www.ncbi.nlm.nih.gov/books/NBK1268/) |
+| ATXN10 | AD | 12-50 | high | GeneReviews SCA10 (https://www.ncbi.nlm.nih.gov/books/NBK1175/) |
+| PPP2R2B | AD | 25-65 | high | GeneReviews SCA12 historical (https://www.ncbi.nlm.nih.gov/books/NBK1202/); GeneReviews Hereditary Ataxia Overview |
+| TBP | AD | 3-55 | high | GeneReviews SCA17 (https://www.ncbi.nlm.nih.gov/books/NBK1438/) |
+| FMR1 | XL | 45-80 | high | GeneReviews FMR1 Disorders / FXTAS (https://www.ncbi.nlm.nih.gov/books/NBK1384/) |
+| C9ORF72 | AD | 35-75 | high | GeneReviews C9orf72-FTD/ALS (https://www.ncbi.nlm.nih.gov/books/NBK268647/) |
+| RFC1 | AR | 25-80 | high | GeneReviews RFC1-related disorders (https://www.ncbi.nlm.nih.gov/books/NBK564656/) |
+| HTT | AD | 15-65 | high | GeneReviews Huntington Disease (https://www.ncbi.nlm.nih.gov/books/NBK1305/) |
+| AR | XL | 25-65 | high | GeneReviews Spinal and Bulbar Muscular Atrophy (https://www.ncbi.nlm.nih.gov/books/NBK1333/) |
+| ATN1 | AD | 0-55 | high | GeneReviews DRPLA (https://www.ncbi.nlm.nih.gov/books/NBK1491/) |
+| NOP56 | AD | 30-70 | high | GeneReviews Hereditary Ataxia Overview (SCA36); OMIM SCA36 |
+| JPH3 | AD | 20-60 | high | GeneReviews Huntington Disease-Like 2 (https://www.ncbi.nlm.nih.gov/books/NBK1529/) |
+| GIPC1 | AD | 20-70 | medium | GeneReviews repeat table (https://www.ncbi.nlm.nih.gov/books/NBK535148/); OMIM OPDM2 |
+| CSTB | AR | 6-16 | high | GeneReviews Unverricht-Lundborg Disease (https://www.ncbi.nlm.nih.gov/books/NBK1142/) |
+| NOTCH2NLC | AD | 20-70 | high | GeneReviews repeat table / NIID literature (NBK535148); East Asian NIID-parkinsonism spectrum |
+| FGF14 | AD | 40-80 | high | GeneReviews GAA-FGF14 ataxia (https://www.ncbi.nlm.nih.gov/books/NBK599589/) |
+| BEAN1 | AD | 45-80 | high | GeneReviews Hereditary Ataxia Overview (SCA31); common in Japan |
+| LRP12 | AD | 20-70 | medium | GeneReviews repeat table (NBK535148); OMIM OPDM |
+| FXN | AR | 5-40 | high | GeneReviews Friedreich Ataxia (https://www.ncbi.nlm.nih.gov/books/NBK1281/) |

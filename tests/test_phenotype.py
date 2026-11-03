@@ -202,6 +202,14 @@ def test_every_panel_gene_has_a_phenotype_profile():
             assert all(isinstance(k, str) and k.strip() for k in profile[field]), (gene, field)
 
 
+def test_every_str_locus_gene_has_a_phenotype_profile():
+    cfg = load_config()
+    profiles = {str(gene).upper() for gene in cfg["gene_phenotypes"]}
+    for locus, meta in cfg["str_loci"].items():
+        gene = str(meta.get("gene") or locus).upper()
+        assert gene in profiles, gene
+
+
 def test_profile_without_onset_range_is_never_unmatched_on_age():
     out = _score(
         [{"sample_id": "S", "gene": "DNAJC13"}],
