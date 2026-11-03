@@ -82,7 +82,10 @@ workflow PdSample {
     String gauchian_docker = "python:3.11.11-slim-bookworm"
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
-    # Pin a SHA so Assess/FetchRepoAssets call-cache invalidates when pdvar changes.
+    # FetchRepoAssets is volatile and uses this ref for scripts/config/panel assets.
+    # Default "main" so pushed script fixes are re-fetched; pin a SHA to freeze assets.
+    String assets_git_commit = "main"
+    # Pin a SHA so Assess call-cache invalidates when pdvar (src/pdvar) changes.
     # "main" does not change as an input string when the tip of main moves.
     String pdvar_git_commit = "5e7ccc92a6b76ea879bbc7c0e0c4ff3bf1726ce3"
     File? expression_tsv
@@ -265,7 +268,7 @@ workflow PdSample {
 
   call Tasks.FetchRepoAssets {
     input:
-      git_commit = pdvar_git_commit,
+      git_commit = assets_git_commit,
       python_docker = python_docker
   }
 

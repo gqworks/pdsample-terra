@@ -139,6 +139,12 @@ task SamtoolsReferenceDict {
 }
 
 task FetchRepoAssets {
+  meta {
+    # Always re-download so tip/SHA content changes reach downstream File hashes.
+    # Without this, Cromwell call-caches on git_commit string alone and can reuse
+    # stale scripts when the string is unchanged (especially "main").
+    volatile: true
+  }
   input {
     String git_commit = "main"
     String python_docker = "python:3.11.11-slim-bookworm"

@@ -40,7 +40,7 @@ Import `PdSample` into a Terra workspace. Bind `sample_id`, `bam_or_cram_file`, 
 
 Broad hg38 paths under `gs://gcp-public-data--broad-references` are requester pays. On submit, enable **Use reference disks** and set workflow option `google_project` to your billing GCP project (`workflow/terra/PdSample.workflow_options.example.json`). Set `PdSample.requester_pays_project` to that same project. See [`docs/setup_checklist.md`](docs/setup_checklist.md).
 
-Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https://` URLs fail if they are workflow `File` values, including WDL defaults. `FetchRepoAssets` downloads panel, config, scripts, and VerifyBamID SVD files from GitHub inside the task (`pdvar_git_commit`, default `main`) and passes the resulting `gs://` outputs to later tasks. Stage VEP, somalier, GENCODE GTF, and the alignment into your workspace bucket per [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md). Re-import `PdSample.terra_inputs.json` after upgrades and delete leftover `../` or `https://` method inputs.
+Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https://` URLs fail if they are workflow `File` values, including WDL defaults. `FetchRepoAssets` is volatile and downloads panel, config, scripts, and VerifyBamID SVD files from GitHub at `assets_git_commit` (default `main`), then passes the resulting `gs://` outputs to later tasks. Downstream call cache uses those file content hashes, so a pushed script fix on that ref only reruns consumers of changed files. Stage VEP, somalier, GENCODE GTF, and the alignment into your workspace bucket per [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md). Re-import `PdSample.terra_inputs.json` after upgrades and delete leftover `../` or `https://` method inputs.
 
 ## Terra sample table
 
@@ -61,7 +61,7 @@ Assess writes `clinical_match` on each candidate, including risk variants (`risk
 
 A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shared reference inputs stay in the method config.
 
-`workflow/terra/PdSample.example.json` uses `SYNTHETIC_SAMPLE`, `gs://YOUR_WORKSPACE_BUCKET/...` placeholders for the example BAM and for the VEP cache and somalier sites (see [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md)), raw GitHub URLs on `main` for files in this repo, the public VerifyBamID 2.0.3 resource files, the public GATK hg38 chrM bundle, and the public GATK-SV v1.1.1 hg38 resources plus the 1KG reference panel. `pdvar_git_commit` defaults to `main` on https://github.com/gqworks/pdsample-terra. After this snapshot is published, pin that input to the commit SHA of `pdsample-terra` so Terra does not float. `workflow/terra/PdSample.terra_inputs.json` is the Terra form of that config: sample fields are `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, `this.sex`, `this.age_onset`, `this.symptoms`, `this.ethnicity`, and `this.phenotype_report`, the mitochondria files are the same public `gs://` paths, `vep_cache` and `somalier_sites` stay `gs://YOUR_WORKSPACE_BUCKET/...`, and each GATK-SV file is a `workspace.<key>` expression. The mapping is `workflow/terra/gatksv_panel_keys.md`.
+`workflow/terra/PdSample.example.json` uses `SYNTHETIC_SAMPLE`, `gs://YOUR_WORKSPACE_BUCKET/...` placeholders for the example BAM and for the VEP cache and somalier sites (see [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md)), the public VerifyBamID 2.0.3 resource files (via volatile `FetchRepoAssets`), the public GATK hg38 chrM bundle, and the public GATK-SV v1.1.1 hg38 resources plus the 1KG reference panel. `assets_git_commit` defaults to `main` so script/config fetches track the tip; pin it to a SHA to freeze assets. `pdvar_git_commit` is pinned to a commit SHA of https://github.com/gqworks/pdsample-terra for Assess `pip install` (bump when `src/pdvar` changes). `workflow/terra/PdSample.terra_inputs.json` is the Terra form of that config: sample fields are `this.sample_id`, `this.bam_or_cram_file`, `this.bai`, `this.sex`, `this.age_onset`, `this.symptoms`, `this.ethnicity`, and `this.phenotype_report`, the mitochondria files are the same public `gs://` paths, `vep_cache` and `somalier_sites` stay `gs://YOUR_WORKSPACE_BUCKET/...`, and each GATK-SV file is a `workspace.<key>` expression. The mapping is `workflow/terra/gatksv_panel_keys.md`.
 
 ## What each stage does
 
@@ -103,7 +103,7 @@ docker push REGISTRY/pdvar:COMMIT
 
 Set `pdvar_docker` to that image. The image copies this package, `config/`, and `resources/panel/`.
 
-To run without a custom image, leave `pdvar_docker` at `python:3.11.11-slim-bookworm`. `pdvar_git_commit` defaults to `main`, and the task installs `git+https://github.com/gqworks/pdsample-terra.git@main`. Pin `pdvar_git_commit` to a commit SHA of `gqworks/pdsample-terra` for a reproducible run. An empty commit with no installed `pdvar` stops the task.
+To run without a custom image, leave `pdvar_docker` at `python:3.11.11-slim-bookworm` and pin `pdvar_git_commit` to a commit SHA of `gqworks/pdsample-terra`; Assess installs `git+https://github.com/gqworks/pdsample-terra.git@SHA`. An empty commit with no installed `pdvar` stops the task. Script/config assets use `assets_git_commit` separately (default `main`, volatile fetch).
 
 ## Two panel BEDs
 

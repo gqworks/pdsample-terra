@@ -486,6 +486,27 @@ def test_gatksv_callers_use_sixteen_cores():
     assert "mem_gb: sv_caller_mem_gb" in text
 
 
+def test_fetch_repo_assets_is_volatile_and_uses_assets_git_commit():
+    """Volatile FetchRepoAssets + assets_git_commit keep script cache keys content-based."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    example = json.loads((ROOT / "workflow" / "terra" / "PdSample.example.json").read_text(encoding="utf-8"))
+    terra = json.loads((ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8"))
+    fetch_start = tasks.index("task FetchRepoAssets {")
+    fetch_block = tasks[fetch_start : tasks.index("task CheckReference {", fetch_start)]
+    assert "volatile: true" in fetch_block
+    assert 'String assets_git_commit = "main"' in text
+    call_start = text.index("call Tasks.FetchRepoAssets {")
+    call_block = text[call_start : text.index("}", call_start)]
+    assert "git_commit = assets_git_commit" in call_block
+    assert "pdvar_git_commit" not in call_block
+    assert "pdvar_git_commit = pdvar_git_commit" in text
+    assert example["PdSample.assets_git_commit"] == "main"
+    assert terra["PdSample.assets_git_commit"] == "main"
+    assert "PdSample.pdvar_git_commit" in example
+    assert "PdSample.pdvar_git_commit" in terra
+
+
 def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     """Dockstore SingleSamplePipeline v1.1.1: Scramble on, MELT off, new panel inputs."""
     text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
