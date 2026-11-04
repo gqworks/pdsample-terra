@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .normalize import derive_zygosity
+from .normalize import derive_zygosity, normalize_clinvar
 from .vcf_stream import chrom_bare, iter_vcf, read_samples
 
 # Gauchian 1.0.2 ``other_variants`` entries look like ``c.681T>G(p.Asn227Lys)``.
@@ -40,11 +40,12 @@ MODULES = {
 VARIANT_COLUMNS = [
     "sample_id", "family_id", "chrom", "pos", "end", "ref", "alt", "variant_id",
     "gene", "consequence", "genotype", "zygosity", "gq", "allele_balance", "depth",
-    "cohort_af", "gnomad_af", "gnomad_popmax_af", "cadd", "revel",
+    "cohort_af", "gnomad_af", "gnomad_popmax_af", "gnomad_af_het", "cadd", "revel",
     "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
     "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
     "clinvar", "clinvar_class", "variant_class", "hit_source", "heteroplasmy",
-    "repeat_count", "str_locus", "str_expanded", "str_citation", "copy_number",
+    "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
+    "mitimpact_hgvs", "repeat_count", "str_locus", "str_expanded", "str_citation", "copy_number",
     "dosage_mechanism", "dosage_event", "scored_dosage",
 ]
 
@@ -472,7 +473,18 @@ def parse_mtdna(path: str | Path, sample_prefix: str | None = None) -> tuple[pd.
     carriers: set[str] = set()
     for record in iter_vcf(path):
         info = record["info"]
-        gene = str(info.get("GENE") or info.get("SYMBOL") or info.get("gene") or "MT")
+        gene = str(
+            info.get("MI_gene")
+            or info.get("GENE")
+            or info.get("SYMBOL")
+            or info.get("gene")
+            or "MT"
+        )
+        clinvar = str(info.get("MI_ClinVar_CLNSIG") or "")
+        gnomad_hom = _float_or_none(info.get("MI_gnomAD_AF_hom"))
+        gnomad_het = _float_or_none(info.get("MI_gnomAD_AF_het"))
+        apogee_score = _float_or_none(info.get("MI_APOGEE2_score"))
+        mitotip_score = _float_or_none(info.get("MI_MitoTIP"))
         for sample, fmt in _prefix(record["samples"], sample_prefix).items():
             gt = str(fmt.get("GT") or "./.")
             heteroplasmy = _float_or_none(fmt.get("AF") or info.get("AF"))
@@ -496,17 +508,26 @@ def parse_mtdna(path: str | Path, sample_prefix: str | None = None) -> tuple[pd.
                     genotype=gt if _carrier_gt(gt) else "0/1",
                     gq=_float_or_none(fmt.get("GQ")),
                     depth=_float_or_none(fmt.get("DP")),
-                    clinvar="",
+                    gnomad_af=gnomad_hom if gnomad_hom is not None else pd.NA,
+                    gnomad_af_het=gnomad_het if gnomad_het is not None else pd.NA,
+                    clinvar=clinvar,
                     clinvar_class="none",
                     variant_class="MT",
                     hit_source="mtdna",
                     heteroplasmy=heteroplasmy if heteroplasmy is not None else pd.NA,
+                    mitomap_status=str(info.get("MI_MITOMAP_status") or ""),
+                    apogee2_class=str(info.get("MI_APOGEE2") or ""),
+                    apogee2_score=apogee_score if apogee_score is not None else pd.NA,
+                    mitotip_score=mitotip_score if mitotip_score is not None else pd.NA,
+                    mitotip_quartile=str(info.get("MI_MitoTIP_quartile") or ""),
+                    mitimpact_hgvs=str(info.get("MI_HGVS") or ""),
                     scored_dosage=False,
                 )
             )
     table = pd.DataFrame(rows) if rows else empty_variant_table()
     if not table.empty:
         table = derive_zygosity(table)
+        table["clinvar_class"] = normalize_clinvar(table["clinvar"])
     return table, set(header), carriers
 
 

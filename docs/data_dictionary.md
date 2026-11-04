@@ -23,12 +23,14 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `variant_id` | `chrom-pos-ref-alt` with no `chr` prefix |
 | `consequence`, `zygosity`, `genotype` | VEP consequence and the carried genotype. Male homozygous X small variants are hemizygous |
 | `tier`, `evidence_score`, `evidence_reasons` | Point triage. Tier 1 is the highest score band |
-| `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `risk_biallelic`, `mtdna_variant`, `str_expanded`, `incidental`, and the other statuses in `src/pdvar/report.py` |
+| `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, `incidental`, and the other statuses in `src/pdvar/report.py` |
 | `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `mtdna`, or `sv` |
 | `sv_panel_af` | True GATK-SV reference-panel AF when available (hard-filtered like gnomAD); not the joint-callset INFO/AF |
 | `cohort_af` | In-callset SV allele frequency from INFO/AF or CN_NONREF_FREQ (annotation only; not a hard filter) |
 | `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` (from dbNSFP `clinvar_clnsig`) |
-| `gnomad_af`, `gnomad_popmax_af` | From dbNSFP `gnomAD4.1_joint_AF` / `gnomAD4.1_joint_POPMAX_AF` (lifted to INFO for Introme). Missing means rare |
+| `gnomad_af`, `gnomad_popmax_af` | Nuclear: from dbNSFP `gnomAD4.1_joint_AF` / `gnomAD4.1_joint_POPMAX_AF` (lifted to INFO for Introme). mtDNA: `gnomad_af` is MitImpact `AF_hom_gnomad` (gnomAD v3.1). Missing means rare |
+| `gnomad_af_het` | mtDNA only: MitImpact `AF_het_gnomad` |
+| `mitomap_status`, `apogee2_class`, `apogee2_score`, `mitotip_score`, `mitotip_quartile`, `mitimpact_hgvs` | MitImpact annotations on `hit_source=mtdna` rows when `mtdna_mitimpact` was set |
 | `cadd`, `revel` | From academic dbNSFP 5.4a (`CADD_phred` / `REVEL_score`) or optional CADD/REVEL plugins |
 | `sift`, `sift_pred`, `polyphen`, `polyphen_pred` | From dbNSFP (`SIFT_*` / `Polyphen2_HDIV_*`); optional VEP cache `--sift/--polyphen` if `vep_sift_polyphen` is enabled |
 | `eigen`, `muttaster`, `muttaster_pred`, `fathmm`, `fathmm_pred` | From dbNSFP when set; 5.4a uses `fathmm-XF_coding_*` (maps to `fathmm` / `fathmm_pred`) |
@@ -44,4 +46,4 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `clinical_match` | `matched`, `unmatched`, `uninformative`, `no_profile`, or `not_assessed`. Risk rows are repeated under Phenotype concordance in the report |
 | `levodopa`, `age_sampling`, `comorbidities` | From a phenotype report when one was supplied. Comorbidities are listed in the report. Levodopa use is a biomarker note |
 
-`qc_summary.json` `modules` records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, VEP, and AVI. AVI is `called` only when the Atlas table has at least one score. GATK-SV is `called` when the SV VCF came from `GATKSVPipelineSingleSample` (including fallback when `sample_id` is absent from optional `sv_joint_vcf`), or `joint` when it was subset from that joint VCF. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object mirrors that value. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.
+`qc_summary.json` `modules` records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, VEP, AVI, and `mtdna_annotation` (MitImpact join). AVI is `called` only when the Atlas table has at least one score. GATK-SV is `called` when the SV VCF came from `GATKSVPipelineSingleSample` (including fallback when `sample_id` is absent from optional `sv_joint_vcf`), or `joint` when it was subset from that joint VCF. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object mirrors that value. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.

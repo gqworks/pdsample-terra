@@ -20,6 +20,7 @@ STATUS_PRIORITY = {
     "risk_carrier": 0,
     "AD_candidate": 1,
     "XL_hemi": 1,
+    "mtdna_pathogenic_candidate": 1,
     "AR_single_het": 3,
     "review_conflict": 3,
     "mtdna_variant": 2,
@@ -45,7 +46,9 @@ CURATION_COLUMNS = [
     "onset_match", "matched_features", "phenotype_score", "clinical_match", "symptoms",
     "variant_class", "dosage_mechanism", "phase_relation", "phase_source",
     "lof_weight", "weighted_evidence_score", "svtype", "biomarker_notes",
-    "str_locus", "str_expanded", "heteroplasmy", "incidental", "disposition",
+    "str_locus", "str_expanded", "heteroplasmy",
+    "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
+    "mitimpact_hgvs", "gnomad_af_het", "incidental", "disposition",
 ]
 
 
@@ -116,6 +119,8 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
             "str_expanded",
             "risk_carrier",
             "risk_biallelic",
+            "mtdna_pathogenic_candidate",
+            "mtdna_variant",
         }
     )
     plp = clin.eq("P/LP")
