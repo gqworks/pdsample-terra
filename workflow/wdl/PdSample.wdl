@@ -7,7 +7,7 @@ import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai). GATK-SV v1.1.1 (Scramble on, MELT off) runs unless workspace sv_joint_vcf contains sample_id, in which case that joint-called SV VCF is subset and GATKSVPipelineSingleSample is skipped; if sample_id is absent from the joint VCF, GATK-SV still runs. A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai). SV precedence: optional sample sv_prior_vcf (reuse this.sv_vcf) skips calling; else workspace sv_joint_vcf subsets when sample_id is in the header; else GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
   }
   input {
     String sample_id
@@ -143,13 +143,19 @@ workflow PdSample {
     File? sv_case_pe_file
     File? sv_case_sr_file
     File? sv_case_sd_file
+    # Optional per-sample prior SV VCF (Terra: this.sv_vcf / this.sv_vcf_index).
+    # When set, skips both SubsetJointSvVcf and GATKSVPipelineSingleSample and
+    # reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
+    File? sv_prior_vcf
+    File? sv_prior_vcf_index
     # Optional cohort joint-called SV VCF (e.g. GATK-SV CleanVcf / FinalizeGVCF
     # multi-sample output). Bind as a workspace attribute (workspace.sv_joint_vcf),
-    # not a sample-table column. When set and sample_id is in the header,
-    # SubsetJointSvVcf keeps only that sample and GATKSVPipelineSingleSample is
-    # skipped. If sample_id is absent from the joint VCF, fall back to
-    # GATKSVPipelineSingleSample. Panel / evidence inputs below are unused on
-    # the joint path but remain required File inputs for the single-sample path.
+    # not a sample-table column. Used only when sv_prior_vcf is unset. When set
+    # and sample_id is in the header, SubsetJointSvVcf keeps only that sample
+    # and GATKSVPipelineSingleSample is skipped. If sample_id is absent, fall
+    # back to GATKSVPipelineSingleSample. Panel / evidence inputs below are
+    # unused on the prior/joint paths but remain required File inputs for the
+    # single-sample path.
     File? sv_joint_vcf
     File? sv_joint_vcf_index
     File sv_ref_samples_list
@@ -513,10 +519,19 @@ workflow PdSample {
       compress_output_vcf = false,
       preemptible_tries = preemptible
   }
-  # When sv_joint_vcf is set, probe/subset first. If sample_id is in the header,
-  # use that subset and skip GatkSvSingle. If absent, fall back to GatkSvSingle.
+  # SV precedence: prior sample VCF → joint subset → GATK-SV call.
   # scatter+if keeps Array[File] outputs (same pattern as reference_dict_files).
-  scatter (unused in if defined(sv_joint_vcf) then [1] else []) {
+  Boolean use_prior_sv = defined(sv_prior_vcf)
+  scatter (unused in if use_prior_sv then [1] else []) {
+    call Tasks.PreferOrBuildTabix as PriorSvIndex {
+      input:
+        vcf = select_first([sv_prior_vcf]),
+        index = sv_prior_vcf_index,
+        name = sample_id + ".sv.vcf.gz.tbi",
+        preemptible = preemptible
+    }
+  }
+  scatter (unused in if defined(sv_joint_vcf) && !use_prior_sv then [1] else []) {
     call Tasks.SubsetJointSvVcf {
       input:
         joint_vcf = select_first([sv_joint_vcf]),
@@ -525,8 +540,8 @@ workflow PdSample {
         preemptible = preemptible
     }
   }
-  Boolean use_joint_sv = select_first(flatten([SubsetJointSvVcf.sample_found, [false]]))
-  scatter (unused in if !use_joint_sv then [1] else []) {
+  Boolean use_joint_sv = !use_prior_sv && select_first(flatten([SubsetJointSvVcf.sample_found, [false]]))
+  scatter (unused in if !use_prior_sv && !use_joint_sv then [1] else []) {
     call GatkSv.GATKSVPipelineSingleSample as GatkSvSingle {
       input:
         sample_id = sample_id,
@@ -648,11 +663,11 @@ workflow PdSample {
         wham_docker = sv_wham_docker
     }
   }
-  # Prefer GatkSv when both ran (sample absent from joint → fallback). Prefer
-  # the joint subset when GatkSv was skipped (sample_found).
-  File sample_sv_vcf = select_first(flatten([GatkSvSingle.final_vcf, SubsetJointSvVcf.vcf]))
-  File sample_sv_vcf_index = select_first(flatten([GatkSvSingle.final_vcf_idx, SubsetJointSvVcf.vcf_index]))
-  # Stage as sample_id.sv.vcf.gz (GATK-SV finals are opaque; joint subset already matches).
+  # Prefer prior, then GatkSv (sample absent from joint → fallback), then joint.
+  Array[File] prior_sv_vcfs = if use_prior_sv then [select_first([sv_prior_vcf])] else []
+  File sample_sv_vcf = select_first(flatten([prior_sv_vcfs, GatkSvSingle.final_vcf, SubsetJointSvVcf.vcf]))
+  File sample_sv_vcf_index = select_first(flatten([PriorSvIndex.out, GatkSvSingle.final_vcf_idx, SubsetJointSvVcf.vcf_index]))
+  # Stage as sample_id.sv.vcf.gz (GATK-SV finals are opaque; prior/joint already match).
   call Tasks.ReleaseAfterQc as NameSvVcf {
     input:
       payload = sample_sv_vcf,
@@ -710,7 +725,7 @@ workflow PdSample {
       vep_vcf = LiftGnomadInfo.lifted_vcf,
       small_vcf = NormPass.normalized_vcf,
       sv_vcf = NameSvVcf.released,
-      sv_status = if use_joint_sv then "joint" else "called",
+      sv_status = if use_prior_sv then "prior" else if use_joint_sv then "joint" else "called",
       expansionhunter_vcf = ExpansionHunter.vcf,
       gauchian_json = Gauchian.json,
       mtdna_vcf = Mito.out_vcf,

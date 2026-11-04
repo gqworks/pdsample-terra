@@ -13,7 +13,7 @@ python3 scripts/inputs/build_inputs.py inputs/values inputs/templates/test/GATKS
 
 PdSample imports a **vendored** copy of `GATKSVPipelineSingleSample.wdl` (`workflow/wdl/vendor/gatk-sv/`) that rewrites nested imports to absolute v1.1.1 URLs and pass-throughs `HERVK_reference`, `LINE1_reference`, and `RefineComplexVariants.n_per_split` so Cromwell accepts the workflow as a sub-workflow.
 
-To skip that sub-workflow for samples in a cohort callset, set workspace attributes `sv_joint_vcf` / optional `sv_joint_vcf_index` (`workspace.sv_joint_vcf`). `SubsetJointSvVcf` keeps only `sample_id` when it is a header sample column; if the sample is absent, `GATKSVPipelineSingleSample` still runs. Panel workspace attributes above are still required by the method config for the single-sample path.
+SV callset precedence: (1) optional sample columns bound as `sv_prior_vcf` / `sv_prior_vcf_index` (`this.sv_vcf` / `this.sv_vcf_index`) reuse a previous PdSample SV callset and skip both joint subset and GATK-SV; (2) else workspace `sv_joint_vcf` / optional `sv_joint_vcf_index` — `SubsetJointSvVcf` keeps `sample_id` when it is a header sample column; if absent, GATK-SV still runs; (3) else `GATKSVPipelineSingleSample`. Panel workspace attributes above are still required by the method config for the single-sample path.
 
 ## Matched panel
 

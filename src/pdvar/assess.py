@@ -154,8 +154,8 @@ def assess_sample(
         snv_samples=[sample_id],
     )
     frames.append(_relabel(table, sample_id))
-    # Workflow may set sv_status to "joint" when subsetting a pre-existing
-    # joint-called SV VCF (skips GATKSVPipelineSingleSample).
+    # Workflow may set sv_status to "prior" (reuse this.sv_vcf), "joint"
+    # (subset workspace.sv_joint_vcf), or "called" (GATKSVPipelineSingleSample).
     sv_status = str(sample.get("sv_status") or "called")
     notes["gatk_sv"] = sv_status
 

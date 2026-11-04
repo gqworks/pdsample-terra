@@ -826,6 +826,44 @@ task ReleaseAfterQc {
   }
 }
 
+# Prefer an existing index; otherwise tabix-index the VCF (used for sv_prior_vcf).
+task PreferOrBuildTabix {
+  input {
+    File vcf
+    File? index
+    String name
+    String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(vcf, "GiB") + 20)
+  command <<<
+    set -euo pipefail
+    idx='~{default="" index}'
+    if [[ -n "${idx}" ]]; then
+      ln "${idx}" "~{name}" || cp -a "${idx}" "~{name}"
+    else
+      base="$(basename "~{vcf}")"
+      ln -s "~{vcf}" "${base}"
+      bcftools index -t "${base}" || bcftools index "${base}"
+      if [[ -e "${base}.tbi" ]]; then
+        mv "${base}.tbi" "~{name}"
+      else
+        mv "${base}.csi" "~{name}"
+      fi
+    fi
+  >>>
+  output {
+    File out = "~{name}"
+  }
+  runtime {
+    docker: bcftools_docker
+    preemptible: preemptible
+    memory: "2 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 1
+  }
+}
+
 # Extract one sample from a cohort joint-called SV VCF (GATK-SV CleanVcf /
 # final multi-sample style). Used when PdSample.sv_joint_vcf is set.
 # sample_found is true only when sample_id is a header sample column; when
@@ -935,7 +973,8 @@ task Assess {
     File vep_vcf
     File small_vcf
     File sv_vcf
-    # "called" from GATKSVPipelineSingleSample; "joint" when subset from sv_joint_vcf.
+    # "called" from GATKSVPipelineSingleSample; "joint" from sv_joint_vcf;
+    # "prior" when reusing this.sv_vcf via sv_prior_vcf.
     String sv_status = "called"
     File expansionhunter_vcf
     File gauchian_json
