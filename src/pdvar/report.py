@@ -14,10 +14,12 @@ STATUS_PRIORITY = {
     "AR_comphet_phased": 0,
     "AR_hemizygous": 0,
     "AR_second_hit_splice": 0,
+    # GBA1 / LRRK2 risk alleles compete with Mendelian solves so ClinVar P/LP
+    # and Gauchian catalog hits are not buried under intron AR Introme noise.
+    "risk_biallelic": 0,
+    "risk_carrier": 0,
     "AD_candidate": 1,
     "XL_hemi": 1,
-    "risk_biallelic": 1,
-    "risk_carrier": 2,
     "AR_single_het": 3,
     "review_conflict": 3,
     "mtdna_variant": 2,
@@ -87,8 +89,9 @@ def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
 def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     """Rows that must not be crowded out of the per-sample shortlist.
 
-    ClinVar P/LP coding alleles and scored LoF SVs are the findings a rereview
-    must see even when Introme fills the top-N with intron AR labels.
+    ClinVar P/LP coding alleles, Gauchian GBA1 calls, risk statuses, and scored
+    LoF SVs are the findings a rereview must see even when Introme fills the
+    top-N with intron AR labels.
     """
     status = df["inheritance_status"].fillna("").astype(str) if "inheritance_status" in df.columns else pd.Series("", index=df.index)
     clin = df["clinvar_class"].fillna("").astype(str) if "clinvar_class" in df.columns else pd.Series("", index=df.index)
@@ -110,11 +113,14 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
             "AR_hemizygous",
             "AR_second_hit_splice",
             "str_expanded",
+            "risk_carrier",
+            "risk_biallelic",
         }
     )
     plp = clin.eq("P/LP")
+    gauchian = hit.eq("gauchian")
     lof_sv = hit.eq("sv") & (mech.eq("lof") | scored)
-    return force_status | plp | lof_sv
+    return force_status | plp | gauchian | lof_sv
 
 
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:

@@ -179,6 +179,8 @@ def assess_sample(
     if not variants.empty and "gene" in variants.columns:
         variants["gene"] = normalize.apply_gene_aliases(variants["gene"], cfg.get("gene_aliases"))
     variants = splicing.ensure_hit_source(variants, default="small_variant") if not variants.empty else variants
+    if not variants.empty:
+        variants = callsets.drop_redundant_gauchian_snvs(variants)
 
     introme_path = _exists(sample.get("introme_tsv"))
     introme_variants = pd.DataFrame()
