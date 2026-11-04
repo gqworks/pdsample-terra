@@ -1017,7 +1017,8 @@ task Assess {
     File vep_vcf
     File small_vcf
     File sv_vcf
-    # "called" from GATKSVPipelineSingleSample; "joint" when subset from sv_joint_vcf.
+    # "called" from GATKSVPipelineSingleSample; "joint" from sv_joint_vcf;
+    # "prior" when reusing this.sv_vcf via sv_prior_vcf.
     String sv_status = "called"
     File expansionhunter_vcf
     File gauchian_json
