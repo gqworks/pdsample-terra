@@ -159,7 +159,6 @@ pairs = [
     ("workflow/scripts/check_reference.py", "check_reference.py"),
     ("workflow/scripts/qc_summary.py", "qc_summary.py"),
     ("workflow/scripts/annotate_avi.py", "annotate_avi.py"),
-    ("workflow/scripts/annotate_mtdna.py", "annotate_mtdna.py"),
     ("workflow/scripts/lift_gnomad_from_csq.py", "lift_gnomad_from_csq.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
@@ -184,7 +183,6 @@ PY
     File check_reference_py = "check_reference.py"
     File qc_summary_py = "qc_summary.py"
     File annotate_avi_py = "annotate_avi.py"
-    File annotate_mtdna_py = "annotate_mtdna.py"
     File lift_gnomad_from_csq_py = "lift_gnomad_from_csq.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
@@ -976,40 +974,6 @@ task AnnotateAvi {
   }
 }
 
-task AnnotateMtdna {
-  input {
-    File vcf
-    File annotate_mtdna_py
-    # MitImpact 4 CSV (e.g. MitImpact4_V059.csv). Unset copies the VCF through
-    # and records mtdna_annotation=not_assessed.
-    File? mitimpact_csv
-    String sample_id
-    String python_docker = "python:3.11.11-slim-bookworm"
-    Int preemptible = 3
-  }
-  Int disk_gb = ceil(size(vcf, "GiB") + size(mitimpact_csv, "GiB") + 20)
-  command <<<
-    set -euo pipefail
-    table='~{default="" mitimpact_csv}'
-    args=(--vcf "~{vcf}" --out "~{sample_id}.mtdna.annotated.vcf" --status annotation_status.txt)
-    if [[ -n "${table}" ]]; then
-      args+=(--table "${table}")
-    fi
-    python3 "~{annotate_mtdna_py}" "${args[@]}"
-  >>>
-  output {
-    File mtdna_vcf = "~{sample_id}.mtdna.annotated.vcf"
-    String annotation_status = read_string("annotation_status.txt")
-  }
-  runtime {
-    docker: python_docker
-    preemptible: preemptible
-    memory: "4 GiB"
-    disks: "local-disk ~{disk_gb} HDD"
-    cpu: 1
-  }
-}
-
 task Assess {
   input {
     String sample_id
@@ -1022,8 +986,6 @@ task Assess {
     File expansionhunter_vcf
     File gauchian_json
     File mtdna_vcf
-    # called | not_assessed from AnnotateMtdna (MitImpact join).
-    String mtdna_annotation = "not_assessed"
     File introme_tsv
     File? avi_tsv
     File qc_json
@@ -1089,7 +1051,6 @@ PY
     export EH_VCF="~{expansionhunter_vcf}"
     export GAUCHIAN_JSON="~{gauchian_json}"
     export MTDNA_VCF="~{mtdna_vcf}"
-    export MTDNA_ANNOTATION="~{mtdna_annotation}"
     export INTROME_TSV="~{introme_tsv}"
     export QC_JSON="~{qc_json}"
     export GENE_BED="~{gene_bed}"
@@ -1135,7 +1096,6 @@ document = {
     "expansionhunter_vcf": os.environ["EH_VCF"],
     "gauchian_json": os.environ["GAUCHIAN_JSON"],
     "mtdna_vcf": os.environ["MTDNA_VCF"],
-    "mtdna_annotation": os.environ.get("MTDNA_ANNOTATION") or "not_assessed",
     "introme_tsv": os.environ["INTROME_TSV"],
     "gene_bed": maybe("GENE_BED"),
     "exon_bed": maybe("EXON_BED"),

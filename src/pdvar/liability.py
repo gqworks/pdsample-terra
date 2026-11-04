@@ -39,7 +39,6 @@ PARTIAL_STATUSES = {
     "risk_biallelic",
     "MOI_unknown_candidate",
     "review_conflict",
-    "mtdna_pathogenic_candidate",
 }
 BIALLELIC = {"AR_hom", "AR_comphet_candidate", "AR_comphet_phased", "AR_hemizygous", "risk_biallelic"}
 

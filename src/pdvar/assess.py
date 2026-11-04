@@ -21,7 +21,6 @@ from . import (
     io,
     isoform,
     liability,
-    mtdna,
     normalize,
     phenotype,
     report,
@@ -76,7 +75,7 @@ def _male_x(df: pd.DataFrame, sex: str) -> pd.DataFrame:
     return df
 
 
-def _integrate_special_calls(df: pd.DataFrame, cfg: dict | None = None) -> pd.DataFrame:
+def _integrate_special_calls(df: pd.DataFrame) -> pd.DataFrame:
     """Keep mtDNA carriers and cited STR expansions visible after MOI logic."""
     if df.empty or "hit_source" not in df.columns:
         return df
@@ -87,10 +86,7 @@ def _integrate_special_calls(df: pd.DataFrame, cfg: dict | None = None) -> pd.Da
     if "str_expanded" in df.columns:
         expanded = df["hit_source"].eq("expansionhunter") & df["str_expanded"].fillna(False).astype(bool)
         df.loc[expanded, "inheritance_status"] = "str_expanded"
-    max_af = None
-    if cfg is not None:
-        max_af = (cfg.get("filters") or {}).get("max_gnomad_af")
-    return mtdna.promote_mtdna_status(df, max_af)
+    return df
 
 
 def _load_panel(path: Path, cfg: dict) -> pd.DataFrame:
@@ -179,7 +175,6 @@ def assess_sample(
     ):
         rows = callset_assessment[callset_assessment["module"] == module] if not callset_assessment.empty else callset_assessment
         notes[label] = "not_assessed" if rows.empty or rows.iloc[0]["state"] == "not_assessed" else "called"
-    notes["mtdna_annotation"] = str(sample.get("mtdna_annotation") or "not_assessed")
 
     variants = pd.concat([frame for frame in frames if frame is not None and not frame.empty], ignore_index=True) if any(not frame.empty for frame in frames) else pd.DataFrame()
     if not variants.empty and "gene" in variants.columns:
@@ -219,7 +214,6 @@ def assess_sample(
             scored = merge_avi(scored, avi_table)
             scored = scoring.score_variants(scored, cfg["scoring"])
             scored = sv.apply_dosage_evidence(scored, cfg["scoring"])
-            scored = mtdna.apply_mtdna_evidence(scored, cfg["scoring"])
             gba1_path = _exists(sample.get("gba1_pd_browser")) or gba1_pd.default_browser_path(cfg)
             scored = gba1_pd.annotate_and_score(scored, cfg, browser_path=gba1_path)
             if not introme_variants.empty:
@@ -238,7 +232,7 @@ def assess_sample(
                 except (RuntimeError, FileNotFoundError):
                     pass
             scored, follow = compound.refine(scored, cfg.get("compound"))
-            scored = _integrate_special_calls(scored, cfg)
+            scored = _integrate_special_calls(scored)
             scored = apply_incidental_tags(scored)
             pheno = _phenotype_frame(sample_id, sex, _phenotype_payload(sample))
             scored = phenotype.phenotype_concordance(scored, pheno, cfg.get("gene_phenotypes") or {}, cfg["phenotype"])
