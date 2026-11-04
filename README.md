@@ -17,13 +17,14 @@ flowchart TD
   qc --> eh[ExpansionHunter]
   qc --> gba[Gauchian]
   qc --> mito[MitochondriaPipeline]
+  mito --> mitoAnn[AnnotateMtdna MitImpact]
   qc --> gatksv[GATKSVPipelineSingleSample]
   pheno[Phenotype report or age, symptoms, ancestry] --> assess[Assess]
   introme --> assess
   avi --> assess
   eh --> assess
   gba --> assess
-  mito --> assess
+  mitoAnn --> assess
   gatksv --> assess
   assess --> row[Candidates, report, QC, callsets]
 ```
@@ -72,7 +73,7 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 5. **Structural variants.** By default `GATKSVPipelineSingleSample` v1.1.1 runs on every sample (`sv_status` `called`). Set optional workspace attributes `sv_joint_vcf` (and optional `sv_joint_vcf_index`) to a cohort joint-called SV VCF: when the row's `sample_id` is in the header, `SubsetJointSvVcf` keeps only that sample and skips GATK-SV (`sv_status` `joint`); when it is absent, the workflow falls back to `GATKSVPipelineSingleSample` (`sv_status` `called`). Reference-panel inputs stay required for the single-sample path. A missing SV VCF is an error in `pdvar assess`.
 6. **STRs.** ExpansionHunter 5.0.0 with the vendored 19-locus catalog `workflow/assets/expansionhunter_pd.hg38.json`.
 7. **GBA1.** Gauchian 1.0.2.
-8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0.
+8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0, then optional MitImpact 4 CSV annotation (`mtdna_mitimpact`) for ClinVar / MITOMAP / gnomAD mtDNA AF / APOGEE2 / MitoTIP.
 9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and gnomAD v4.1 joint AF (no separate ClinVar/gnomAD VCF customs; cache-native VEP SIFT/PolyPhen off by default). Optional genome-wide CADD/REVEL plugins remain as a fallback. `LiftGnomadInfo` copies AF from CSQ into `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`.
 10. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
 11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
@@ -128,6 +129,6 @@ bash workflow/scripts/validate_wdl.sh
 
 ## Scientific scope
 
-The scorer keeps panel genes, ACMG-style point evidence (ClinVar P/LP, predicted null alleles, CADD, REVEL, absent gnomAD, Introme splice), a second allele inside the same sample, SV/STR/GBA1/mtDNA rows, isoform and expression weights, phenotype concordance, and penetrance scaffolding. Point totals are a triage rank. They are not an ACMG/AMP classification. Phenotype concordance asks whether a candidate gene, including a risk variant, fits the patient's age at onset, symptoms, and ancestry. Penetrance, PRS coefficients, and expression cutoffs stay null until a citation is set in `config/config.yaml`. STR pathogenic floors live under `str_loci` (GeneReviews-cited). TTN truncations are tagged `incidental` and are not relabelled benign. Compound hets stay `AR_comphet_candidate` unless the VCF already carries a shared `PS` tag.
+The scorer keeps panel genes, ACMG-style point evidence (ClinVar P/LP, predicted null alleles, CADD, REVEL, absent gnomAD, Introme splice), a second allele inside the same sample, SV/STR/GBA1/mtDNA rows (MitImpact MITOMAP/APOGEE2/MitoTIP points; high-evidence mtDNA is `mtdna_pathogenic_candidate` and partial liability only), isoform and expression weights, phenotype concordance, and penetrance scaffolding. Point totals are a triage rank. They are not an ACMG/AMP classification. Phenotype concordance asks whether a candidate gene, including a risk variant, fits the patient's age at onset, symptoms, and ancestry. Penetrance, PRS coefficients, and expression cutoffs stay null until a citation is set in `config/config.yaml`. STR pathogenic floors live under `str_loci` (GeneReviews-cited). TTN truncations are tagged `incidental` and are not relabelled benign. Compound hets stay `AR_comphet_candidate` unless the VCF already carries a shared `PS` tag.
 
 Resources you still have to stage are listed in [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md) and [`docs/setup_checklist.md`](docs/setup_checklist.md). Tool versions and images are in [`workflow/README.md`](workflow/README.md).
