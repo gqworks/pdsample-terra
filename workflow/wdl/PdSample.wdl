@@ -27,6 +27,10 @@ workflow PdSample {
     String vep_extra_args = ""
     File? avi_table
     File? avi_table_index
+    # MitImpact 4 CSV for mtDNA ClinVar/gnomAD/MITOMAP/APOGEE2/MitoTIP annotation.
+    # Unset leaves mtdna_annotation=not_assessed and passes the raw mito VCF through.
+    File? mtdna_mitimpact
+    String mtdna_mitimpact_release = "MitImpact4_V059"
     # Optional genome-wide CADD / REVEL plugins (fallback when not using dbNSFP 5.4a).
     File? cadd_snv
     File? cadd_snv_index
@@ -520,6 +524,15 @@ workflow PdSample {
       compress_output_vcf = false,
       preemptible_tries = preemptible
   }
+  call Tasks.AnnotateMtdna {
+    input:
+      vcf = Mito.out_vcf,
+      annotate_mtdna_py = FetchRepoAssets.annotate_mtdna_py,
+      mitimpact_csv = mtdna_mitimpact,
+      sample_id = sample_id,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
   # When sv_joint_vcf is set, probe/subset first. If sample_id is in the header,
   # use that subset and skip GatkSvSingle. If absent, fall back to GatkSvSingle.
   # scatter+if keeps Array[File] outputs for flatten with the GatkSv if-branch.
@@ -745,7 +758,8 @@ workflow PdSample {
       sv_status = if use_joint_sv then "joint" else "called",
       expansionhunter_vcf = ExpansionHunter.vcf,
       gauchian_json = Gauchian.json,
-      mtdna_vcf = Mito.out_vcf,
+      mtdna_vcf = AnnotateMtdna.mtdna_vcf,
+      mtdna_annotation = AnnotateMtdna.annotation_status,
       introme_tsv = Introme.introme_tsv,
       avi_tsv = AnnotateAvi.avi_tsv,
       qc_json = QcGate.qc_json,

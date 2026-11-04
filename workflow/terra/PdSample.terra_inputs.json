@@ -16,6 +16,8 @@
   "PdSample.avi_table_index": "gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz.tbi",
   "PdSample.dbnsfp": "gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz",
   "PdSample.dbnsfp_index": "gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi",
+  "PdSample.mtdna_mitimpact": "gs://YOUR_WORKSPACE_BUCKET/resources/mitimpact/MitImpact4_V059.csv",
+  "PdSample.mtdna_mitimpact_release": "MitImpact4_V059",
   "PdSample.somalier_sites": "gs://YOUR_WORKSPACE_BUCKET/resources/somalier/sites.hg38.vcf.gz",
   "PdSample.wgs_small_variants": false,
   "PdSample.introme_gtf": "gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz",

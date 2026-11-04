@@ -71,11 +71,19 @@ def _mt(path: Path) -> None:
             [
                 "##fileformat=VCFv4.2",
                 "##INFO=<ID=GENE,Number=1,Type=String,Description=Gene>",
+                "##INFO=<ID=MI_gene,Number=1,Type=String,Description=MitImpact gene>",
+                "##INFO=<ID=MI_ClinVar_CLNSIG,Number=1,Type=String,Description=ClinVar>",
+                "##INFO=<ID=MI_MITOMAP_status,Number=1,Type=String,Description=MITOMAP>",
+                "##INFO=<ID=MI_gnomAD_AF_hom,Number=1,Type=Float,Description=gnomAD AF hom>",
+                "##INFO=<ID=MI_APOGEE2,Number=1,Type=String,Description=APOGEE2>",
                 "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
                 "##FORMAT=<ID=AF,Number=A,Type=Float,Description=AF>",
                 "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=DP>",
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSYNTHETIC_SAMPLE",
-                "M\t11778\t.\tG\tA\t.\tPASS\tGENE=MT-ND4\tGT:AF:DP\t0/1:0.4:100",
+                "M\t11778\t.\tG\tA\t.\tPASS\t"
+                "GENE=MT-ND4;MI_gene=MT-ND4;MI_ClinVar_CLNSIG=Pathogenic;"
+                "MI_MITOMAP_status=Cfrm-[P];MI_gnomAD_AF_hom=0.0002;MI_APOGEE2=Pathogenic\t"
+                "GT:AF:DP\t0/1:0.4:100",
             ]
         )
         + "\n",
@@ -128,6 +136,7 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
         "expansionhunter_vcf": str(eh),
         "gauchian_json": str(gba),
         "mtdna_vcf": str(mt),
+        "mtdna_annotation": "called",
         "introme_tsv": str(introme),
         "qc": {"pass": True},
         "phenotype": {
@@ -158,7 +167,10 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert ttn["inheritance_status"] == "incidental"
     assert ttn["incidental"] == "TTN_truncation"
     assert ttn["clinvar_class"] != "B/LB"
-    assert by_gene["MT-ND4"] == {"mtdna_variant"}
+    assert by_gene["MT-ND4"] == {"mtdna_pathogenic_candidate"}
+    mito = candidates[candidates["gene"] == "MT-ND4"].iloc[0]
+    assert mito["clinvar_class"] == "P/LP"
+    assert "mitomap_pathogenic" in str(mito["evidence_reasons"])
     assert "RFC1" not in set(candidates["gene"].astype(str))
 
     liability = pd.read_csv(written["liability_tsv"], sep="\t")
@@ -166,10 +178,12 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert row["classification"] == "solved"
     assert row["solved_genes"] == "PINK1"
     assert "GBA1" in str(row["partial_genes"])
+    assert "MT-ND4" in str(row["partial_genes"])
     assert pd.isna(row["explained_liability"])
 
     qc = json.loads(written["qc_json"].read_text(encoding="utf-8"))
     assert qc["modules"]["avi"] == "not_assessed"
+    assert qc["modules"]["mtdna_annotation"] == "called"
     assert qc["sv_status"] == "called"
     assert qc["modules"]["gatk_sv"] == "called"
     assert qc["sv"][0]["sv_status"] == "no SV"

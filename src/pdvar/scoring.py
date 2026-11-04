@@ -61,7 +61,17 @@ def evidence_flags(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     flags["muttaster_disease"] = muttaster_pred.isin({"a", "d"})
     flags["fathmm_damaging"] = fathmm_pred.isin({"d"})
     flags["eigen_high"] = (eigen >= scfg.get("eigen_high", 10)).fillna(False)
-    flags["absent_gnomad"] = _col(df, "gnomad_af").fillna(0) == 0
+    # mtDNA: treat max(AF_hom, AF_het) as population AF so common heteroplasmic
+    # alleles are not scored as absent_gnomad.
+    gnomad_af = _col(df, "gnomad_af")
+    if "hit_source" in df.columns and "gnomad_af_het" in df.columns:
+        mt = df["hit_source"].fillna("").astype(str).eq("mtdna")
+        if mt.any():
+            het = _col(df, "gnomad_af_het")
+            combined = pd.concat([gnomad_af, het], axis=1).max(axis=1, skipna=True)
+            gnomad_af = gnomad_af.copy()
+            gnomad_af.loc[mt] = combined.loc[mt]
+    flags["absent_gnomad"] = gnomad_af.fillna(0) == 0
     return flags.astype(bool)
 
 
