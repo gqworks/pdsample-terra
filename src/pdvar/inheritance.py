@@ -50,8 +50,6 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
 
     ad_q = _qualifies(df, icfg["ad_min_tier"])
     ar_first = _qualifies(df, icfg["ar_first_hit_min_tier"])
-    if "hit_source" in df.columns:
-        ar_first &= df["hit_source"] != "introme_lookup"
     ar_second = _qualifies(df, icfg["ar_second_hit_min_tier"])
     if icfg.get("allow_introme_second_hit", True) and "introme_class" in df.columns:
         ar_second |= df["introme_class"] == "high"

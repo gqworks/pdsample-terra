@@ -116,7 +116,7 @@ scoring:
     muttaster_disease: 1
     fathmm_damaging: 1
     eigen_high: 1
-    introme_high: 5
+    introme_high: 4
     absent_gnomad: 2
     # GBA1-PD Browser class bumps for Gauchian catalog SNVs only (not VEP rows).
     gba1_pd_severe: 4
@@ -129,7 +129,7 @@ scoring:
     tier3_min_score: 3
 
 splicing:
-  introme_high: 0.7          # placeholder - set from Introme documentation / calibration
+  introme_high: 0.9
   introme_moderate: 0.6
   # Introme scores are merged onto sample-callset alleles only (no carrier-table injection).
   # Consequences where Introme is expected to add information beyond SpliceAI
