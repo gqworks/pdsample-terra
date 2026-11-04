@@ -160,10 +160,14 @@ report:
 
 sv:
   auto_index: true
+  # Ingest keeps FILTER=PASS or MULTIALLELIC. Listed tags document common drop reasons.
   exclude_filters:
     - HIGH_ALGORITHM_FDR
     - HIGH_NCR
     - UNRESOLVED
+    # Depth-only small DELs / WGD-outlier depth calls — common IGV "choppy dip" artifacts.
+    - DEPTH_LT_5KB
+    - SAMPLE_WGD_OUTLIER
   # Mechanism labels. LoF SVs use null_variant + sv_dosage_lof; SNCA copy-gain reuses null_variant as sv_dosage_gain.
   dosage_rules:
     - gene: SNCA

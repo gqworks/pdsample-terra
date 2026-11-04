@@ -14,12 +14,12 @@ STATUS_PRIORITY = {
     "AR_comphet_phased": 0,
     "AR_hemizygous": 0,
     "AR_second_hit_splice": 0,
-    # GBA1 / LRRK2 risk alleles compete with Mendelian solves so ClinVar P/LP
-    # and Gauchian catalog hits are not buried under intron AR Introme noise.
+    # AD / XL / risk compete with AR solves so ClinVar P/LP alleles (e.g. LRRK2
+    # R1441C) are not buried under intron AR Introme noise or depth-artifact SVs.
+    "AD_candidate": 0,
+    "XL_hemi": 0,
     "risk_biallelic": 0,
     "risk_carrier": 0,
-    "AD_candidate": 1,
-    "XL_hemi": 1,
     "AR_single_het": 3,
     "review_conflict": 3,
     "mtdna_variant": 2,
@@ -63,17 +63,33 @@ def _intronic_rank_penalty(df: pd.DataFrame) -> pd.Series:
     return (intron & ~codingish & (clin != "P/LP")).astype(int)
 
 
+def _clinvar_plp_rank_boost(df: pd.DataFrame) -> pd.Series:
+    """Prefer ClinVar P/LP coding alleles over same-priority intron/SV noise (0 beats 1)."""
+    clin = df["clinvar_class"].fillna("").astype(str) if "clinvar_class" in df.columns else pd.Series("", index=df.index)
+    cons = df["consequence"].fillna("").astype(str) if "consequence" in df.columns else pd.Series("", index=df.index)
+    codingish = cons.str.contains(
+        r"missense|frameshift|stop_|start_lost|splice_acceptor|splice_donor|"
+        r"inframe_|protein_altering",
+        regex=True,
+        na=False,
+    )
+    return (~(clin.eq("P/LP") & codingish)).astype(int)
+
+
 def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["status_priority"] = df["inheritance_status"].map(STATUS_PRIORITY).fillna(9)
     df["_intronic_penalty"] = _intronic_rank_penalty(df)
+    df["_plp_boost"] = _clinvar_plp_rank_boost(df)
     if "weighted_evidence_score" in df.columns:
         df["_rank_score"] = df["weighted_evidence_score"].where(df["weighted_evidence_score"].notna(), df["evidence_score"])
     else:
         df["_rank_score"] = df["evidence_score"]
-    sort_cols = ["sample_id", "status_priority", "_intronic_penalty", "tier", "_rank_score"]
-    asc = [True, True, True, True, False]
-    drop_cols = ["_rank_score", "_intronic_penalty"]
+    # plp_boost before intronic_penalty so LRRK2 R1441C-style hits beat intron AR and
+    # transcript_ablation SVs that share status_priority 0.
+    sort_cols = ["sample_id", "status_priority", "_plp_boost", "_intronic_penalty", "tier", "_rank_score"]
+    asc = [True, True, True, True, True, False]
+    drop_cols = ["_rank_score", "_intronic_penalty", "_plp_boost"]
     if "avi_phred" in df.columns:
         df["_avi"] = pd.to_numeric(df["avi_phred"], errors="coerce").fillna(-1)
         sort_cols.append("_avi")
@@ -116,6 +132,8 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
             "str_expanded",
             "risk_carrier",
             "risk_biallelic",
+            "AD_candidate",
+            "XL_hemi",
         }
     )
     plp = clin.eq("P/LP")
