@@ -13,6 +13,9 @@ paths:
 
 inputs:
   panel: resources/panel/monopdaus-gene-inheritance.csv
+  # GBA1-PD Browser single-variant extract (Parlar et al. Mov Disord 2023).
+  # Joined onto Gauchian catalog SNVs for PD severity class + score bump.
+  gba1_pd_browser: resources/gba1/gba1_pd_browser.tsv
   expression: null
   splicevault: null
   prs_weights: null
@@ -115,6 +118,10 @@ scoring:
     eigen_high: 1
     introme_high: 5
     absent_gnomad: 2
+    # GBA1-PD Browser class bumps for Gauchian catalog SNVs only (not VEP rows).
+    gba1_pd_severe: 4
+    gba1_pd_mild: 2
+    gba1_pd_risk: 1
   tiers:
     # Evaluated top-down; first matching tier wins.
     tier1_min_score: 10

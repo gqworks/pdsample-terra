@@ -34,6 +34,7 @@ STATUS_PRIORITY = {
 CURATION_COLUMNS = [
     "sample_id", "family_id", "gene", "moi", "panel_confidence", "risk_allele_exception", "variant_id", "hgvsc", "hgvsp", "consequence",
     "zygosity", "tier", "evidence_score", "evidence_reasons", "inheritance_status", "hit_source",
+    "gba1_pd_class", "gba1_gd_acmg", "gba1_pd_variant_name", "gba1_pd_matched_cdna",
     "introme_class", "introme_score", "introme_cohort_af", "introme_n_carriers", "introme_gene_region",
     "clinvar_class", "gnomad_af", "gnomad_popmax_af",
     "cadd", "revel",

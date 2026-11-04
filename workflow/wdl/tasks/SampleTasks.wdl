@@ -165,6 +165,7 @@ pairs = [
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
     ("resources/panel/monopdaus-genes.grch38.bed", "genes.bed"),
     ("resources/panel/monopdaus-exons.grch38.bed", "exons.bed"),
+    ("resources/gba1/gba1_pd_browser.tsv", "gba1_pd_browser.tsv"),
     ("workflow/assets/expansionhunter_pd.hg38.json", "eh_catalog.json"),
     ("config/config.yaml", "config.yaml"),
     ("config/columns.yaml", "columns.yaml"),
@@ -188,6 +189,7 @@ PY
     File panel_csv = "panel.csv"
     File gene_bed = "genes.bed"
     File exon_bed = "exons.bed"
+    File gba1_pd_browser = "gba1_pd_browser.tsv"
     File eh_catalog = "eh_catalog.json"
     File config_yaml = "config.yaml"
     File columns_yaml = "columns.yaml"
@@ -993,6 +995,7 @@ task Assess {
     File panel_csv
     File? gene_bed
     File? exon_bed
+    File? gba1_pd_browser
     File? expression_tsv
     File? splicevault_tsv
     File? prs_weights
@@ -1052,6 +1055,7 @@ PY
     export QC_JSON="~{qc_json}"
     export GENE_BED="~{gene_bed}"
     export EXON_BED="~{exon_bed}"
+    export GBA1_PD_BROWSER="~{gba1_pd_browser}"
     export EXPRESSION="~{expression_tsv}"
     export SPLICEVAULT="~{splicevault_tsv}"
     export PRS_WEIGHTS="~{prs_weights}"
@@ -1095,6 +1099,7 @@ document = {
     "introme_tsv": os.environ["INTROME_TSV"],
     "gene_bed": maybe("GENE_BED"),
     "exon_bed": maybe("EXON_BED"),
+    "gba1_pd_browser": maybe("GBA1_PD_BROWSER"),
     "expression": maybe("EXPRESSION"),
     "splicevault": maybe("SPLICEVAULT"),
     "prs_weights": maybe("PRS_WEIGHTS"),

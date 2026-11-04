@@ -1,0 +1,490 @@
+cdna	protein	variant_name	rsid	pd_class	gd_acmg	pos_hg38	allele_frequency	references	comments
+c.-30G>C		c.-30G>C	rs1064638	unknown	Uncertain significance	155241142	4.59838e-05	26	
+c.-22T>C		c.-22T>C	rs1064639	unknown	Uncertain significance	155241134	0	26	
+c.-2G>T		c.-2G>T	rs1141801	unknown	Uncertain significance	155241114	7.95311e-06	26	
+c.14G>A	p.(Ser5Asn)	p.S(-35)N	rs201985614	unknown	Uncertain significance	155241099	0	36	
+c.23G>C	p.(Arg8Thr)	p.R(-32)T	rs759983265	unknown	Uncertain significance	155241090	1.59062e-05	28,35,48	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.26_27del	p.(Glu9GlyfsTer8)	p.E(-31)Gfs*8	rs766291162	severe	Pathogenic	155241085	1.19298e-05	7,60	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.28G>T	p.(Glu10Ter)	p.E(-30)*		severe	Pathogenic	155241085	0	3	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.28-16C>G		IVS1-16C>G		unknown	Uncertain significance	155240731	0	26	
+c.28-14T>A		IVS1-14T>A		unknown	Uncertain significance	155240717	0	26	
+c.34C>T	p.(Pro12Ser)	p.P(-28)S	rs763770350	unknown	Uncertain significance	155240711	1.19595e-05	28	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.38A>G	p.(Lys13Arg)	p.K(-27)R	rs150466109	unknown	Likely benign	155240707	0.00747839	1,6,10,14,26,28,35,37.13,37.14,46,62,65,66,71	Common in individuals of African origin, no good evidence for involvement in GD or PD, Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.40C>T	p.(Pro14Ser)	p.P(-26)S	rs371238435	unknown	Uncertain significance		0	61	
+c.40C>A	p.(Pro14Thr)	p.P(-26)T		unknown	Uncertain significance	155240705	0	57	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.42T>G	p.(Pro14Pro)	p.P(-26)P	rs1392613829	unknown	Likely benign	155240703	0	54	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.44T>C	p.(Leu15Ser)	p.L(-25)S	rs1141802	unknown	Uncertain significance	155240701	3.89552e-05	7,56	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.46A>G	p.(Ser16Gly)	p.S(-24)G	rs1141804	unknown	Uncertain significance	155240699	2.83338e-05	56	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.49A>G	p.(Arg17Gly)	p.R(-23)G	rs139626710	unknown	Uncertain significance		0	55,61	
+c.58A>G	p.(Ile20Val)	p.I(-20)V	rs143187997	unknown	Likely benign	155240687	0.000138089	34,57	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.72del	p.(Leu25SerfsTer66)	p.L(-15)Sfs*66		severe	Pathogenic		0	62	
+c.73C>G	p.(Leu25Val)	p.L(-15)V		unknown	Uncertain significance	155240672	0	43	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.84dupG	p.(Leu29AlafsTer18)	p.L(-11)Afs*18	rs387906315	severe	Pathogenic	155240661	4.95779e-05	11,12,15,21,27,28,37.4,37.23,37.31,60,61,62,66	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.86T>C	p.(Leu29Pro)	p.L(-11)P		unknown	Uncertain significance		0	61	
+c.95A>G	p.(Gln32Arg)	p.Q(-8)R	rs1209553531	unknown	Uncertain significance	155240650	0	7	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.98C>T	p.(Ala33Val)	p.A(-7)V	rs776856496	unknown	Uncertain significance	155240647	2.12492e-05	57	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.100delG	p.(Val34Cysfs*56)	p.V(-6)Cfs*56		severe	Pathogenic	155240645	0	54	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.104C>G	p.(Ser35Trp)	p.S(-5)W		unknown	Uncertain significance		0	61	
+c.108G>A	p.(Trp36Ter)	p.W(-4)*	rs777383151	severe	Pathogenic	155240637	3.98603e-06	44,61,62	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.112T>A	p.(Ser38Thr)	p.S(-2)T		unknown	Uncertain significance	155240633	0	7	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.115G>C	p.(Gly39Arg)	p.G(-1)R		unknown	Uncertain significance	155240630	0	8,29,57	Minus sign represents nomenclature after removal of the 39 amino acid leader peptide
+c.116-8C>T	-	IVS2-8C>T		unknown	Uncertain significance	155240085	0	26	
+c.119delC	p.(Ala40ArgfsTer?)	p.A40Rfs*?		severe	Pathogenic		0	62	
+c.121C>T	p.(Arg41Cys)	p.R2C	rs190207858	unknown	Uncertain significance		0	61	
+c.122G>A	p.(Arg41His)	p.R2H	rs751095441	unknown	Uncertain significance		0	61	
+c.122_123insC	p.(Arg41ProfsTer6)	p.R2Pfs*6		severe	Pathogenic		0	62	
+c.124C>G	p.(Pro42Ala)	p.P3A		unknown	Uncertain significance	155240069	0	57	
+c.126C>T	p.(Pro42Pro)	p.P3P	rs758949381	unknown	Likely benign	155240067	3.99454e-06	54	
+c.136A>G	p.(Lys46Glu)	p.K7E	rs142761046	unknown	Uncertain significance	155240057	3.5882e-05	37.19	
+c.145G>A	p.(Gly49Ser)	p.G10S	rs760930573	unknown	Uncertain significance	155240048	1.1953e-05	49,51,61	
+c.148T>C	p.(Tyr50His)	p.Y11H	rs775652188	unknown	Uncertain significance	155240045	1.59288e-05	34,57	
+c.149_150insGTAT	p.(Tyr50Ter)	p.Y11*		severe	Pathogenic		0	65	
+c.149_154dupACAGCT	p.(Tyr50_Ser51dup)	p.Y11_S12dup		unknown	Uncertain significance		0	61	
+c.148_149insGTA	p.(Tyr50CysfsTer15)	p.Y11Cfs*15		severe	Pathogenic		0	62	
+c.155C>T	p.(Ser52Leu)	p.S13L	rs1275724188	unknown	Uncertain significance	155240038	3.98051e-06	36,61	
+c.156G>A	p.(Ser52Ser)	p.S13S	rs756264143	unknown	Likely benign	155240037	1.19437e-05	54	
+c.157delG	p.(Val53TrpfsTer37)	p.V14Wfs*37		severe	Pathogenic	155240036	0	57	
+c.160G>C	p.(Val54Leu)	p.V15L		severe	Likely pathogenic		0	61,62	
+c.160G>A	p.(Val54Met)	p.V15M		unknown	Likely pathogenic		0	61	
+c.164G>C	p.(Cys55Ser)	p.C16S	rs773007510	severe	Uncertain significance		0	62	
+c.166_167del	p.(Val56LeufsTer6)	p.V17Lfs*6		severe	Pathogenic	155240027	0	8,57	
+c.166G>A	p.(Val56Ile)	p.V17I		unknown	Uncertain significance		0	61	
+c.166G>T	p.(Val56Phe)	p.V17F		unknown	Uncertain significance		0	64	
+c.168C>T	p.(Val56Val)	p.V17V	rs145773486	unknown	Uncertain significance	155240025	9.54968e-05	7	
+c.166_167dup	p.(Cys57SerfsTer1)	p.C18Sfs*1		severe	Likely pathogenic		0	60	
+c.170G>C	p.(Cys57Ser)	p.C18S		unknown	Uncertain significance	155240023	0	57	
+c.171C>A	p.(Cys57Ter)	p.C18*		severe	Pathogenic	155240022	0	7	
+c.173A>G	p.(Asn58Ser)	p.N19S	rs74797197	unknown	Uncertain significance	155240020	1.4149e-05	5	
+c.186T>G	p.(Cys62Trp)	p.C23W		mild	Uncertain significance		0	64	
+c.187G>A	p.(Asp63Asn)	p.D24N	-	severe	Uncertain significance	155240006	0	6	
+c.203delC	p.(Pro68ArgfsTer23)	p.P29Rfs*23		severe	Pathogenic	155239990	0	27,62	
+c.203dupC	p.(Thr69Aspfs*11)	p.T30Dfs*11	rs750712570	severe	Pathogenic	155239990	0	8,57	
+c.212C>T	p.(Pro71Leu)	p.P32L		unknown	Uncertain significance	155239981	0	56	
+c.221G>C	p.(Gly74Ala)	p.G35A	rs371592589	unknown	Uncertain significance	155239972	0	25	
+c.222_224delTAC	p.(Thr75del)	p.T36del	rs761621516	mild	Uncertain significance	155239971	6.36654e-05	10,60,62	
+c.226T>G	p.(Phe76Val)	p.F37V	-	mild	Uncertain significance	155239967	0	5,54,62	
+c.229A>G	p.(Ser77Gly)	p.S38G		unknown	Uncertain significance	155239964	0	54	
+c.232C>T	p.(Arg78Cys)	p.R39C	rs146774384	unknown	Uncertain significance	155239961	9.19657e-05	7,61,62,64	
+c.233G>A	p.(Arg78His)	p.R39H	rs752857428	unknown	Uncertain significance	155239960	2.38764e-05	48,56,61	
+c.236A>G	p.(Tyr79Cys)	p.Y40C		unknown	Uncertain significance		0	61,64	
+c.238G>A	p.(Glu80Lys)	p.E41K		severe	Uncertain significance		0	62	
+c.245C>T	p.(Thr82Ile)	p.T43I	rs1141811	mild	Uncertain significance		0	62	
+c.247C>T	p.(Arg83Cys)	p.R44C	rs1141812	unknown	Uncertain significance	155239946	8.13555e-05	11,15,21,31,35,61,64	Contradicting results regarding association with PD, additional studies are needed.
+c.251_252insC	p.(Ser84ArgfsTer15)	p.S45Rfs*15		severe	Pathogenic	155239942	0	7	
+c.254G>A	p.(Gly85Glu)	p.G46E	rs77829017	mild	Pathogenic	155239939	3.97902e-06	6,62	
+c.256C>T	p.(Arg86Ter)	p.R47*	rs1671987417	severe	Pathogenic	155239937	0	8,14,44,57,61,62	
+c.259C>T	p.(Arg87Trp)	p.R48W	rs1141814	mild	Pathogenic	155239934	2.78583e-05	49,57,61,62	
+c.280C>T	p.(Pro94Ser)	p.P55S		unknown	Uncertain significance	155239913	0	51	
+c.283A>G	p.(Ile95Val)	p.I56V	rs745398454	unknown	Uncertain significance	155239910	3.9789e-06	56	
+c.293dupA	p.(Asn98LysfsTer47)	p.N59Kfs*47		severe	Pathogenic	155239900	0	8,57	
+c.299C>T	p.(Thr100Met)	p.T61M	rs757848523	unknown	Uncertain significance	155239894	0	57,64	
+c.300G>A	p.(Thr100Thr)	p.T61T	rs1141821	unknown	Uncertain significance	155239893	1.59219e-05	7	
+c.307G>A	p.(Gly103Ser)	p.G64S		unknown	Uncertain significance		0	61	
+c.308-1G>A	-	IVS3-1G>C	-	severe	Pathogenic	155239763	0	5	
+c.308G>T	p.(Gly103Val)	p.G64V		unknown	Uncertain significance	155239762	0	42	
+c.308G>A	p.(Gly103Asp)	p.G64D	rs748485792	unknown	Uncertain significance		0	55	
+c.314T>C	p.(Leu105Pro)	p.L66P	rs1423108738	mild	Uncertain significance	155239756	3.97659e-06	51,62	
+c.314T>A	p.(Leu105Gln)	p.L66Q		unknown	Uncertain significance	155239756	0	54	
+c.329_333delCAGAA	p.(Pro110ProfsTer?)	p.P71Pfs*?		severe	Pathogenic			62	
+c.330delA	p.(Glu111AsnfsTer7)	p.E72Nfs*7		severe	Pathogenic			62	
+c.334C>T	p.(Gln112Ter)	p.Q73*		severe	Pathogenic		0	62	
+c.337A>T	p.(Lys113Ter)	p.K74*		severe	Pathogenic		0	62	
+c.334_338delCAGAA	p.(Lys114ValfsTer31)	del5		severe	Pathogenic	155239736	0	38	
+c.350T>C	p.(Val117Ala)	p.V78A	-	unknown	Uncertain significance	155239720	0	26	
+c.354G>C	p.(Lys118Asn)	p.K79N	rs121908312	mild	Uncertain significance		0	62	
+c.355G>A	p.(Gly119Arg)	p.G80R	rs1553218180	unknown	Uncertain significance	155239715	0	37.13,64	
+c.370A>G	p.(Met124Val)	p.M85V	rs758455177	unknown	Uncertain significance	155239700	7.07039e-06	6,61	
+c.371T>C	p.(Met124Thr)	p.M85T		unknown	Uncertain significance	155239699	0	48	
+c.385G>A	p.(Ala129Thr)	p.A90T		mild	Uncertain significance		0	62	
+c.400G>T	p.(Ala134Ser)	p.A95S		unknown	Uncertain significance	155239670	0	57	
+c.413delC	p.(Pro138LeufsTer62)	p.P99Lfs*62		severe	Pathogenic			62	
+c.430C>A	p.(Leu144Ile)	p.L105I		unknown	Uncertain significance	155239640	0	57	
+c.437C>A	p.(Ser146Ter)	p.S107*		severe	Pathogenic		0	61	
+c.437C>T	p.(Ser146Leu)	p.S107L	rs758447515	severe	Pathogenic	155239633	3.18147e-05	6,13,56,57,60,62	
+c.437C>G	p.(Ser146Trp)	p.S107W		unknown	Uncertain significance		0	61	
+c.440A>G	p.(Tyr147Cys)	p.Y108C		unknown	Uncertain significance	155239630	0	3710	
+c.445T>C	p.(Ser149Pro)	p.S110P		unknown	Uncertain significance		0	61	
+c.455G>C	p.(Gly152Ala)	p.G113A		unknown	Uncertain significance	155238650	0	37.13,43	
+c.466A>G	p.(Asn156Asp)	p.N117D		mild	Uncertain significance		0	62	
+c.472A>C	p.(Ile158Leu)	p.I119L		unknown	Uncertain significance		0	37.13,69	
+c.473T>C	p.(Ile158Thr)	p.I119T	rs77834747	severe	Uncertain significance		0	62,63	
+c.474C>T	p.(Ile158Ile)	p.I119I	rs147411159	unknown	Uncertain significance	155238631	0.000665458	7,26	
+c.475C>T	p.(Arg159Trp)	p.R120W	rs439898	severe	Pathogenic	155238630	0	6,7,8,10,14,34,36,37.13,37.17,37.25,41,42,44,54,57,60,61,62,64,66,73	
+c.476G>A	p.(Arg159Gln)	p.R120Q	rs79653797	severe	Likely pathogenic	155238629	0	5,56,57,61,62,74	
+c.480A>T	p.(Val160Val)	p.V121V	rs747409352	unknown	Likely benign	155238625	0.000120351	54	
+c.481C>T	p.(Pro161Ser)	p.P122S	rs121908299	mild	Likely pathogenic		0	62	
+c.482C>T	p.(Pro161Leu)	p.P122L	rs79637617	severe	Uncertain significance	155238623	0	54	
+c.482C>G	p.(Pro161Arg)	p.P122R		unknown	Uncertain significance	155238623	0	57	
+c.484A>G	p.(Met162Val)	p.M123V	rs377325220	mild	Uncertain significance	155238621	7.96235e-06	57,62	
+c.485T>C	p.(Met162Thr)	p.M123T	rs794727783	mild	Uncertain significance	155238620	0	37.9,51	
+c.487G>A	p.(Ala163Thr)	p.A124T		unknown	Uncertain significance	155238618	0	57	
+c.491G>A	p.(Ser164Asn)	p.S125N		severe	Uncertain significance	155238614	0	28,35,37.13,73	
+c.492C>G	p.(Ser164Arg)	p.S125R	rs746019841	unknown	Likely pathogenic	155238613	1.99059e-05	48,74	
+c.493_494insA	p.(Cys165Ter)	p.C126*		severe	Pathogenic			62	
+c.497A>T	p.(Asp166Val)	p.D127V	rs79796061	mild	Likely pathogenic		0	62	
+c.498C>G	p.(Asp166Glu)	p.D127E	rs1378191095	unknown	Uncertain significance	155238607	3.98121e-06	48	
+c.500insT	p.(Phe167PhefsTer12)	p.F128Ffs*12		severe	Pathogenic	155238605	0	44,62	
+c.506T>G	p.(Ile169Ser)	p.I130S	-	unknown	Uncertain significance	155238599	0	5	
+c.507C>A	p.(Ile169Ile)	p.I130I		unknown	Uncertain significance	155238598	0	7	
+c.508C>T	p.(Arg170Cys)	p.R131C	rs398123530	severe	Pathogenic	155238597	3.98134e-06	6,14,37.13,37.14,37.17,37.19,43,62,64	
+c.509G>T	p.(Arg170Leu)	p.R131L	rs80356763	severe	Likely pathogenic	155238596	3.98124e-06	10,62	
+c.509G>A	p.(Arg170His)	p.R131H	rs80356763	unknown	Likely pathogenic	155238596	2.38874e-05	48,61,74	
+c.517A>G	p.(Thr173Ala)	p.T134A		unknown	Uncertain significance		0	61	
+c.517A>C	p.(Thr173Pro)	p.T134P	rs1441909908	unknown	Uncertain significance	155238588	3.98143e-06	35,44	
+c.518C>T	p.(Thr173Ile)	p.T134I		mild	Uncertain significance		0	62	
+c.521A>G	p.(Tyr174Cys)	p.Y135C	rs781152868	unknown	Uncertain significance	155238584	3.98168e-06	50,57,63	
+c.522T>A	p.(Tyr174Ter)	p.Y135*		severe	Pathogenic			62	
+c.532delC	p.(Pro178LeufsTer?)	p.P139Lfs*?		severe	Pathogenic			62	
+c.534delT	p.(Asp179MetfsTer21)	p.D140Mfs*21		severe	Pathogenic			62	
+c.535G>C	p.(Asp179His)	p.D140H	rs147138516	mild	Uncertain significance	155238570	0.000127557	29,35,37.13,51,61,62,66	
+c.538G>A	p.(Asp180Asn)	p.D180N		unknown	Uncertain significance			61	
+c.544C>T	p.(Gln182Ter)	p.Q143*	-	severe	Likely pathogenic	155238561	0	5	
+c.546G>A	p.(Gln182Gln)	p.Q143Q	rs545391048	unknown	Likely benign	155238559	0.000373296	7	
+c.547T>G	p.(Leu183Val)	p.L144V		unknown	Uncertain significance	155238558	0	37.9	
+c.586A>C	p.(Lys196Gln)	p.K157Q	rs121908297	severe	Likely pathogenic	155238519	0	51,60,62	
+c.588G>T	p.(Lys196Asn)	p.K157N		severe	Uncertain significance		0	62	
+c.589-86A>G	-	IVS5-86A>G		unknown	Benign	155238383	0	49	
+c.592C>A	p.(Pro198Thr)	p.P159T		mild	Uncertain significance			62	
+c.593C>T	p.(Pro198Leu)	p.P159L	rs80222298	mild	Uncertain significance			62	
+c.595_596delCT	p.(Leu199AspfsTer62)	p.L160Dfs*62		severe	Pathogenic			62	
+c.599T>A	p.(Ile200Asn)	p.I161N	rs77933015	unknown	Uncertain significance	155238296	0	6	
+c.604C>T	p.(Arg202Ter)	p.R163*	rs1009850780	severe	Pathogenic	155238291	8.81158e-06	28,35,44,51,60,61,62	
+c.605G>A	p.(Arg202Gln)	p.R163Q	rs398123531	unknown	Uncertain significance	155238290	0.000230297	37.5,38,54,57,61,70	
+c.613C>T	p.(Gln205Ter)	p.Q166*		severe	Likely pathogenic		0	64	
+c.622C>T	p.(Gln208Ter)	p.Q169*		severe	Pathogenic			62	
+c.625C>T	p.(Arg209Cys)	p.R170C	rs398123532	mild	Likely pathogenic			61,62	
+c.626G>A	p.(Arg209His)	p.R170H	rs749416070	unknown	Uncertain significance	155238269	4.16096e-05	7,51,57,61	
+c.626G>C	p.(Arg209Pro)	p.R170P		mild	Likely pathogenic			61,62	
+c.631G>C	p.(Val211Leu)	p.V172L		unknown	Uncertain significance	155238264	0	43	
+c.635C>G	p.(Ser212Ter)	p.S173*		severe	Pathogenic	155238260	0	37.13,51,61,62	
+c.636_637insTTTC	p.(Ser212fsTer?)	p.S173fs		severe	Pathogenic			64	
+c.636A>C	p.(Ser212Ser)	p.S173S	-	unknown	Likely benign	155238259	4.09423e-06	26,54	
+c.638T>C	p.(Leu213Pro)	p.L174P		unknown	Uncertain significance	155238257	0	37.27,70	
+c.640C>A	p.(Leu214Ile)	p.L175I		unknown	Uncertain significance	155238255	0	51	
+c.644C>T	p.(Ala215Val)	p.A176V		unknown	Uncertain significance			61	
+c.644C>A	p.(Ala215Asp)	p.A176D		unknown	Uncertain significance			61,64	
+c.649C>T	p.(Pro217Ser)	p.P178S		severe	Uncertain significance;Uncertain significance			61,62	
+c.653G>A	p.(Trp218Ter)	p.W179*		severe	Pathogenic			62	
+c.662C>T	p.(Pro221Leu)	p.P182L	rs866075757	severe	Uncertain significance	155238233	0	6,44,62	
+c.667T>C	p.(Trp223Arg)	p.W184R	rs61748906	severe	Pathogenic	155238228	7.96476e-06	6,12,27,43,61,62	
+c.667T>G	p.(Trp223Gly)	p.W184G		unknown	Likely pathogenic			61	
+c.671T>G	p.(Leu224Arg)	p.L185R		unknown	Uncertain significance	155238224	0	54	
+c.674A>G	p.(Lys225Arg)	p.K186R		unknown	Uncertain significance			71	
+c.675G>C	p.(Lys225Asn)	p.K186N	-	unknown	Uncertain significance	155238220	0	5	
+c.680_681delinsGG	p.(Asn227Arg)	p.N188R		mild	Uncertain significance			62	
+c.680A>G	p.(Asn227Ser)	p.N188S	rs364897	severe	Pathogenic	155238215	7.16253e-05	5,6,15,20,21,35,37.17,37.5,43,48,54,56,57,60,61,62	
+c.681T>G	p.(Asn227Lys)	p.N188K	rs381418	severe	Likely pathogenic	155238214	1.19349e-05	5,8,57,61,65	
+c.683G>T	p.(Gly228Val)	p.G189V	rs78911246	mild	Uncertain significance	155238212	0	51,62	
+c.685G>A	p.(Ala229Thr)	p.A190T		severe	Uncertain significance	155238210	0	7,57,62	
+c.686C>T	p.(Ala229Val)	p.A190V		unknown	Uncertain significance		0	61	
+c.686C>A	p.(Ala229Glu)	p.A190E		severe	Uncertain significance		0	61,62	
+c.689T>G	p.(Val230Gly)	p.V191G	rs381427	unknown	Pathogenic		0	37.17,61	
+c.693T>A	p.(Asn231Lys)	p.N192K		unknown	Uncertain significance	155238202	0	54	
+c.694G>A	p.(Gly232Arg)	p.G193R		mild	Uncertain significance	155238201	0	6	
+c.694G>T	p.(Gly232Trp)	p.G193W		severe	Uncertain significance	155238201	0	37.17,14,26,44,62	
+c.695G>A	p.(Gly232Glu)	p.G193E	rs1376479747	unknown	Uncertain significance	155238200	0	35,37.19,66	
+c.696G>A	p.(Gly232Gly)	p.G193G	rs375731497	unknown	Likely benign	155238199	1.76785e-05	7	
+c.700G>T	p.(Gly234Trp)	p.G195W		severe	Uncertain significance	155238195	0	14,26,44,62	
+c.701G>A	p.(Gly234Glu)	p.G195E	rs74462743	severe	Likely pathogenic	155238194	7.95317e-06	4,62	
+c.702G>T	p.(Gly234Gly)	p.G195G	rs774539868	unknown	Likely benign	155238193	4.77209e-05	7	
+c.702_703del	p.(Ser235ThrfsTer26)	p.S196Tfs*26		severe	Pathogenic			61	
+c.703T>C	p.(Ser235Pro)	p.S196P	rs1064644	severe	Pathogenic	155238192	7.95368e-06	5,28,35,57,61,68	
+c.706C>T	p.(Leu236Phe)	p.L197F		severe	Uncertain significance	155238189	0	37.11,62	
+c.707T>C	p.(Leu236Pro)	p.L197P		unknown	Uncertain significance	155238188	0	8,57	
+c.708delC	p.(Leu236LeufsTer17)	p.L197Lfs*17		severe	Pathogenic	155238187	0	44	
+c.709A>G	p.(Lys237Glu)	p.K198E	rs773409311	severe	Pathogenic	155238186	7.95286e-06	14,62	
+c.710A>C	p.(Lys237Thr)	p.K198T		unknown	Uncertain significance			72	
+c.712G>A	p.(Gly238Arg)	p.G199R	-	unknown	Uncertain significance	155238183	0	5,57	
+c.719C>A	p.(Pro240His)	p.P201H		severe	Uncertain significance	155238176	0	37.5	
+c.721G>A	p.(Gly241Arg)	p.G202R	rs409652	severe	Pathogenic	155238174	3.18114e-05	5,6,7,8,9,20,26,35,37.13,37.9,44,51,54,55,56,57,60,61,62,63,73	
+c.731A>G	p.(Tyr244Cys)	p.Y205C	rs76026102	severe	Uncertain significance	155238164	3.97633e-06	54	
+c.740C>G	p.(Thr247Ser)	p.T208S		unknown	Uncertain significance	155238155	0	6	
+c.740C>T	p.(Thr247Ile)	p.T208I		unknown	Uncertain significance	155238155	0	54	
+c.741C>T	p.(Thr247Thr)	p.T208T	-	unknown	Likely benign	155238154	0	26	
+c.741delC	p.(Trp248GlyfsTer6)	p.W209Gfs*6	-	severe	Pathogenic	155238154	0	6,62	
+c.744G>A	p.(Trp248Ter)	p.W209*		severe	Pathogenic	155238151	0	8,57	
+c.746C>T	p.(Ala249Val)	p.A210V		unknown	Uncertain significance			61	
+c.749G>A	p.(Arg250Lys)	p.R211K	rs1557904651	unknown	Uncertain significance	155238146	3.18695e-05	14	
+c.751T>C	p.(Tyr251His)	p.Y212H		unknown	Likely pathogenic			74	
+c.754T>G	p.(Phe252Val)	p.F213V		unknown	Likely pathogenic			64	
+c.754T>A	p.(Phe252Ile)	p.F213I	rs381737	severe	Pathogenic	155238141	4.24232e-05	5,8,16,26,37.17,38,51,54,57,60,62	
+c.762-86A>G	-	IVS6-86A>G	rs114099990	unknown	Uncertain significance	155237664	0	17	
+c.762-18T>A	-	IVS6-18T>A		unknown	Uncertain significance	155237596	0.007485672	49	
+c.762‐5G > A	-	IVS6-5G>A		unknown	Uncertain significance	155237583	0	7	
+c.762-2A>G	-	IVS6-2A>G		severe	Pathogenic	155237580	0	41	
+c.762-1G>C	-	IVS6-1G>C		severe	Pathogenic	155237579	7.12144e-06	8,57	
+c.764T>A	p.(Phe255Tyr)	p.F216Y	rs74500255	mild	Pathogenic	155237576	1.77775e-05	4,7,12,28,35,60,61,62	
+c.765C>(A or G)	p.(Phe255Leu)	p.F216L		unknown	Uncertain significance	155237575	0	10	
+c.767T>C	p.(Leu256Pro)	p.L217P		unknown	Uncertain significance	155237573	0	43	
+c.776A>G	p.(Tyr259Cys)	p.Y220C		unknown	Uncertain significance	155237564	0	8,57	
+c.801G>A	p.(Trp267Ter)	p.W228*		severe	Pathogenic	155237539	0	8,57	
+c.809C>G	p.(Thr270Arg)	p.T231R		severe	Uncertain significance			61,62	
+c.812C>G	p.(Ala271Gly)	p.A232G		mild	Uncertain significance			62	
+c.814G>T	p.(Glu272Ter)	p.E233*		severe	Pathogenic			62	
+c.826T>C	p.(Ser276Pro)	p.S237P		severe	Uncertain significance			62	
+c.835C>A	p.(Leu279Met)	p.L240M		unknown	Uncertain significance			61	
+c.836T>C	p.(Leu279Pro)	p.L240P		severe	Uncertain significance			62	
+c.839_841dup	"p.(Leu280_Ser281insMet)"	p.L241_S242insM		severe	Pathogenic			62	
+c.849C>A	p.(Tyr283Ter)	p.Y244X		severe	Pathogenic			64	
+c.850C>A	p.(Pro284Thr)	p.P245T		unknown	Uncertain significance			61	
+c.851C>T	p.(Pro284Leu)	p.P245L		unknown	Uncertain significance	155237489	0	37.13	
+c.859T>C	p.(Cys287Arg)	p.C248R		unknown	Uncertain significance	155237481	0	57	
+c.865G>A	p.(Gly289Ser)	p.G250S	-	unknown	Uncertain significance	155237475	0	7	
+c.866G>T	p.(Gly289Val)	p.G250V	rs878853321	unknown	Likely pathogenic	155237474	3.98083e-06	12	
+c.870C>A	p.(Phe290Leu)	p.F251L	rs121908313	severe	Likely pathogenic			62	
+c.876delT	p.(Glu293AsnfsTer10)	p.E254Nfs*10		severe	Pathogenic	155237464	0	8,57	
+c.881A>G	p.(His294Arg)	p.H255R		unknown	Uncertain significance			61	
+c.882T>G	p.(His294Gln)	p.H255Q	rs367968666	severe	Uncertain significance	155237458	0.000219391	6,7,20,31,37.10,37.18,41,55,62,66	
+c.883delC	p.(Gln295SerfsTer9)	p.Q256Sfs*9	-	severe	Pathogenic	155237457	0	29	
+c.886C>T	p.(Arg296Ter)	p.R257*	rs1553217626	severe	Pathogenic	155237454	0	6,44,62,74	
+c.887G>A	p.(Arg296Gln)	p.R257Q	rs140955685	severe	Pathogenic	155237453	0	37.5,37.19,43,44,49,51,60,62,63,64,66	
+c.896T>C	p.(Ile299Thr)	p.I260T	rs794727908	unknown	Likely pathogenic	155237444	1.19429e-05	7,60,61,64	
+c.898delG	p.(Ala300ProfsTer4)	p.A261Pfs*4		severe	Pathogenic			62	
+c.901C>T	p.(Arg301Cys)	p.R262C	rs374117599	unknown	Uncertain significance	155237439	3.58295e-05	26,57,61	
+c.902G>A	p.(Arg301His)	p.R262H	rs140955685	unknown	Uncertain significance	155237438	0.000109703	4,26,35,51,57,61,64	
+c.902G>C	p.(Arg301Pro)	p.R262P		unknown	Uncertain significance	155237438	0	48	
+c.907C>G	p.(Leu303Val)	p.L264V		unknown	Uncertain significance	155237433	3.98105e-06	8,57	
+c.907C>A	p.(Leu303Ile)	p.L264I	rs1296507371	mild	Uncertain significance	155237433	0	38,54,57	
+c.910G>A	p.(Gly304Ser)	p.G265S	-	unknown	Uncertain significance	155237430	0	26	
+c.914C>G	p.(Pro305Arg)	p.P266R	rs79215220	mild	Uncertain significance			62	
+c.914C>T	p.(Pro305Leu)	p.P266L		severe	Uncertain significance			62,66	
+c.914delC	p.(Pro305LeufsTer31)	p.P266Lfs*31		severe	Pathogenic	155237426	3.98115e-06	28,35,60,62	
+c.917C>T	p.(Thr306Ile)	p.T267I	rs199628072	unknown	Uncertain significance	155237423	6.01651e-05	51,61,64	
+c.921C>T	p.(Leu307Leu)	p.L268L	-	unknown	Uncertain significance	155237419	1.0617e-05	7,26,51	
+c.922G>A	p.(Ala308Thr)	p.A269T	rs368425393	unknown	Uncertain significance	155237418	1.59253e-05	57,61	
+c.928A>G	p.(Ser310Gly)	p.S271G	rs1057942	mild	Likely pathogenic	155237412	2.12355e-05	5,7,8,26,35,37.18,37.5,54,56,60,62,64	
+c.929G>A	P.(Ser310Asn)	p.S271N	rs74731340	mild	Likely pathogenic	155237411	0	48,62	
+c.929G>C	p.(Ser310Thr)	p.S271T		unknown	Likely pathogenic	155237411	0	57	
+c.938A>G	p.(His313Arg)	p.H274R	rs747591577	unknown	Uncertain significance	155237402	0	57	
+c.943G>T	p.(Val315Phe)	p.V276F	-	unknown	Uncertain significance	155237397	0	5	
+c.946C>T	p.(Arg316Cys)	p.R277C	rs1264734195	mild	Uncertain significance	155237394	1.41583e-05	37.5,60	
+c.947G>A	p.(Arg316His)	p.R277H	rs1219332583	unknown	Uncertain significance	155237393	3.98168e-06	14	
+c.953delT	p.(Leu318ProfsTer17)	p.L279Pfs*17		severe	Pathogenic	155237387	0	44,62	
+c.971G>A	p.(Arg324His)	p.R285H	rs79696831	severe	Uncertain significance	155237369	7.96756e-06	54,62	
+c.983C>T	p.(Pro328Leu)	p.P289L	rs121908298	mild	Likely pathogenic			62	
+c.983_990del	p.(Pro328ArgfsTer11)	p.P289Rfs*11		severe	Pathogenic	155237357	0	57	
+c.988T>A	p.(Trp330Arg)	p.W291R	-	unknown	Uncertain significance	155237352	0	5	
+c.989G>A	p.(Trp330Ter)	p.W291*		severe	Pathogenic			74	
+c.1000‐4G>T	-	IVS7-4G>T		unknown	Uncertain significance	155236473	0	7	
+c.1006A>T	p.(Thr336Ser)	p.T297S	rs1553217322	unknown	Uncertain significance		0	67	
+c.1012C>A	p.(Pro338Thr)	p.P299T		unknown	Uncertain significance	155236457	0	57	
+c.1018G>A	p.(Ala340Thr)	p.A301T	-	unknown	Uncertain significance	155236451	0	5	
+c.1028A>G	p.(Tyr343Cys)	p.Y304C	rs77321207	severe	Uncertain significance	155236441	0	37.13,62,64,73	
+c.1029delT	p.(Tyr343Ter)	p.Y304*		severe	Pathogenic			62	
+c.1040T>C	p.(Ile347Thr)	p.I308T		unknown	Uncertain significance	155236429	0	2,47,51	
+c.1048C>T	p.(His350Tyr)	p.H311Y	-	unknown	Uncertain significance	155236421	0	5	
+c.1049A>G	p.(His350Arg)	p.H311R	rs78198234	severe	Likely pathogenic	155236420	0	56,62	
+c.1051T>A	p.(Trp351Arg)	p.W312R	-	unknown	Uncertain significance	155236418	0	26	
+c.1052G>C	p.(Trp351Ser)	p.W312S		unknown	Likely pathogenic			60	
+c.1053G>T	p.(Trp351Cys)	p.W312C	rs121908304	mild	Likely pathogenic			62	
+c.1054T>C	p.(Tyr352His)	p.Y313H		unknown	Uncertain significance	155236415	0	44	
+c.1057C>G	p.(Leu353Val)	p.L314V		unknown	Uncertain significance	155236412	0	38	
+c.1060G>C	p.(Asp354His)	p.D315H	rs398123526	unknown	Uncertain significance			61	
+c.1063T>A	p.(Phe355Ile)	p.F316I		unknown	Uncertain significance	155236406	0	28,35	
+c.1065del	p.(Leu356Trpfs*8)	p.L317Wfs*8		severe	Pathogenic			61	
+c.1066C>G	p.(Leu356Val)	p.L317V		unknown	Uncertain significance	155236403	0	57	
+c.1068G>A	p.(Leu356Leu)	p.L317L		unknown	Likely benign	155236401	0	43	
+c.1079A>G	p.(Lys360Arg)	p.K321R		unknown	Uncertain significance	155236390	0	57	
+c.1085C>T	p.(Thr362Ile)	p.T323I	rs76539814	severe	Pathogenic	155236384	1.19294e-05	5,37.13,51,58,60,61,62,64,73	
+c.1087C>G	p.(Leu363Val)	p.L324V		unknown	Uncertain significance	155236382	3.18512e-05	51,54	
+c.1087C>A	p.(Leu363Ile)	p.L324I		unknown	Uncertain significance	155236382	0	57	
+c.1088T>C	p.(Leu363Pro)	p.L324P	rs1178732315	unknown	Uncertain significance	155236381	0	7,29,61,64	
+c.1090G>A	p.(Gly364Arg)	p.G325R	rs121908305	severe	Likely pathogenic	155236379	7.95488e-06	7,54,57,60,62	
+c.1090G>T	p.(Gly364Trp)	p.G325W		unknown	Likely pathogenic	155236379	0	51	
+c.1093dup	p.(Glu365GlyfsTer71)	p.E326Gfs*71		severe	Likely pathogenic			60,62	
+c.1093G>A	p.(Glu365Lys)	p.E326K	rs2230288	risk	Benign	155236376	0.010731055	1,3,4,6,7,11,14,15,20,21,23,24,25,26,28,29,30,31,33,35,36,37.11,37.18,37.23,38,43,48,49,50,54,55,57,60,61,62,63,64,65,67,69,72	
+c.1095G>C	p.(Glu365Asp)	p.E326D	rs80317710	unknown	Uncertain significance	155236374	0	6,61	
+c.1098insA	p.(His367ThrfsTer68)	p.H328Tfs*68		severe	Pathogenic	155236371	0	44,62	
+c.1100A>C	p.(His367Pro)	p.H328P		unknown	Uncertain significance			61	
+c.1102C>T	p.(Arg368Cys)	p.R329C	rs374306700	mild	Likely pathogenic	155236367	1.19292e-05	4,6,7,26,37.13,37.17,37.18,61,64,72	
+c.1102C>G	p.(Arg368Gly)	p.R329G		unknown	Uncertain significance	155236367	0	57	
+c.1103G>A	p.(Arg368His)	p.R329H	rs1064648	unknown	Uncertain significance	155236366	5.65647e-05	37.18,51,61	
+c.1113dup	p.(Asn372GlnfsTer64)	p.R333Qfs*64		severe	Pathogenic			61	
+c.1121_1122dup	p.(Leu375CysfsTer20)	p.L336Cfs*20		severe	Pathogenic			61,62	
+c.1133C>T	p.(Ser378Leu)	p.S339L		unknown	Uncertain significance	155236336	0	37.11	
+c.1136A>C	p.(Glu379Ala)	p.E340A	-	unknown	Uncertain significance	155236333	0	43	
+c.1138G>A	p.(Ala380Thr)	p.A341T	rs781306264	severe	Uncertain significance			62	
+c.1141T>G	p.(Cys381Gly)	p.C342G	rs121908306	mild	Likely pathogenic			62	
+c.1141T>C	p.(Cys381Arg)	p.C342R		mild	Likely pathogenic			62	
+c.1142G>T	p.(Cys381Phe)	p.C342F		unknown	Uncertain significance	155236327	0	6	
+c.1142G>A	p.(Cys381Tyr)	p.C342Y		severe	Uncertain significance			62	
+c.1143_1145del	p.(Cys381_Val382del)	p.C381_V382del		severe	Pathogenic	155236326	0	5	
+c.1147G>A	p.(Gly383Ser)	p.G344S	rs1553217243	unknown	Uncertain significance	155236322	0	35	
+c.1147delG	p.(Gly383AlafsTer10)	p.G344Afs*10		severe	Pathogenic			62	
+c.1149C>T	p.(Gly383Gly)	p.G344G	rs1317610874	unknown	Likely benign	155236320	0	7	
+c.1156T>C	p.(Phe386Leu)	p.F347L	rs751598832	unknown	Uncertain significance	155236313	3.97709e-05	5,37.5,38,57	
+c.1159T>G	p.(Trp387Gly)	p.W348G	rs765182863	unknown	Uncertain significance	155236310	7.95412e-06	7,54,57	
+c.1165C>T	p.(Gln389Ter)	p.Q350*		severe	Pathogenic			61,62	
+c.1167G>C	p.(Gln389His)	p.Q350H	rs761681845	unknown	Uncertain significance	155236302	0	7,26	
+c.1171G>C	p.(Val391Leu)	p.V352L	rs398123527	mild	Likely pathogenic			62	
+c.1172T>G	p.(Val391Gly)	p.V352G		unknown	Uncertain significance	155236297	0	57	
+c.1174C>T	p.(Arg392Trp)	p.R353W		unknown	Likely pathogenic	155236295	7.95526e-06	57	
+c.1174C>G	p.(Arg392Gly)	p.R353G	rs121908308	severe	Likely pathogenic			62	
+c.1174delC	p.(Arg392GlyfsTer*1)	p.R353Gfs*1	-	severe	Pathogenic	155236295	0	5,54	
+c.1178T>C	p.(Leu393Pro)	p.L354P		unknown	Uncertain significance	155236291	0	43	
+c.1181G>A	p.(Gly394Asp)	p.G355D		severe	Uncertain significance			62	
+c.1186T>C	p.(Trp396Arg)	p.W357R		unknown	Uncertain significance	155236283	0	52	
+c.1192C>T	p.(Arg398Ter)	p.R359*	rs121908309	severe	Pathogenic	155236277	3.97795e-06	8,35,51,60,61,62,64,66	
+c.1193G>A	p.(Arg398Gln)	p.R359Q	rs74979486	mild	Uncertain significance			61,62	
+c.1197_1198insCTGTA	p.(Met400LeufsTer2)	p.M361Lfs*2		severe	Pathogenic	155236272	0	6	
+c.1200G>A	p.(Met400Ile)	p.M361I	rs149487315	unknown	Uncertain significance	155236269	0.000336014	14,61	
+c.1201C>T	p.(Gln401Ter)	p.Q362*		unknown	Pathogenic	155236268	0	57	
+c.1207A>C	p.(Ser403Arg)	p.S364R		severe	Uncertain significance	155236262	0	44,62	
+c.1208G>T	p.(Ser403Thr)	p.S364T		mild	Likely pathogenic			62	
+c.1208G>A	p.(Ser403Asn)	p.S364N		mild	Likely pathogenic	155236261	0	2,37.13,47,62	
+c.1209C>T	p.(Ser403Ser)	p.S364S	rs773947710	unknown	Likely benign	155236260	1.19377e-05	38,54	
+c.1213A>G	p.(Ser405Gly)	p.S366G		mild	Uncertain significance			62	
+c.1214_1215delGC	p.(Ser405AsnfsTer30)	p.S366Nfs*30		severe	Pathogenic			62	
+c.1217T>A	p.(Ile406Asn)	p.I367N		unknown	Uncertain significance	155236252	0	57	
+c.1220T>A	p.(Ile407Asn)	p.I368N		unknown	Uncertain significance	155236249	0	57	
+c.1220T>C	p.(Ile407Thr)	p.I368T	rs1057519358	unknown	Uncertain significance	155236249	0	25	
+c.1223C>T	p.(Thr408Met)	p.T369M	rs75548401	risk	Uncertain significance	155236246	0.006124241	1,3,4,6,7,11,12,14,20,21,23,25,26,28,29,31,32,33,35,36,37.11,37.23,37.9,46,49,52,55,60,61,62,63,64,65,67,68,69,72	
+c.1224G>A	p.(Thr408Thr)	p.T369T	rs138498426	unknown	Uncertain significance	155236245	0.000308061	6,7,26,61	
+c.1225-34C>A	-	IVS8-34C>A	rs3115534	unknown	Uncertain significance	155235878	0.01716805	25	
+c.1225-24T>G	-	IVS8-24T>G	-	unknown	Uncertain significance	155235868	0	53	
+c.1226A>G	p.(Asn409Ser)	p.N370S	rs76763715	mild	Likely pathogenic	155235843	0.002234906	1,4,6,7,11,12,14,15,20,21,24,25,26,27,28,29,30,31,32,33,35,36,37.10,37.13,37.14,37.19,37.20,37.21,37.22,37.23,37.28,37.29,37.30,37.31,37.4,37.6,37.7,37.8,37.9,41,43,44,45,46,49,50,51,52,53,57,60,61,62,63,64,65,67,68,69,72,73	
+c.1228C>G	p.(Leu410Val)	p.L371V	rs121908314	mild	Likely pathogenic			62	
+c.1232T>C	p.(Leu411Pro)	p.L372P		unknown	Uncertain significance	155235837	0	56	
+c.1240G>T	p.(Val414Leu)	p.V375L	rs398123528	mild	Pathogenic/Likely pathogenic	155235829	3.97652e-06	38,60,62	
+c.1241T>G	p.(Val414Gly)	p.V375G	-	mild	Uncertain significance	155235828	0	7,43,62	
+c.1245C>T	p.(Val415Val)	p.V376V		unknown	Likely benign	155235824	1.5906e-05	54	
+c.1246G>T	p.(Gly416Cys)	p.G377C	-	mild	Likely pathogenic	155235823	0	4,54,62,64	
+c.1246G>A	p.(Gly416Ser)	p.G377S	rs121908311	severe	Pathogenic	155235823	1.76757e-05	8,37.13,44,51,55,57,60,61,62,65,66	
+c.1247G>A	p.(Gly416Asp)	p.G377D		unknown	Uncertain significance	155235822	0	52	
+c.1249T>C	p.(Trp417Arg)	p.W378R		unknown	Uncertain significance	155235820	0	18,57	
+c.1249T>G	p.(Trp417Gly)	p.W378G	rs1450426641	severe	Likely pathogenic	155235820	3.97643e-06	19,37.11,62	Founder French-Canadian mutation
+c.1249_1251delTGC	p.(Trp417Thr)	p.W378T		unknown	Uncertain significance	155235820	0	44	
+c.1250G>A	p.(Trp417Ter)	p.W378*		severe	Pathogenic			62	
+c.1251G>C	p.(Trp417Cys)	p.W378C		unknown	Uncertain significance			61	
+"c.1251_126
+7del"				severe	Likely pathogenic			74	
+c.1253C>T	p.(Thr418Ile)	p.T379I		unknown	Uncertain significance	155235816	0	48	
+c.1255G>A	p.(Asp419Asn)	p.D380N	-	unknown	Uncertain significance	155235814	0	5,54,61	
+c.1255G>T	p.(Asp419Tyr)	p.D380Y	-	unknown	Uncertain significance	155235814	0	7,61	
+c.1256A>C	p.(Asp419Ala)	p.D380A	rs77284004	severe	Uncertain significance	155235813	0	37.19,62	
+c.1261A>G	p.(Asn421Asp)	p.N382D		unknown	Uncertain significance	155235808	0	57	
+c.1263C>A	p.(Asn421Lys)	p.N382K		severe	Likely pathogenic	155235806	0	54	
+c.1263_1317del55	p.(Leu422ProfsTer4)	p.L383Pfs*4		severe	Pathogenic			59,62,73	
+c.1264_1319del55	p.(Leu422HisfsTer3)	p.L383Hfs*3	-	severe	Pathogenic	155235805	0	26	
+c.1265_1319del	p.(Leu422ProfsTer3)	p.L383Pfs*3		severe	Pathogenic	155235804	0	54,60	
+c.1265T>G	p.(Leu422Arg)	p.L383R		unknown	Uncertain significance	155235804	0	8,57	
+c.1268C>T	p.(Ala423Val)	p.A384V	rs762493290	unknown	Uncertain significance	155235801	7.95298e-06	57	
+c.1268C>A	p.(Ala423Asp)	p.A384D		unknown	Uncertain significance	155235801	0	15,21,34	
+c.1270C>A	p.(Leu424Met)	p.L385M		unknown	Uncertain significance			61	
+c.1271T>C	p.(Leu424Pro)	p.L385P	rs772548282	severe	Likely pathogenic			61,62	
+c.1275C>(A or G)	p.(Asn425Lys)	p.N386K	rs1026993108	severe	Uncertain significance	155235794	0	40,57	
+c.1277C>T	p.(Pro426Leu)	p.P387L	rs1057519357	unknown	Uncertain significance	155235792	0	25	
+c.1279_1280insCCCTGAACCCCG	p.(Pro426_Glu427insAlaLeuAsnPro)	p.P387_E388insALNP	-	unknown	Uncertain significance	155235790	0	5	
+c.1279G>A	p.(Glu427Lys)	p.E388K	rs149171124	unknown	Uncertain significance	155235790	0.000159089	6,7,14,15,37.13,43,49,53,57,61,65,67	
+c.1279G>T	p.(Glu427Ter)	p.E388*		severe	Pathogenic			62	
+c.1283G>A	p.(Gly428Glu)	p.G389E		severe	Uncertain significance			62	
+c.1284delA	p.(Gly428AspfsTer15)	p.(G389Dfs*15)		severe	Pathogenic			62	
+c.1285G>A	p.(Gly429Arg)	p.G390R		severe	Uncertain significance			62	
+c.1286G>A	p.(Gly429Glu)	p.G390E		unknown	Uncertain significance	155235783	0	7	
+c.1286G>T	p.(Gly429Val)	p.G390V		unknown	Uncertain significance	155235783	0	57	
+c.1289C>T	p.(Pro430Leu)	p.P391L	rs76910485	unknown	Pathogenic	155235780	1.59074e-05	44	
+c.1292A>G	p.(Asn431Ser)	p.N392S	rs77738682	unknown	Uncertain significance	155235777	0	5,7,57	
+c.1292A>T	p.(Asn431Ile)	p.L392I	rs77738682	severe	Uncertain significance			62	
+c.1294T>A	p.(Trp432Arg)	p.W393R	rs1557901552	mild	Likely pathogenic	155235775	0	37.9	
+c.1296G>T	p.(Trp432Cys)	p.W393C		unknown	Uncertain significance	155235773	0	54	
+c.1296G>A	p.(Trp432Ter)	p.W393*	rs1484043383	severe	Pathogenic	155235773	3.977e-06	23,42,60	
+c.1297G>A	p.(Val433Met)	p.V394M	-	unknown	Likely pathogenic	155235772	0	5,57	
+c.1297G>T	p.(Val433Leu)	p.V394L	rs80356769	severe	Pathogenic	155235772	3.18157e-05	11,12,15,21,37.4,60,61,62	
+c.1300C>T	p.(Arg434Cys)	p.R395C	rs747284798	mild	Uncertain significance	155235769	3.97741e-06	8,57,62	
+c.1304A>C	p.(Asn435Thr)	p.N396T	rs75385858	mild	Uncertain significance	155235765	0	37.2,62	
+c.1307T>C	p.(Phe436Ser)	p.F397S	rs75243000	mild	Uncertain significance			62	
+c.1309delG	p.(Val437SerfsTer404)	p.V398Sfs*404		severe	Pathogenic	155235760	0	40	
+c.1309G>A	p.(Val437Ile)	p.V398I		mild	Likely pathogenic	155235760	0	44	
+c.1309G>C	p.(Val437Leu)	p.V398L		severe	Likely pathogenic			62	
+c.1309G>T	p.(Val437Phe)	p.V398F	rs121908310	severe	Likely pathogenic			62	
+c.1312G>A	p.(Asp438Asn)	p.D399N	rs1553217009	severe	Pathogenic	155235757	0	8,57,60,61,74	
+c.1312G>T	p.(Asp438Tyr)	p.D399Y		unknown	Likely pathogenic			60	
+c.1312G>C	p.(Asp438His)	p.D399H		mild	Likely pathogenic	155235757	0	54	
+c.1319C>T	p.(Pro440Leu)	p.P401L	rs74598136	mild	Likely pathogenic			55,61,62	
+c.1321A>T	p.(Ile441Phe)	p.I402F		severe	Uncertain significance			62	
+c.1322T>C	p.(Ile441Thr)	p.I402T		mild	Uncertain significance			62	
+c.1326insT	p.(Val443CysfsTer26)	p.V404C		severe	Pathogenic			62	
+c.1342G>C	p.(Asp448His)	p.D409H	rs1064651	severe	Pathogenic	155235727	0.000127816	4,5,6,7,8,9,20,23,26,28,32,33,34,35,37.10,37.12,37.13,37.18,37.19,37.20,37.23,37.27,37.6,37.9,41,42,43,44,51,54,55,56,57,60,61,62,63,66,67,74	
+c.1343A>T	p.(Asp448Val)	p.D409V	rs77369218	severe	Likely pathogenic			62	
+c.1343A>G	p.(Asp448Gly)	p.D409G		mild	Likely pathogenic			62	
+c.1346C>T	p.(Thr449Met)	p.T410M	rs757930613	unknown	Uncertain significance	155235723	4.26846e-05	21,61	
+c.1347G>C	p.(Thr449Thr)	p.T410T	rs750193229	unknown	Likely benign	155235722	8.89819e-05	26	
+c.1353C>A	p.(Tyr451Ter)	p.Y412*		severe	Likely pathogenic			60	
+c.1354A>C	p.(Lys452Gln)	p.K413Q		mild	Uncertain significance			62	
+c.1357C>T	p.(Gln453Ter)	p.Q414*		severe	Pathogenic			62	
+c.1358A>G	p.(Gln453Arg)	p.Q414R		severe	Uncertain significance			62	
+c.1361C>G	p.(Pro454Arg)	p.P415R	rs121908295	severe	Pathogenic	155235708	0	8,57,62	
+c.1372delC	p.(His458ThrfsTer30)	p.H419Tfs*30		severe	Pathogenic	155235697	0	8,57	
+c.1379G>A	p.(Gly460Asp)	p.G421D		unknown	Uncertain significance			55	
+c.1388-68T>C	-	IVS9-68T>C	-	unknown	Uncertain significance	155235379	0	25	
+c.1389-36C>G	-	IVS9-36C>G	rs774554048	unknown	Uncertain significance	155235347	8.34718e-06	53	
+c.1389-5T>A	-	IVS9-5T>A	-	unknown	Uncertain significance	155235316	0	53	
+c.1390A>G	p.(Lys464Glu)	p.K425E		severe	Uncertain significance			62	
+c.1391A>C	p.(Lys464Thr)	p.K425T		unknown	Uncertain significance			61	
+c.1393T>G	p.(Phe465Val)	p.F426V	-	unknown	Uncertain significance	155235307	0	26	
+c.1399C>T	p.(Pro467Ser)	p.P428S	rs1015281456	unknown	Uncertain significance	155235301	0	40	
+c.1403A>G	p.(Glu468Gly)	p.E429G		unknown	Uncertain significance	155235297	0	57	
+c.1413G>A	p.(Gln471Gln)	p.Q432Q	rs12747811	unknown	Likely benign	155235287	0	10	
+c.1414A>G	p.(Arg472Gly)	p.R433G		mild	Uncertain significance			62	
+c.1439_1445del7	p.(Lys480ThrfsTer6)	p.K480Tfs*6		severe	Pathogenic	155235261	0	44	
+c.1440G>C	p.(Lys480Asn)	p.K441N	rs1057519356	unknown	Uncertain significance	155235260	0	25	
+c.1444G>A	p.(Asp482Asn)	p.D443N	rs75671029	unknown	Likely benign	155235256	0.00070438	14,35,37.19,37.29,53	
+c.1447_1462del	p.(Leu483fsTer0)	p.L444fs*0		severe	Pathogenic	155235253	0	8,57	
+c.1447-1466delTGins	p.(Leu483_Met489delinsTrp)	p.L444_M450delinsW		unknown	Uncertain significance	155235253	0	42,62	
+c.1448delT	p.(Leu483ArgfsTer5)	p.L444Rfs*5		severe	Pathogenic	155235252	0	57	
+c.1448T>C	p.(Leu483Pro)	p.L444P	rs421016	severe	Pathogenic	155235252	0.001295699	3,4,6,7,9,11,12,14,15,16,20,21,26,27,28,29,30,31,33,34,35,36,37.1,37.10,37.11,37.12,37.13,37.14,37.15,37.16,37.17,37.18,37.19,37.2,37.20,37.21,37.22,37.23,37.24,37.25,37.26,37.27,37.28,37.29,37.3,37.30,37.4,37.5,37.6,37.7,37.8,37.9,38,40,41,42,43,44,45,49,50,51,53,54,56,57,60,61,62,63,64,65,66,67,69,70,72,73,74	
+c.1448T>G	p.(Leu483Arg)	p.L444R	rs421016	severe	Likely pathogenic	155235252	7.99814e-06	8,54,57,61,62,66,74	
+c.1450G>T	p.(Asp484Tyr)	p.D445Y		unknown	Uncertain significance			61	
+c.1451A>G	p.(Asp484Gly)	p.D445G		unknown	Uncertain significance			61	
+c.1452delC	p.(Asp484GlufsTer4)	p.D445Efs*4		severe	Pathogenic	155235248		57	
+c.1453G>A	p.(Ala485Thr)	p.A446T	rs759859002	unknown	Uncertain significance	155235247	2.47754e-05	26,61	
+c.1453G>C	p.(Ala485Pro)	p.A446P		mild	Uncertain significance			61	
+c.1455A>G	p.(Ala485Ala)	p.A446A	rs199928507	unknown	Likely benign	155235245	8.14004e-05	26	
+c.1457T>A	p.(Val486Glu)	p.V447E		unknown	Uncertain significance		0	68	
+c.1463T>C	P.(Leu488Pro)	p.L449P		unknown	Likely pathogenic			74	
+c.1464G>C	p.(Leu488Leu)	p.L449L	-	unknown	Likely benign	155235236	1.59261e-05	26	
+c.1465_1466del	p.(Met489AlafsTer15)	p.M450Afs*15		severe	Pathogenic	155235235	0	57	
+c.1472C>T	p.(Pro491Leu)	p.P452L	rs1235609262	unknown	Uncertain significance	155235228	0	37.13	
+c.1473C>T	p.(Pro491Pro)	p.P452P	rs149257166	unknown	Likely benign	155235227	0.000368076	7,26	
+c.1474G>A	p.(Asp492Asn)	p.D453N	rs779958429	unknown	Uncertain significance	155235226	1.06171e-05	26	
+c.1478G>A	p.(Gly493Asp)	p.G454D	rs1326495443	unknown	Uncertain significance	155235222	0	24	
+c.1483G>C	p.(Ala495Pro)	p.A456P	rs368060	unknown	Uncertain significance	155235217	0.000148648	4,6,7,8,20,26,37.17,38,45,48,51,56,57,62,66,67	
+c.1483G>T	p.(Ala495Ser)	p.A456S		unknown	Uncertain significance	155235217	0	29	
+c.1487T>A	p.(Val496Asp)	p.V457D	-	unknown	Uncertain significance	155235213	0	26	
+c.1487T>C	p.(Val496Ala)	p.V457A		unknown	Uncertain significance	155235213	0	52	
+c.1489G>(T or C)	p.(Val497Leu)	p.V458L		unknown	Uncertain significance	155235211	0	37.19	
+c.1490T>A	p.(Val497Glu)	p.V458E		unknown	Uncertain significance	155235210	0	54	
+c.1494C>T	p.(Val498Val)	p.V459V	rs371779859	unknown	Likely benign	155235206	0.000120322	7	
+c.1495G>C	p.(Val499Leu)	p.V460L	rs369068553	unknown	Likely pathogenic	155235205	5.17578e-05	6,28,35,50,57,61,63	
+c.1495G>A	p.(Val499Met)	p.V460M	rs369068553	unknown	Likely pathogenic	155235205	4.95435e-05	7,35,37.27,54,57,61	
+c.1496T>G	p.(Val499Gly)	p.V460G		unknown	Uncertain significance			61	
+c.1497G>C	p.(Val499Val)	p.V460V	rs1135675	unknown	Likely benign	155235203	0	4,7,51,56	
+c.1499T>C	p.(Leu500Pro)	p.L461P	rs1362103320	unknown	Uncertain significance	155235201	3.98137e-06	21	
+c.1503C>G	p.(Asn501Lys)	p.N462K		severe	Likely pathogenic			62,66,69	
+c.1504C>T	p.(Arg502Cys)	p.R463C	rs80356771	severe	Pathogenic	155235196	6.72433e-05	6,12,16,35,37,13,37,19,37,6,43,44,45,49,51,52,60,61,62,64,66,73	
+c.1504C>A	p.(Arg502Ser)	p.R463S		unknown	Pathogenic	155235196	3.98143e-06	48	
+c.1505G>C	p.(Arg502Pro)	p.R463P	-	unknown	Uncertain significance	155235195	0	7,64,66	
+c.1505G>A	p.(Arg502His)	p.R463H	rs80356772	severe	Pathogenic	155235195	7.9628e-06	37.13,61,62,73	
+c.1506-10T>G	-	IVS10-10T>G	rs577529715	unknown	Uncertain significance	155235110	0.000205474	25	
+c.1506-4C>T	-	IVS10-4C>T		unknown	Uncertain significance	155235104	0.00012225	43	
+c.1507T>C	p.(Ser503Pro)	p.S464P		unknown	Uncertain significance	155235099	0	57	
+c.1510T>C	p.(Ser504Pro)	p.S465P	rs761833958	unknown	Uncertain significance	155235096	1.087e-05	43	
+c.1515G>A	p.(Lys505Lys)	p.K466K	rs767373402	unknown	Likely benign	155235091	0.000189288	34	
+c.1519_1524delGTGCCT	p.(Val507_Pro508del)	p.(V468_P467del)		unknown	Uncertain significance			61	
+c.1549G>C	p.(Gly517Arg)	p.G478R		unknown	Likely pathogenic	155235057	0	10	
+c.1558_1560delGAG	p.(Glu520del)	p.E481del		unknown	Uncertain significance			61	
+c.1562C>A	p.(Thr521Lys)	p.T482K		unknown	Uncertain significance	155235044	0	37.18	
+c.1568C>T	p.(Ser523Leu)	p.S484L		unknown	Uncertain significance	155235038	0	7	
+c.1579T>A	p.(Ser527Thr)	p.S488T	rs1474629539	unknown	Uncertain significance	155235027	9.71742e-06	7,28,35,37.9	
+c.1582A>G	p.(Ile528Val)	p.I489V	rs536425950	unknown	Uncertain significance	155235024	2.96375e-05	14,34,42,61	
+c.1583T>C	p.(Ile528Thr)	p.I489T		unknown	Uncertain significance			61	
+c.1585C>T	p.(His529Tyr)	p.H490Y		unknown	Uncertain significance	155235021	0	57	
+c.1586A>G	p.(His529Arg)	p.H490R		unknown	Uncertain significance	155235020	0	29	
+c.1589C>T	p.(Thr530Ile)	p.T491I		severe	Uncertain significance			61,62	
+c.1600C>T	p.(Arg534Cys)	p.R495C		unknown	Uncertain significance			61	
+c.1601G>A	p.(Arg534His)	p.R495H	rs1274538620	unknown	Uncertain significance	155235005	5.7107e-06	14	
+c.1601G>T	p.(Arg534Leu)	p.R495L		unknown	Uncertain significance			61	
+c.1603C>T	p.(Arg535Cys)	p.R496C		mild	Uncertain significance		0	61,62,64	
+c.1604G>A	p.(Arg535His)	p.R496H	rs75822236	mild	Pathogenic	155235002	0.000169414	7,11,12,15,21,26,28,35,37.17,37.23,37.31,37.4,57,60,61,62	
+c.1606C>T	p.(Gln536Ter)	p.Q497*	rs758806595	severe	Pathogenic	155235000	0	10	
+c.1607A>G	p.(Gln536Arg)	p.Q497R	rs750779755	unknown	Uncertain significance	155234999	1.19326e-05	5,37.27,38,54	

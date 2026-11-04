@@ -755,6 +755,7 @@ workflow PdSample {
       panel_csv = FetchRepoAssets.panel_csv,
       gene_bed = FetchRepoAssets.gene_bed,
       exon_bed = FetchRepoAssets.exon_bed,
+      gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
       expression_tsv = expression_tsv,
       splicevault_tsv = splicevault_tsv,
       prs_weights = prs_weights,

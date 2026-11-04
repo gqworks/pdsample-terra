@@ -16,6 +16,7 @@ from . import (
     callsets,
     compound,
     filters,
+    gba1_pd,
     inheritance,
     io,
     isoform,
@@ -213,6 +214,8 @@ def assess_sample(
             scored = merge_avi(scored, avi_table)
             scored = scoring.score_variants(scored, cfg["scoring"])
             scored = sv.apply_dosage_evidence(scored, cfg["scoring"])
+            gba1_path = _exists(sample.get("gba1_pd_browser")) or gba1_pd.default_browser_path(cfg)
+            scored = gba1_pd.annotate_and_score(scored, cfg, browser_path=gba1_path)
             if not introme_variants.empty:
                 scored = splicing.merge_introme(scored, introme_variants)
             scored = splicing.apply_introme_evidence(scored, cfg["splicing"], cfg["scoring"])
