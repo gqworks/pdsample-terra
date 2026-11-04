@@ -173,12 +173,7 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "expansionhunter_vcf = ExpansionHunter.vcf" in text
     assert "small_vcf = NormPass.normalized_vcf" in text
     assert "gauchian_json = Gauchian.json" in text
-    assert "mtdna_vcf = AnnotateMtdna.mtdna_vcf" in text
-    assert "mtdna_annotation = AnnotateMtdna.annotation_status" in text
-    assert "call Tasks.AnnotateMtdna" in text
-    assert "File? mtdna_mitimpact" in text
-    assert "annotate_mtdna.py" in sample_tasks
-    assert "task AnnotateMtdna" in sample_tasks
+    assert "mtdna_vcf = Mito.out_vcf" in text
     assert "File vep_vcf = LiftGnomadInfo.lifted_vcf" in text
     assert "File sv_vcf = NameSvVcf.released" in text
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")

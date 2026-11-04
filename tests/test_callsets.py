@@ -33,25 +33,11 @@ def _mt(path: Path) -> None:
             [
                 "##fileformat=VCFv4.2",
                 "##INFO=<ID=GENE,Number=1,Type=String,Description=Gene>",
-                "##INFO=<ID=MI_gene,Number=1,Type=String,Description=MitImpact gene>",
-                "##INFO=<ID=MI_ClinVar_CLNSIG,Number=1,Type=String,Description=ClinVar>",
-                "##INFO=<ID=MI_MITOMAP_status,Number=1,Type=String,Description=MITOMAP>",
-                "##INFO=<ID=MI_gnomAD_AF_hom,Number=1,Type=Float,Description=gnomAD AF hom>",
-                "##INFO=<ID=MI_gnomAD_AF_het,Number=1,Type=Float,Description=gnomAD AF het>",
-                "##INFO=<ID=MI_APOGEE2,Number=1,Type=String,Description=APOGEE2>",
-                "##INFO=<ID=MI_APOGEE2_score,Number=1,Type=Float,Description=APOGEE2 score>",
-                "##INFO=<ID=MI_MitoTIP,Number=1,Type=Float,Description=MitoTIP>",
-                "##INFO=<ID=MI_MitoTIP_quartile,Number=1,Type=String,Description=MitoTIP Q>",
-                "##INFO=<ID=MI_HGVS,Number=1,Type=String,Description=HGVS>",
                 "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
                 "##FORMAT=<ID=AF,Number=A,Type=Float,Description=Heteroplasmy>",
                 "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=DP>",
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_A",
-                "chrM\t11778\t.\tG\tA\t.\tPASS\t"
-                "GENE=MT-ND4;MI_gene=MT-ND4;MI_ClinVar_CLNSIG=Pathogenic;MI_MITOMAP_status=Cfrm-[P];"
-                "MI_gnomAD_AF_hom=0.0002;MI_gnomAD_AF_het=0.0002;MI_APOGEE2=Pathogenic;"
-                "MI_APOGEE2_score=0.926;MI_HGVS=NC_012920.1:m.11778G>A\t"
-                "GT:AF:DP\t0/1:0.42:800",
+                "chrM\t11778\t.\tG\tA\t.\tPASS\tGENE=MT-ND4\tGT:AF:DP\t0/1:0.42:800",
             ]
         )
         + "\n",
@@ -85,12 +71,6 @@ def test_sample_callsets_ingested_and_kept(tmp_path, cfg):
     mito = table[table["hit_source"] == "mtdna"].iloc[0]
     assert mito["gene"] == "MT-ND4"
     assert mito["heteroplasmy"] == 0.42
-    assert mito["clinvar_class"] == "P/LP"
-    assert mito["mitomap_status"] == "Cfrm-[P]"
-    assert mito["apogee2_class"] == "Pathogenic"
-    assert float(mito["gnomad_af"]) == 0.0002
-    assert float(mito["gnomad_af_het"]) == 0.0002
-    assert mito["mitimpact_hgvs"] == "NC_012920.1:m.11778G>A"
     status = assessment.set_index("module")["callset_status"]
     assert status["expansionhunter"] == "STR carrier"
 

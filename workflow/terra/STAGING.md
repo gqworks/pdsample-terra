@@ -19,7 +19,6 @@ See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 | `PdSample.avi_table_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz.tbi` | Tabix index for that table | small |
 | `PdSample.dbnsfp` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz` | Academic dbNSFP 5.4a VEP-ready GRCh38 (bgzip) | ~55 GB |
 | `PdSample.dbnsfp_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | Tabix index for that file | small |
-| `PdSample.mtdna_mitimpact` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/mitimpact/MitImpact4_V059.csv` | MitImpact 4 CSV (unzip from MitImpact downloads) | ~20 MB unzipped |
 
 `PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are `bam` and optional `bai`). BAM + `.bai` and CRAM (with or without `.crai`) both work: `EnsureBam` converts CRAM to BAM/BAI before callers run. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
 
@@ -154,15 +153,6 @@ gnomAD AF, ClinVar significance, CADD, REVEL, and the other in-silico scores all
 4. Default `dbnsfp_fields` matches `dbNSFP5.4a_variant.columns.tsv`: SIFT/PolyPhen2, Eigen, MutationTaster, fathmm-XF, `CADD_phred`, `REVEL_score`, `clinvar_clnsig`, `gnomAD4.1_joint_AF`, `gnomAD4.1_joint_POPMAX_AF`. Classic `FATHMM_*` is **not** in 5.4a.
 
 SIFT and PolyPhen come from dbNSFP (`SIFT_*` / `Polyphen2_HDIV_*`). Cache-native VEP `--sift/--polyphen` is off by default (`vep_sift_polyphen=false`) to avoid duplicating those scores. `LiftGnomadInfo` copies `gnomAD4.1_joint_*` from CSQ into `INFO/gnomAD_AF` / `INFO/AF_popmax` for Introme’s rare filter. `pdvar` maps `clinvar_clnsig` → `clinvar_class`.
-
-## mtDNA MitImpact 4
-
-ClinVar, MITOMAP, gnomAD v3.1 mtDNA AF, APOGEE2, and MitoTIP for MitochondriaPipeline alleles come from one **MitImpact 4** CSV (not separate ClinVar/gnomAD VCF customs). APOGEE is CC BY-NC; see MitImpact `LICENSES.md` in the zip.
-
-1. Download `https://mitimpact.mcb2lab.org/static/downloads/MitImpact4_V059.zip` (no registration).
-2. Unzip and upload `MitImpact4_V059.csv` to `gs://YOUR_WORKSPACE_BUCKET/resources/mitimpact/`.
-3. Point `PdSample.mtdna_mitimpact` at that object (pre-filled in `PdSample.terra_inputs.json`). Leave unset to skip annotation (`mtdna_annotation: not_assessed`).
-4. Optional `PdSample.mtdna_mitimpact_release` records the pin string (default `MitImpact4_V059`).
 
 ## Optional inputs that are not in the JSON
 
