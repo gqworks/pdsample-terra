@@ -33,6 +33,28 @@ def mitotip_likely_pathogenic(series: pd.Series) -> pd.Series:
     return text.eq("Q1")
 
 
+def population_af(df: pd.DataFrame) -> pd.Series:
+    """gnomAD population AF for rarity: max of AF_hom and AF_het when either is set.
+
+    Hom alone misses common heteroplasmic alleles. Nuclear rows keep ``gnomad_af``.
+    """
+    hom = (
+        pd.to_numeric(df["gnomad_af"], errors="coerce")
+        if "gnomad_af" in df.columns
+        else pd.Series(pd.NA, index=df.index, dtype="Float64")
+    )
+    if "hit_source" not in df.columns or "gnomad_af_het" not in df.columns:
+        return hom
+    mt = df["hit_source"].fillna("").astype(str).eq("mtdna")
+    if not mt.any():
+        return hom
+    het = pd.to_numeric(df["gnomad_af_het"], errors="coerce")
+    combined = pd.concat([hom, het], axis=1).max(axis=1, skipna=True)
+    out = hom.copy()
+    out.loc[mt] = combined.loc[mt]
+    return out
+
+
 def apply_mtdna_evidence(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     """Add mtDNA-only evidence points for ``hit_source=mtdna`` rows."""
     if df.empty or "hit_source" not in df.columns:
@@ -108,11 +130,7 @@ def promote_mtdna_status(df: pd.DataFrame, max_gnomad_af: float | None) -> pd.Da
         else pd.Series(False, index=df.index)
     )
     tier = pd.to_numeric(df["tier"], errors="coerce") if "tier" in df.columns else pd.Series(pd.NA, index=df.index)
-    af = (
-        pd.to_numeric(df["gnomad_af"], errors="coerce")
-        if "gnomad_af" in df.columns
-        else pd.Series(pd.NA, index=df.index)
-    )
+    af = population_af(df)
     if max_gnomad_af is None:
         rare = af.isna() | (af == 0)
     else:

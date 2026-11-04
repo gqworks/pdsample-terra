@@ -55,6 +55,7 @@ def test_promote_mtdna_status_pathogenic_candidate():
                 "mitomap_status": "",
                 "tier": 4,
                 "gnomad_af": 0.5,
+                "gnomad_af_het": 0.0,
             },
             {
                 "hit_source": "mtdna",
@@ -63,6 +64,7 @@ def test_promote_mtdna_status_pathogenic_candidate():
                 "mitomap_status": "",
                 "tier": 4,
                 "gnomad_af": 0.5,
+                "gnomad_af_het": 0.0,
             },
             {
                 "hit_source": "mtdna",
@@ -71,6 +73,17 @@ def test_promote_mtdna_status_pathogenic_candidate():
                 "mitomap_status": "Cfrm-[LP]",
                 "tier": 4,
                 "gnomad_af": 0.2,
+                "gnomad_af_het": 0.0,
+            },
+            {
+                # Common het-only allele: AF_hom=0 must not count as rare.
+                "hit_source": "mtdna",
+                "inheritance_status": "mtdna_variant",
+                "clinvar_class": "none",
+                "mitomap_status": "",
+                "tier": 2,
+                "gnomad_af": 0.0,
+                "gnomad_af_het": 0.05,
             },
         ]
     )
@@ -78,3 +91,18 @@ def test_promote_mtdna_status_pathogenic_candidate():
     assert out.loc[0, "inheritance_status"] == "mtdna_pathogenic_candidate"
     assert out.loc[1, "inheritance_status"] == "mtdna_variant"
     assert out.loc[2, "inheritance_status"] == "mtdna_pathogenic_candidate"
+    assert out.loc[3, "inheritance_status"] == "mtdna_variant"
+
+
+def test_must_keep_only_pathogenic_mtdna():
+    from pdvar.report import _must_keep_mask
+
+    df = pd.DataFrame(
+        [
+            {"inheritance_status": "mtdna_pathogenic_candidate", "clinvar_class": "none", "hit_source": "mtdna"},
+            {"inheritance_status": "mtdna_variant", "clinvar_class": "none", "hit_source": "mtdna"},
+        ]
+    )
+    keep = _must_keep_mask(df)
+    assert bool(keep.iloc[0]) is True
+    assert bool(keep.iloc[1]) is False
