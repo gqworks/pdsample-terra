@@ -1,5 +1,6 @@
 """Per-sample ExpansionHunter, Gauchian, and mtDNA ingest."""
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -115,6 +116,73 @@ def test_absent_callsets_are_not_assessed():
     table, assessment = callsets.ingest_sample_callsets("SAMPLE_A")
     assert table.empty
     assert set(assessment["callset_status"]) == {"STR not assessed", "GBA1 not assessed", "mtDNA not assessed"}
+
+
+def test_native_gauchian_json_other_variants(tmp_path, cfg):
+    """Gauchian 1.0.2 emits {sample: metrics}; other_variants must become GBA1 rows."""
+    path = tmp_path / "MH00246.gauchian.json"
+    path.write_text(
+        json.dumps(
+            {
+                "MH00246_SYD": {
+                    "Coverage_MAD": 0.079,
+                    "Median_depth": 38.88,
+                    "deletion_CN": 2,
+                    "deletion_CN_raw": 1.811,
+                    "GBAP1_like_variant_exon9_11": "",
+                    "other_variants": "c.681T>G(p.Asn227Lys),c.667T>C(p.Trp223Arg)",
+                    "variant_raw_count": {
+                        "c.681T>G(p.Asn227Lys)": "11,14",
+                        "c.667T>C(p.Trp223Arg)": "10,17",
+                    },
+                    "haplotypes": {"is_biallelic": False, "is_carrier": False},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    table, assessment = callsets.ingest_sample_callsets("MH00246_SYD", gauchian=path, cfg=cfg)
+    assert not table.empty
+    assert set(table["hit_source"]) == {"gauchian"}
+    assert set(table["gene"]) == {"GBA1"}
+    assert set(table["hgvsc"]) == {"c.681T>G", "c.667T>C"}
+    assert set(table["clinvar_class"]) == {"P/LP"}
+    assert set(table["dosage_event"]) == {"other_variant"}
+    c681 = table[table["hgvsc"] == "c.681T>G"].iloc[0]
+    assert c681["depth"] == 25.0
+    assert abs(float(c681["allele_balance"]) - 11 / 25) < 1e-9
+    status = assessment.set_index("module")["callset_status"]
+    assert status["gauchian"] == "GBA1 carrier"
+
+
+def test_drop_redundant_gauchian_snvs_prefers_small_variant():
+    df = pd.DataFrame(
+        [
+            {
+                "gene": "GBA1",
+                "hit_source": "small_variant",
+                "hgvsc": "ENST00000368373.8:c.681T>G",
+                "dosage_event": "",
+                "variant_id": "1-155238214-A-C",
+            },
+            {
+                "gene": "GBA1",
+                "hit_source": "gauchian",
+                "hgvsc": "c.681T>G",
+                "dosage_event": "other_variant",
+                "variant_id": "GBA1-c.681T>G-S",
+            },
+            {
+                "gene": "GBA1",
+                "hit_source": "gauchian",
+                "hgvsc": "c.667T>C",
+                "dosage_event": "other_variant",
+                "variant_id": "GBA1-c.667T>C-S",
+            },
+        ]
+    )
+    out = callsets.drop_redundant_gauchian_snvs(df)
+    assert set(out["variant_id"]) == {"1-155238214-A-C", "GBA1-c.667T>C-S"}
 
 
 def test_single_foreign_sample_is_relabelled(tmp_path, cfg):

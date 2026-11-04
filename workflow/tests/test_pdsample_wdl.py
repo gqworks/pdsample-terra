@@ -496,11 +496,14 @@ def test_fetch_repo_assets_is_volatile_and_uses_assets_git_commit():
     fetch_block = tasks[fetch_start : tasks.index("task CheckReference {", fetch_start)]
     assert "volatile: true" in fetch_block
     assert 'String assets_git_commit = "main"' in text
+    assert '("resources/gba1/gba1_pd_browser.tsv", "gba1_pd_browser.tsv")' in fetch_block
+    assert "File gba1_pd_browser = \"gba1_pd_browser.tsv\"" in fetch_block
     call_start = text.index("call Tasks.FetchRepoAssets {")
     call_block = text[call_start : text.index("}", call_start)]
     assert "git_commit = assets_git_commit" in call_block
     assert "pdvar_git_commit" not in call_block
     assert "pdvar_git_commit = pdvar_git_commit" in text
+    assert "gba1_pd_browser = FetchRepoAssets.gba1_pd_browser" in text
     assert example["PdSample.assets_git_commit"] == "main"
     assert terra["PdSample.assets_git_commit"] == "main"
     assert "PdSample.pdvar_git_commit" in example

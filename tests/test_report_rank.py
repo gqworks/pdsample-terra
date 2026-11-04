@@ -174,3 +174,53 @@ def test_str_expanded_outranks_demoted_intronic_candidate():
     ]
     ranked = rank_candidates(pd.DataFrame(rows))
     assert list(ranked["variant_id"]) == ["ATXN8OS_CAG", "lookup"]
+
+
+def test_gba1_risk_outranks_intronic_ar_flood():
+    """Pathogenic GBA1 risk alleles must not sit under Introme AR_hom intron noise."""
+    rows = [
+        {
+            "sample_id": "MH00246",
+            "gene": "GBA1",
+            "variant_id": "c.681",
+            "consequence": "missense_variant",
+            "clinvar_class": "P/LP",
+            "inheritance_status": "risk_biallelic",
+            "hit_source": "small_variant",
+            "evidence_score": 14,
+            "tier": 1,
+            "weighted_evidence_score": 14,
+        },
+        {
+            "sample_id": "MH00246",
+            "gene": "GBA1",
+            "variant_id": "c.667",
+            "consequence": "missense_variant",
+            "clinvar_class": "P/LP",
+            "inheritance_status": "risk_biallelic",
+            "hit_source": "gauchian",
+            "evidence_score": 10,
+            "tier": 1,
+            "weighted_evidence_score": 10,
+        },
+    ]
+    for i in range(25):
+        rows.append(
+            {
+                "sample_id": "MH00246",
+                "gene": f"GENE{i}",
+                "variant_id": f"intron{i}",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "inheritance_status": "AR_hom",
+                "hit_source": "small_variant",
+                "evidence_score": 7,
+                "tier": 2,
+                "weighted_evidence_score": 7,
+            }
+        )
+    ranked = rank_candidates(pd.DataFrame(rows))
+    assert list(ranked.head(2)["variant_id"]) == ["c.681", "c.667"]
+    top = patient_candidates(pd.DataFrame(rows), max_per_patient=20)
+    assert {"c.681", "c.667"} <= set(top["variant_id"])
+    assert list(top.head(2)["variant_id"]) == ["c.681", "c.667"]
