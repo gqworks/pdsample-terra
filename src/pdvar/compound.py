@@ -189,12 +189,10 @@ def _is_lof_sv(row: pd.Series) -> bool:
 
 
 def _is_coding_support(row: pd.Series) -> bool:
-    """Coding / ClinVar P/LP small-variant support (not intron-only Introme noise)."""
+    """Coding / ClinVar P/LP small-variant support (not intron-only noise)."""
     if _is_lof_sv(row):
         return False
     if _text(row.get("variant_class")) == "SV":
-        return False
-    if _text(row.get("hit_source")) == "introme_lookup":
         return False
     if _text(row.get("clinvar_class")) == "P/LP":
         return True
@@ -205,9 +203,7 @@ def _is_coding_support(row: pd.Series) -> bool:
 
 
 def _is_strong_allele(row: pd.Series) -> bool:
-    """True coding/null, ClinVar P/LP, or LoF SV — not Introme lookup or intron/splice noise."""
-    if _text(row.get("hit_source")) == "introme_lookup":
-        return False
+    """True coding/null, ClinVar P/LP, or LoF SV — not intron/splice noise."""
     if _is_lof_sv(row):
         return True
     if _text(row.get("clinvar_class")) == "P/LP":
@@ -219,11 +215,9 @@ def _is_strong_allele(row: pd.Series) -> bool:
 
 
 def _is_weak_intronic(row: pd.Series) -> bool:
-    """Deep-intronic / Introme-rescued / splice-region noise without strong coding evidence."""
+    """Deep-intronic / splice-region noise without strong coding evidence."""
     if _is_strong_allele(row):
         return False
-    if _text(row.get("hit_source")) == "introme_lookup":
-        return True
     terms = _consequence_terms(row)
     if not terms:
         return False
