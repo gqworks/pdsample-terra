@@ -224,3 +224,55 @@ def test_gba1_risk_outranks_intronic_ar_flood():
     top = patient_candidates(pd.DataFrame(rows), max_per_patient=20)
     assert {"c.681", "c.667"} <= set(top["variant_id"])
     assert list(top.head(2)["variant_id"]) == ["c.681", "c.667"]
+
+
+def test_lrrk2_ad_plp_outranks_intron_ar_and_lof_sv_noise():
+    """LRRK2 R1441C-style AD P/LP must beat intron AR flood and transcript_ablation SVs."""
+    rows = [
+        {
+            "sample_id": "MH06268",
+            "gene": "LRRK2",
+            "variant_id": "R1441C",
+            "consequence": "missense_variant",
+            "clinvar_class": "P/LP",
+            "inheritance_status": "AD_candidate",
+            "hit_source": "small_variant",
+            "evidence_score": 17,
+            "tier": 1,
+            "weighted_evidence_score": 17,
+        },
+        {
+            "sample_id": "MH06268",
+            "gene": "FIG4",
+            "variant_id": "fig4_del",
+            "consequence": "transcript_ablation",
+            "clinvar_class": "none",
+            "inheritance_status": "AR_hemizygous",
+            "hit_source": "sv",
+            "dosage_mechanism": "lof",
+            "scored_dosage": True,
+            "evidence_score": 18,
+            "tier": 1,
+            "weighted_evidence_score": 18,
+        },
+    ]
+    for i in range(30):
+        rows.append(
+            {
+                "sample_id": "MH06268",
+                "gene": f"GENE{i}",
+                "variant_id": f"intron{i}",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "inheritance_status": "AR_comphet_candidate",
+                "hit_source": "small_variant",
+                "evidence_score": 7,
+                "tier": 2,
+                "weighted_evidence_score": 7,
+            }
+        )
+    ranked = rank_candidates(pd.DataFrame(rows))
+    assert ranked.iloc[0]["variant_id"] == "R1441C"
+    top = patient_candidates(pd.DataFrame(rows), max_per_patient=20)
+    assert top.iloc[0]["variant_id"] == "R1441C"
+    assert "R1441C" in set(top["variant_id"])

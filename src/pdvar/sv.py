@@ -46,7 +46,15 @@ DEFAULT_DOSAGE_RULES = [
     },
 ]
 
-DEFAULT_EXCLUDE_FILTERS = ["HIGH_ALGORITHM_FDR", "HIGH_NCR", "UNRESOLVED"]
+# DEPTH_LT_5KB / SAMPLE_WGD_OUTLIER are GATK-SV depth-call QC tags; they mark
+# choppy low-coverage dips that look like exon DELs in IGV but are not reliable.
+DEFAULT_EXCLUDE_FILTERS = [
+    "HIGH_ALGORITHM_FDR",
+    "HIGH_NCR",
+    "UNRESOLVED",
+    "DEPTH_LT_5KB",
+    "SAMPLE_WGD_OUTLIER",
+]
 
 LOF_PREDICTED = {"LOF", "INTRAGENIC_EXON_DUP", "BREAKEND_EXONIC", "PARTIAL_EXON_DUP"}
 GAIN_PREDICTED = {"COPY_GAIN", "TSS_DUP"}
@@ -101,11 +109,24 @@ def _number_for_allele(value: object, index: int) -> float | None:
     return _as_float(parts[0]) if parts else None
 
 
-def passes_filter(filt: str, exclude: set[str]) -> bool:
-    if filt in {"", ".", "PASS", None}:
-        return True
-    tags = set(str(filt).split(";"))
-    return not bool(tags & exclude)
+# Allowed FILTER values for SV ingest (GATK-SV keeps MULTIALLELIC as informative).
+ALLOWED_SV_FILTERS = {"PASS", "MULTIALLELIC"}
+
+
+def passes_filter(filt: str, exclude: set[str] | None = None) -> bool:
+    """Keep ``FILTER=PASS`` or ``MULTIALLELIC`` SVs; drop all other tags.
+
+    ``exclude`` still drops listed tags even if they co-occur with an allowed
+    label (e.g. ``PASS;DEPTH_LT_5KB`` would fail via exclude if configured).
+    """
+    if filt is None:
+        return False
+    tags = {part for part in str(filt).split(";") if part and part not in {"", "."}}
+    if not tags or not tags.issubset(ALLOWED_SV_FILTERS):
+        return False
+    if exclude and tags & set(exclude):
+        return False
+    return True
 
 
 def svtype_of(info: dict, alt: str) -> str:

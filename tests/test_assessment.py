@@ -35,8 +35,10 @@ def test_sv_dosage_and_not_assessed(tmp_path):
                 "##FORMAT=<ID=ECN,Number=1,Type=Integer,Description=ECN>",
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_A\tSAMPLE_C",
                 "chr4\t900\t.\tN\t<DUP>\t.\tPASS\tEND=2200;SVTYPE=DUP;PREDICTED_COPY_GAIN=SNCA\tGT:CN:ECN\t0/0:2:2\t0/1:4:2",
-                "chr6\t1000\tdel\tN\t<DEL>\t.\tMULTIALLELIC\tEND=1300;SVTYPE=DEL;PREDICTED_LOF=PRKN\tGT:CN:ECN\t./.:1:2\t0/0:2:2",
+                "chr6\t1000\tdel\tN\t<DEL>\t.\tPASS\tEND=1300;SVTYPE=DEL;PREDICTED_LOF=PRKN\tGT:CN:ECN\t./.:1:2\t0/0:2:2",
+                "chr6\t2000\tmulti\tN\t<DEL>\t.\tMULTIALLELIC\tEND=2300;SVTYPE=DEL;PREDICTED_LOF=PRKN\tGT:CN:ECN\t0/1:1:2\t0/0:2:2",
                 "chr6\t1000\tdrop\tN\t<DEL>\t.\tHIGH_NCR\tEND=1300;SVTYPE=DEL;PREDICTED_LOF=PRKN\tGT:CN:ECN\t0/1:1:2\t0/0:2:2",
+                "chr6\t1000\tdepth\tN\t<DEL>\t.\tDEPTH_LT_5KB;SAMPLE_WGD_OUTLIER\tEND=1300;SVTYPE=DEL;PREDICTED_LOF=PRKN\tGT:CN:ECN\t0/1:1:2\t0/0:2:2",
             ]
         )
         + "\n",
@@ -50,11 +52,18 @@ def test_sv_dosage_and_not_assessed(tmp_path):
     assert snca["dosage_event"] == "triplication_or_higher"
     assert snca["consequence"] == "copy_number_gain"
     assert snca["zygosity"] == "het"
-    prkn = table[(table["gene"] == "PRKN") & (table["sample_id"] == "SAMPLE_A")].iloc[0]
+    prkn = table[(table["gene"] == "PRKN") & (table["sample_id"] == "SAMPLE_A") & (table["sv_id"] == "del")].iloc[0]
     assert prkn["zygosity"] == "het"
     assert prkn["cn_inferred_gt"] == True  # noqa: E712
     assert prkn["consequence"] == "transcript_ablation"
+    assert prkn["filter"] == "PASS"
+    multi = table[(table["gene"] == "PRKN") & (table["sv_id"] == "multi")].iloc[0]
+    assert multi["filter"] == "MULTIALLELIC"
+    assert "del" in set(table["sv_id"].astype(str))
+    assert "multi" in set(table["sv_id"].astype(str))
     assert "drop" not in set(table["sv_id"].astype(str))
+    assert "depth" not in set(table["sv_id"].astype(str))
+    assert set(table["filter"].astype(str)) <= {"PASS", "MULTIALLELIC"}
     status = assessment.set_index("sample_id")["sv_status"]
     assert status["SAMPLE_D"] == "SV not assessed"
     assert status["SAMPLE_C"] == "SV carrier"
