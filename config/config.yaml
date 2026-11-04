@@ -118,6 +118,10 @@ scoring:
     eigen_high: 1
     introme_high: 4
     absent_gnomad: 2
+    # mtDNA (MitImpact): MITOMAP confirmed P/LP, APOGEE2 Pathogenic/Likely-pathogenic, MitoTIP Q1.
+    mitomap_pathogenic: 8
+    apogee_pathogenic: 3
+    mitotip_likely_pathogenic: 3
     # GBA1-PD Browser class bumps for Gauchian catalog SNVs only (not VEP rows).
     gba1_pd_severe: 4
     gba1_pd_mild: 2

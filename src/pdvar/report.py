@@ -20,6 +20,7 @@ STATUS_PRIORITY = {
     "XL_hemi": 0,
     "risk_biallelic": 0,
     "risk_carrier": 0,
+    "mtdna_pathogenic_candidate": 0,
     "AR_single_het": 3,
     "review_conflict": 3,
     "mtdna_variant": 2,
@@ -45,7 +46,9 @@ CURATION_COLUMNS = [
     "onset_match", "matched_features", "phenotype_score", "clinical_match", "symptoms",
     "variant_class", "dosage_mechanism", "phase_relation", "phase_source",
     "lof_weight", "weighted_evidence_score", "svtype", "biomarker_notes",
-    "str_locus", "str_expanded", "heteroplasmy", "incidental", "disposition",
+    "str_locus", "str_expanded", "heteroplasmy",
+    "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
+    "mitimpact_hgvs", "gnomad_af_het", "incidental", "disposition",
 ]
 
 
@@ -134,6 +137,9 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
             "risk_biallelic",
             "AD_candidate",
             "XL_hemi",
+            # High-evidence mtDNA only — common mtdna_variant haplogroup rows
+            # must stay under the top-N cap (Bugbot #58).
+            "mtdna_pathogenic_candidate",
         }
     )
     plp = clin.eq("P/LP")
