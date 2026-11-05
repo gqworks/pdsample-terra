@@ -29,8 +29,8 @@ def test_str_loci_pd_panel_has_cited_cutoffs():
         assert key in loci, key
         assert loci[key]["pathogenic_min_repeats"] is not None, key
         assert loci[key]["citation"], key
-    # Insertion / undefined-cutoff loci stay null but still cite the source.
+    # STRchive now cites numeric floors for SCA31 / OPDM1 (still not in EH catalog).
     for key in ("BEAN1", "LRP12"):
         assert key in loci
-        assert loci[key]["pathogenic_min_repeats"] is None
+        assert loci[key]["pathogenic_min_repeats"] is not None, key
         assert loci[key]["citation"]

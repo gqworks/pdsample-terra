@@ -32,6 +32,31 @@ def test_ar_comphet(cfg):
     assert (out["ar_hit_count"] == 2).all()
 
 
+def test_ar_hom_does_not_bury_coding_partners(cfg):
+    """Introme AR_hom intron must not leave frameshift/missense as not_qualifying."""
+    out = _run(cfg, [
+        ("S1", "PRKN", "AR", "het", 1, "none", "null_variant"),
+        ("S1", "PRKN", "AR", "het", 2, "none", "cadd_high"),
+        ("S1", "PRKN", "AR", "hom", 2, "high", "absent_gnomad;introme_high"),
+    ])
+    by_reason = out.set_index("evidence_reasons")["inheritance_status"]
+    assert by_reason["null_variant"] == "AR_comphet_candidate"
+    assert by_reason["cadd_high"] == "AR_comphet_candidate"
+    assert by_reason["absent_gnomad;introme_high"] == "AR_hom"
+    assert (out["ar_hit_count"] == 3).all()
+
+
+def test_ar_hom_does_not_inflate_single_coding_to_comphet(cfg):
+    """A lone coding het plus intron AR_hom is AR_single_het, not a false comp-het."""
+    out = _run(cfg, [
+        ("S1", "PRKN", "AR", "het", 1, "none", "null_variant"),
+        ("S1", "PRKN", "AR", "hom", 2, "high", "absent_gnomad;introme_high"),
+    ])
+    by_reason = out.set_index("evidence_reasons")["inheritance_status"]
+    assert by_reason["null_variant"] == "AR_single_het"
+    assert by_reason["absent_gnomad;introme_high"] == "AR_hom"
+
+
 def test_ar_second_hit_from_introme(cfg):
     out = _run(cfg, [
         ("S1", "PRKN", "AR", "het", 1, "none", "null_variant"),

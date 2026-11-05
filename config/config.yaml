@@ -260,106 +260,109 @@ biomarkers:
 # Keys must match ExpansionHunter INFO/REPID (or VARID) when the locus is in the
 # vendored catalog. FGF14, BEAN1, LRP12, and NOTCH2NLC are PD-relevant but not in
 # workflow/assets/expansionhunter_pd.hg38.json yet; cutoffs are still recorded for
-# triage when those loci are added. pathogenic_min_repeats is the lowest cited
-# disease-associated (or FXTAS-premutation) allele size used by _expanded(); it is
-# not a full ACMG classification. Motif purity, interruptions, and biallelic
-# requirement (RFC1, CSTB, FXN) are not modelled here.
+# triage when those loci are added. pathogenic_min_repeats is STRchive
+# pathogenic_min (https://strchive.org/; v2.28.0) used by _expanded(), except
+# FMR1 which keeps the FXTAS/POI premutation floor (≥55) for PD triage while
+# STRchive pathogenic_* is the FXS full mutation. Full age-of-onset /
+# typical-onset / pathogenic / intermediate ranges are in
+# workflow/assets/expansionhunter_catalog_sources.tsv. Motif purity,
+# interruptions, and biallelic requirement (RFC1, CSTB, FXN) are not modelled.
 str_loci:
   # --- In ExpansionHunter PD catalog (REPID) ---
   ATXN1:
     gene: ATXN1
     pathogenic_min_repeats: 39
-    citation: "GeneReviews SCA1 (NBK1184): full-penetrance ≥39 uninterrupted CAG (CAT interruptions can non-pathogenise 39–44)"
+    citation: "STRchive SCA1_ATXN1 (https://strchive.org/loci/sca1_atxn1/): pathogenic 39–91 (intermediate 36–38); GeneReviews NBK1184"
   ATXN2:
     gene: ATXN2
-    pathogenic_min_repeats: 33
-    citation: "GeneReviews SCA2 (NBK1275): disease-associated ≥33 CAG (33–34 reduced penetrance; >34 full)"
+    pathogenic_min_repeats: 35
+    citation: "STRchive SCA2_ATXN2 (https://strchive.org/loci/sca2_atxn2/): pathogenic 35–500 (intermediate 29–34); GeneReviews NBK1275"
   ATXN3:
     gene: ATXN3
     pathogenic_min_repeats: 60
-    citation: "GeneReviews SCA3 (NBK1196): full-penetrance ~60–87 CAG (intermediate from ~45; smallest full-penetrance poorly defined)"
+    citation: "STRchive SCA3_ATXN3 (https://strchive.org/loci/sca3_atxn3/): pathogenic 60–87 (intermediate 45–59); GeneReviews NBK1196"
   CACNA1A:
     gene: CACNA1A
-    pathogenic_min_repeats: 20
-    citation: "GeneReviews SCA6 (NBK1140): full-penetrance 20–33 CAG (19 uncertain)"
+    pathogenic_min_repeats: 21
+    citation: "STRchive SCA6_CACNA1A (https://strchive.org/loci/sca6_cacna1a/): pathogenic 21–33 (intermediate 19–20); GeneReviews NBK1140"
   ATXN7:
     gene: ATXN7
-    pathogenic_min_repeats: 34
-    citation: "GeneReviews SCA7 (NBK1256): pathogenic from 34–36 CAG reduced penetrance; ≥37 full penetrance"
+    pathogenic_min_repeats: 37
+    citation: "STRchive SCA7_ATXN7 (https://strchive.org/loci/sca7_atxn7/): pathogenic 37–460 (intermediate 28–35); GeneReviews NBK1256"
   ATXN8OS:
     gene: ATXN8OS
     pathogenic_min_repeats: 71
-    citation: "GeneReviews SCA8 (NBK1268): pathogenic table ≥71 combined CTA+CTG (higher-penetrance alleles often 54–250; EH ATXN8OS REPID is the CTG tract alone)"
+    citation: "STRchive SCA8_ATXN8OS (https://strchive.org/loci/sca8_atxn8os/): pathogenic 71–1300 (intermediate 50–70); GeneReviews NBK1268; EH REPID is CTG tract alone"
   ATXN10:
     gene: ATXN10
     pathogenic_min_repeats: 800
-    citation: "GeneReviews SCA10 (NBK1175) / GeneReviews repeat table (NBK535148): full-penetrance ≥800 ATTCT (intermediate ~280–799)"
+    citation: "STRchive SCA10_ATXN10 (https://strchive.org/loci/sca10_atxn10/): pathogenic 800–4500 (intermediate 33–850); GeneReviews NBK1175"
   PPP2R2B:
     gene: PPP2R2B
     pathogenic_min_repeats: 51
-    citation: "GeneReviews SCA12 historical (NBK1202) / repeat table (NBK535148): ≥51 CAG diagnostic (some cohorts report ≥43)"
+    citation: "STRchive SCA12_PPP2R2B (https://strchive.org/loci/sca12_ppp2r2b/): pathogenic 51–78 (intermediate 40–49); GeneReviews NBK535148"
   TBP:
     gene: TBP
-    pathogenic_min_repeats: 41
-    citation: "GeneReviews SCA17 (NBK1438): disease-associated usually >41 CAG/CAA (reduced penetrance 41–48; full-penetrance often ≥49 per NBK535148)"
+    pathogenic_min_repeats: 49
+    citation: "STRchive SCA17_TBP (https://strchive.org/loci/sca17_tbp/): pathogenic 49–66 (intermediate/reduced 41–48); GeneReviews NBK1438"
   FMR1:
     gene: FMR1
     pathogenic_min_repeats: 55
-    citation: "GeneReviews FMR1 disorders (NBK1384): FXTAS/FXPOI premutation ~55–200 CGG (full mutation >200 causes FXS; PD triage uses premutation floor)"
+    citation: "STRchive FXS_FMR1 (https://strchive.org/loci/fxs_fmr1/): FXS pathogenic 201–2000; FXTAS/POI premutation ~55–200 — PD triage floor 55; GeneReviews NBK1384"
   C9ORF72:
     gene: C9ORF72
-    pathogenic_min_repeats: 61
-    citation: "GeneReviews C9orf72-FTD/ALS (NBK268647): pathogenic ≥61 GGGGCC (25–60 uncertain significance)"
+    pathogenic_min_repeats: 31
+    citation: "STRchive FTDALS1_C9orf72 (https://strchive.org/loci/ftdals1_c9orf72/): pathogenic 31–4088 (intermediate 24–30); GeneReviews NBK268647"
   RFC1:
     gene: RFC1
-    pathogenic_min_repeats: 250
-    citation: "GeneReviews RFC1-related disorders (NBK564656): pathogenic AAGGG usually 250 to >2000 (often ≥400); disease is biallelic and motif-specific — EH size alone is a triage flag"
+    pathogenic_min_repeats: 400
+    citation: "STRchive CANVAS_RFC1 (https://strchive.org/loci/canvas_rfc1/): pathogenic 400–2750 (intermediate 11–200); biallelic and motif-specific — EH size alone is a triage flag; GeneReviews NBK564656"
   HTT:
     gene: HTT
     pathogenic_min_repeats: 36
-    citation: "GeneReviews Huntington disease (NBK1305): HD-causing ≥36 CAG (36–39 reduced penetrance; ≥40 full penetrance)"
+    citation: "STRchive HD_HTT (https://strchive.org/loci/hd_htt/): pathogenic 36–250 (intermediate 27–35); GeneReviews NBK1305"
   AR:
     gene: AR
     pathogenic_min_repeats: 38
-    citation: "GeneReviews repeat table (NBK535148): SBMA full-penetrance ≥38 CAG (normal ≤34)"
+    citation: "STRchive SBMA_AR (https://strchive.org/loci/sbma_ar/): pathogenic 38–68 (intermediate 36–37); GeneReviews NBK1333"
   ATN1:
     gene: ATN1
     pathogenic_min_repeats: 48
-    citation: "GeneReviews DRPLA (NBK1491): full-penetrance ≥48 CAG (intermediate/reduced 35–47)"
+    citation: "STRchive DRPLA_ATN1 (https://strchive.org/loci/drpla_atn1/): pathogenic 48–93 (intermediate 36–47); GeneReviews NBK1491"
   NOP56:
     gene: NOP56
     pathogenic_min_repeats: 650
-    citation: "GeneReviews repeat table (NBK535148): SCA36 ≥650 GGCCTG"
+    citation: "STRchive SCA36_NOP56 (https://strchive.org/loci/sca36_nop56/): pathogenic 650–2500 (intermediate 15–649); GeneReviews NBK535148"
   JPH3:
     gene: JPH3
     pathogenic_min_repeats: 40
-    citation: "GeneReviews repeat table (NBK535148): HDL2 ≥40 CTG"
+    citation: "STRchive HDL2_JPH3 (https://strchive.org/loci/hdl2_jph3/): pathogenic 40–60 (intermediate 29–39); GeneReviews NBK1529"
   GIPC1:
     gene: GIPC1
     pathogenic_min_repeats: 73
-    citation: "GeneReviews repeat table (NBK535148): OPDM2 GGC 73–164"
+    citation: "STRchive OPDM2_GIPC1 (https://strchive.org/loci/opdm2_gipc1/): pathogenic 73–164; GeneReviews NBK535148"
   CSTB:
     gene: CSTB
     pathogenic_min_repeats: 30
-    citation: "GeneReviews repeat table (NBK535148): EPM1 ≥30 dodecamer; AR — biallelic expansion required"
+    citation: "STRchive EPM1_CSTB (https://strchive.org/loci/epm1_cstb/): pathogenic 30–125; AR — biallelic expansion required; GeneReviews NBK1142"
   # --- PD-relevant, not yet in vendored EH catalog ---
   NOTCH2NLC:
     gene: NOTCH2NLC
     pathogenic_min_repeats: 66
-    citation: "GeneReviews repeat table (NBK535148): NIID GGC ≥66 (normal <38); NIID/parkinsonism spectrum"
+    citation: "STRchive NIID_NOTCH2NLC (https://strchive.org/loci/niid_notch2nlc/): pathogenic 66–517 (intermediate 38–65); GeneReviews NBK535148"
   FGF14:
     gene: FGF14
-    pathogenic_min_repeats: 250
-    citation: "GeneReviews GAA-FGF14 ataxia / SCA27B (NBK599589): likely pathogenic (reduced penetrance) 250–300 GAA; pathogenic >300 (pure GAA required)"
+    pathogenic_min_repeats: 320
+    citation: "STRchive SCA27B_FGF14 (https://strchive.org/loci/sca27b_fgf14/): pathogenic 320–937 (intermediate 180–319); GeneReviews NBK599589"
   BEAN1:
     gene: BEAN1
-    pathogenic_min_repeats: null
-    citation: "GeneReviews repeat table (NBK535148): SCA31 is a 2.5–3.8 kb TGGAA intronic insertion — no single EH repeat-count cutoff; leave null until catalog units are defined"
+    pathogenic_min_repeats: 110
+    citation: "STRchive SCA31_BEAN1 (https://strchive.org/loci/sca31_bean1/): pathogenic 110–760 TGGAA/AATGG; GeneReviews NBK535148; not in vendored EH catalog yet"
   LRP12:
     gene: LRP12
-    pathogenic_min_repeats: null
-    citation: "GeneReviews repeat table (NBK535148): OPDM CGG/CGT normal 13–45; full-penetrance pathogenic repeat number not established"
+    pathogenic_min_repeats: 85
+    citation: "STRchive OPDM1_LRP12 (https://strchive.org/loci/opdm1_lrp12/): pathogenic 85–289; GeneReviews NBK535148; not in vendored EH catalog yet"
   FXN:
     gene: FXN
-    pathogenic_min_repeats: 66
-    citation: "GeneReviews repeat table (NBK535148): Friedreich ataxia ≥66 GAA; AR — biallelic expansion required; adult ataxia differential"
+    pathogenic_min_repeats: 56
+    citation: "STRchive FRDA_FXN (https://strchive.org/loci/frda_fxn/): pathogenic 56–1700 (intermediate 34–55); AR — biallelic expansion required; GeneReviews NBK1281"

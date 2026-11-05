@@ -221,34 +221,37 @@ Main references used across genes:
 
 ## Differential: repeat-expansion disorders (PD / adult ataxia / phenocopy)
 
-Aligned with `config/config.yaml` `str_loci`. Onset spans the usual neurological
-presentation, including documented parkinsonism or late-onset forms. These genes
-are not all on `monopdaus-gene-inheritance.csv`; profiles support STR candidate
-concordance when ExpansionHunter (or a future catalog extension) returns them.
+Aligned with `config/config.yaml` `str_loci` and
+`workflow/assets/expansionhunter_catalog_sources.tsv`. Onset is STRchive v2.28.0
+`age_onset_min`–`age_onset_max` (reported range); typical onset and pathogenic /
+intermediate repeat ranges are in the catalog-sources TSV. FMR1 phenotype onset
+stays the adult FXTAS band (45–78) for PD triage. These genes are not all on
+`monopdaus-gene-inheritance.csv`; profiles support STR candidate concordance when
+ExpansionHunter (or a future catalog extension) returns them.
 
-| Gene | MOI | Onset | Confidence | Sources |
-| --- | --- | --- | --- | --- |
-| ATXN1 | AD | 15-55 | high | GeneReviews SCA1 (https://www.ncbi.nlm.nih.gov/books/NBK1184/); GeneReviews Hereditary Ataxia Overview (https://www.ncbi.nlm.nih.gov/books/NBK1138/) |
-| ATXN2 | AD | 15-60 | high | GeneReviews SCA2 (https://www.ncbi.nlm.nih.gov/books/NBK1275/); L-dopa-responsive parkinsonism phenotype noted |
-| ATXN3 | AD | 10-70 | high | GeneReviews SCA3 (https://www.ncbi.nlm.nih.gov/books/NBK1196/) |
-| CACNA1A | AD | 20-75 | high | GeneReviews SCA6 (https://www.ncbi.nlm.nih.gov/books/NBK1140/) |
-| ATXN7 | AD | 0-60 | high | GeneReviews SCA7 (https://www.ncbi.nlm.nih.gov/books/NBK1256/) |
-| ATXN8OS | AD | 18-65 | high | GeneReviews SCA8 (https://www.ncbi.nlm.nih.gov/books/NBK1268/) |
-| ATXN10 | AD | 12-50 | high | GeneReviews SCA10 (https://www.ncbi.nlm.nih.gov/books/NBK1175/) |
-| PPP2R2B | AD | 25-65 | high | GeneReviews SCA12 historical (https://www.ncbi.nlm.nih.gov/books/NBK1202/); GeneReviews Hereditary Ataxia Overview |
-| TBP | AD | 3-55 | high | GeneReviews SCA17 (https://www.ncbi.nlm.nih.gov/books/NBK1438/) |
-| FMR1 | XL | 45-80 | high | GeneReviews FMR1 Disorders / FXTAS (https://www.ncbi.nlm.nih.gov/books/NBK1384/) |
-| C9ORF72 | AD | 35-75 | high | GeneReviews C9orf72-FTD/ALS (https://www.ncbi.nlm.nih.gov/books/NBK268647/) |
-| RFC1 | AR | 25-80 | high | GeneReviews RFC1-related disorders (https://www.ncbi.nlm.nih.gov/books/NBK564656/) |
-| HTT | AD | 15-65 | high | GeneReviews Huntington Disease (https://www.ncbi.nlm.nih.gov/books/NBK1305/) |
-| AR | XL | 25-65 | high | GeneReviews Spinal and Bulbar Muscular Atrophy (https://www.ncbi.nlm.nih.gov/books/NBK1333/) |
-| ATN1 | AD | 0-55 | high | GeneReviews DRPLA (https://www.ncbi.nlm.nih.gov/books/NBK1491/) |
-| NOP56 | AD | 30-70 | high | GeneReviews Hereditary Ataxia Overview (SCA36); OMIM SCA36 |
-| JPH3 | AD | 20-60 | high | GeneReviews Huntington Disease-Like 2 (https://www.ncbi.nlm.nih.gov/books/NBK1529/) |
-| GIPC1 | AD | 20-70 | medium | GeneReviews repeat table (https://www.ncbi.nlm.nih.gov/books/NBK535148/); OMIM OPDM2 |
-| CSTB | AR | 6-16 | high | GeneReviews Unverricht-Lundborg Disease (https://www.ncbi.nlm.nih.gov/books/NBK1142/) |
-| NOTCH2NLC | AD | 20-70 | high | GeneReviews repeat table / NIID literature (NBK535148); East Asian NIID-parkinsonism spectrum |
-| FGF14 | AD | 40-80 | high | GeneReviews GAA-FGF14 ataxia (https://www.ncbi.nlm.nih.gov/books/NBK599589/) |
-| BEAN1 | AD | 45-80 | high | GeneReviews Hereditary Ataxia Overview (SCA31); common in Japan |
-| LRP12 | AD | 20-70 | medium | GeneReviews repeat table (NBK535148); OMIM OPDM |
-| FXN | AR | 5-40 | high | GeneReviews Friedreich Ataxia (https://www.ncbi.nlm.nih.gov/books/NBK1281/) |
+| Gene | MOI | Onset | Typical | Pathogenic | Confidence | Sources |
+| --- | --- | --- | --- | --- | --- | --- |
+| ATXN1 | AD | 6-63 | 20-39 | 39-91 | high | STRchive SCA1_ATXN1 (https://strchive.org/loci/sca1_atxn1/); GeneReviews NBK1184 |
+| ATXN2 | AD | 2-86 | 30-39 | 35-500 | high | STRchive SCA2_ATXN2 (https://strchive.org/loci/sca2_atxn2/); GeneReviews NBK1275 |
+| ATXN3 | AD | 3-73 | 10-49 | 60-87 | high | STRchive SCA3_ATXN3 (https://strchive.org/loci/sca3_atxn3/); GeneReviews NBK1196 |
+| CACNA1A | AD | 16-73 | 43-52 | 21-33 | high | STRchive SCA6_CACNA1A (https://strchive.org/loci/sca6_cacna1a/); GeneReviews NBK1140 |
+| ATXN7 | AD | 0-92 | 4-48 | 37-460 | high | STRchive SCA7_ATXN7 (https://strchive.org/loci/sca7_atxn7/); GeneReviews NBK1256 |
+| ATXN8OS | AD | 0-76 | 20-49 | 71-1300 | high | STRchive SCA8_ATXN8OS (https://strchive.org/loci/sca8_atxn8os/); GeneReviews NBK1268 |
+| ATXN10 | AD | 11-83 | 12-48 | 800-4500 | high | STRchive SCA10_ATXN10 (https://strchive.org/loci/sca10_atxn10/); GeneReviews NBK1175 |
+| PPP2R2B | AD | 8-62 | 26-50 | 51-78 | high | STRchive SCA12_PPP2R2B (https://strchive.org/loci/sca12_ppp2r2b/); GeneReviews NBK535148 |
+| TBP | AD | 3-75 | 19-48 | 49-66 | high | STRchive SCA17_TBP (https://strchive.org/loci/sca17_tbp/); GeneReviews NBK1438 |
+| FMR1 | XL | 45-78 | 1-65 | FXS 201-2000; FXTAS floor 55 | high | STRchive FXS_FMR1 (https://strchive.org/loci/fxs_fmr1/); GeneReviews NBK1384 |
+| C9ORF72 | AD | 20-91 | 50-64 | 31-4088 | high | STRchive FTDALS1_C9orf72 (https://strchive.org/loci/ftdals1_c9orf72/); GeneReviews NBK268647 |
+| RFC1 | AR | 19-76 | 36-52 | 400-2750 | high | STRchive CANVAS_RFC1 (https://strchive.org/loci/canvas_rfc1/); GeneReviews NBK564656 |
+| HTT | AD | 1-85 | 35-44 | 36-250 | high | STRchive HD_HTT (https://strchive.org/loci/hd_htt/); GeneReviews NBK1305 |
+| AR | XL | 8-83 | 20-49 | 38-68 | high | STRchive SBMA_AR (https://strchive.org/loci/sbma_ar/); GeneReviews NBK1333 |
+| ATN1 | AD | 0-72 | 20-40 | 48-93 | high | STRchive DRPLA_ATN1 (https://strchive.org/loci/drpla_atn1/); GeneReviews NBK1491 |
+| NOP56 | AD | 28-67 | 40-60 | 650-2500 | high | STRchive SCA36_NOP56 (https://strchive.org/loci/sca36_nop56/); GeneReviews NBK535148 |
+| JPH3 | AD | 12-66 | 30-52 | 40-60 | high | STRchive HDL2_JPH3 (https://strchive.org/loci/hdl2_jph3/); GeneReviews NBK1529 |
+| GIPC1 | AD | 2-70 | 20-34 | 73-164 | medium | STRchive OPDM2_GIPC1 (https://strchive.org/loci/opdm2_gipc1/); GeneReviews NBK535148 |
+| CSTB | AR | 6-18 | 6-15 | 30-125 | high | STRchive EPM1_CSTB (https://strchive.org/loci/epm1_cstb/); GeneReviews NBK1142 |
+| NOTCH2NLC | AD | 7-78 | 30-70 | 66-517 | high | STRchive NIID_NOTCH2NLC (https://strchive.org/loci/niid_notch2nlc/); GeneReviews NBK535148 |
+| FGF14 | AD | 21-87 | 42-70 | 320-937 | high | STRchive SCA27B_FGF14 (https://strchive.org/loci/sca27b_fgf14/); GeneReviews NBK599589 |
+| BEAN1 | AD | 8-83 | 56-62 | 110-760 | high | STRchive SCA31_BEAN1 (https://strchive.org/loci/sca31_bean1/); GeneReviews NBK535148 |
+| LRP12 | AD | 7-66 | 31-51 | 85-289 | medium | STRchive OPDM1_LRP12 (https://strchive.org/loci/opdm1_lrp12/); GeneReviews NBK535148 |
+| FXN | AR | 2-80 | 10-15 | 56-1700 | high | STRchive FRDA_FXN (https://strchive.org/loci/frda_fxn/); GeneReviews NBK1281 |

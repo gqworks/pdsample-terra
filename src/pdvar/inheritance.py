@@ -35,6 +35,8 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
     Statuses:
       AD_candidate          qualifying variant in an AD gene
       AR_hom                qualifying homozygous variant in an AR gene
+                            (other same-gene alleles are still labelled; a hom
+                            does not leave coding partners as not_qualifying)
       AR_comphet_candidate  >=2 qualifying variants in an AR gene (phase unknown)
       AR_second_hit_splice  the Introme-supported hit of an AR comp-het (partner is AR_comphet_candidate)
       AR_single_het         only one qualifying het in an AR gene (look for missed 2nd hit / CNV)
@@ -76,13 +78,22 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
         df.loc[idx, "ar_hit_count"] = n_hits
         if hom.any():
             df.loc[idx[hom], "inheritance_status"] = "AR_hom"
-        elif first.any() and n_hits >= 2:
-            splice_hit = second & (
-                ~first | grp["evidence_reasons"].fillna("").str.contains("introme_high").to_numpy()
-            )
-            df.loc[idx[second], "inheritance_status"] = "AR_comphet_candidate"
-            if splice_hit.any() and (second & ~splice_hit).any():
+        # Non-hom alleles still need labels. A qualifying AR_hom (including an
+        # Introme intron hom) must not leave coding partners as not_qualifying.
+        other = ~hom
+        if not other.any():
+            continue
+        first_o = first & other
+        second_o = second & other
+        # Do not let a same-gene hom (often a weak Introme intron) inflate the
+        # non-hom hit count into a false AR_comphet_candidate.
+        n_hits_other = int(second_o.sum())
+        introme = grp["evidence_reasons"].fillna("").str.contains("introme_high").to_numpy()
+        if first_o.any() and n_hits_other >= 2:
+            splice_hit = second_o & (~first_o | introme)
+            df.loc[idx[second_o], "inheritance_status"] = "AR_comphet_candidate"
+            if splice_hit.any() and (second_o & ~splice_hit).any():
                 df.loc[idx[splice_hit], "inheritance_status"] = "AR_second_hit_splice"
-        elif first.any():
-            df.loc[idx[first], "inheritance_status"] = "AR_single_het"
+        elif first_o.any():
+            df.loc[idx[first_o], "inheritance_status"] = "AR_single_het"
     return df
