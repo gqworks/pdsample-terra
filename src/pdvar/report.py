@@ -16,6 +16,8 @@ STATUS_PRIORITY = {
     "AR_second_hit_splice": 0,
     # AD / XL / risk compete with AR solves so ClinVar P/LP alleles (e.g. LRRK2
     # R1441C) are not buried under intron AR Introme noise or depth-artifact SVs.
+    # Intron-only / Introme AD_candidate rows are bumped to priority 1 in
+    # rank_candidates so they do not share the Mendelian shortlist band.
     "AD_candidate": 0,
     "XL_hemi": 0,
     "risk_biallelic": 0,
@@ -83,6 +85,10 @@ def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["status_priority"] = df["inheritance_status"].map(STATUS_PRIORITY).fillna(9)
     df["_intronic_penalty"] = _intronic_rank_penalty(df)
+    # Introme / intron-only AD_candidate rows share priority 0 with coding Mendelian
+    # hits and flood the shortlist; demote them to priority 1 (with STR expansions).
+    ad = df["inheritance_status"].fillna("").astype(str).eq("AD_candidate")
+    df.loc[ad & df["_intronic_penalty"].eq(1), "status_priority"] = 1
     df["_plp_boost"] = _clinvar_plp_rank_boost(df)
     if "weighted_evidence_score" in df.columns:
         df["_rank_score"] = df["weighted_evidence_score"].where(df["weighted_evidence_score"].notna(), df["evidence_score"])
@@ -142,6 +148,10 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
             "mtdna_pathogenic_candidate",
         }
     )
+    # Introme / intron-only AD_candidate noise is ranked at priority 1 and must
+    # not force-keep past the top-N cut (coding / P/LP AD still force-kept).
+    intron_ad = status.eq("AD_candidate") & _intronic_rank_penalty(df).eq(1)
+    force_status = force_status & ~intron_ad
     plp = clin.eq("P/LP")
     gauchian = hit.eq("gauchian")
     lof_sv = hit.eq("sv") & (mech.eq("lof") | scored)

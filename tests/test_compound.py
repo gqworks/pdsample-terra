@@ -285,6 +285,81 @@ def test_intron_only_ar_gene_demoted_to_intronic_candidate():
     assert follow.empty
 
 
+def test_introme_ar_hom_demoted_when_coding_partners_exist():
+    """MONOPDAUS_000050-style: coding comp-het unmasks Introme intron AR_hom."""
+    df = pd.DataFrame(
+        [
+            {
+                "sample_id": "MONOPDAUS_000050",
+                "gene": "PRKN",
+                "moi": "AR",
+                "variant_id": "6-162443378-CCT-C",
+                "variant_class": "INDEL",
+                "chrom": "6",
+                "pos": 162443378,
+                "end": 162443378,
+                "ref": "CCT",
+                "alt": "C",
+                "genotype": "0/1",
+                "zygosity": "het",
+                "consequence": "frameshift_variant",
+                "clinvar_class": "none",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_comphet_candidate",
+                "evidence_score": 10,
+                "tier": 1,
+            },
+            {
+                "sample_id": "MONOPDAUS_000050",
+                "gene": "PRKN",
+                "moi": "AR",
+                "variant_id": "6-161569384-G-A",
+                "variant_class": "SNV",
+                "chrom": "6",
+                "pos": 161569384,
+                "end": 161569384,
+                "ref": "G",
+                "alt": "A",
+                "genotype": "0/1",
+                "zygosity": "het",
+                "consequence": "missense_variant",
+                "clinvar_class": "VUS",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_comphet_candidate",
+                "evidence_score": 7,
+                "tier": 2,
+            },
+            {
+                "sample_id": "MONOPDAUS_000050",
+                "gene": "PRKN",
+                "moi": "AR",
+                "variant_id": "6-162201629-A-G",
+                "variant_class": "SNV",
+                "chrom": "6",
+                "pos": 162201629,
+                "end": 162201629,
+                "ref": "A",
+                "alt": "G",
+                "genotype": "1/1",
+                "zygosity": "hom",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_hom",
+                "evidence_score": 6,
+                "tier": 2,
+                "introme_class": "high",
+            },
+        ]
+    )
+    out, follow = refine(df, {})
+    by_id = out.set_index("variant_id")["inheritance_status"]
+    assert by_id["6-162443378-CCT-C"] == "AR_comphet_candidate"
+    assert by_id["6-161569384-G-A"] == "AR_comphet_candidate"
+    assert by_id["6-162201629-A-G"] == "AR_intronic_candidate"
+    assert follow.empty
+
+
 def test_coding_plus_intron_keeps_coding_solved():
     """Coding allele keeps solved status; gene-level demotion does not fire when strong exists."""
     df = pd.DataFrame(

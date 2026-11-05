@@ -226,6 +226,62 @@ def test_gba1_risk_outranks_intronic_ar_flood():
     assert list(top.head(2)["variant_id"]) == ["c.681", "c.667"]
 
 
+def test_introme_ad_candidate_demoted_to_priority_1():
+    """Introme intron AD_candidate ranks at priority 1 and is not force-kept."""
+    rows = [
+        {
+            "sample_id": "S1",
+            "gene": "LRRK2",
+            "variant_id": "R1441C",
+            "consequence": "missense_variant",
+            "clinvar_class": "P/LP",
+            "inheritance_status": "AD_candidate",
+            "hit_source": "small_variant",
+            "evidence_score": 17,
+            "tier": 1,
+            "weighted_evidence_score": 17,
+        },
+        {
+            "sample_id": "S1",
+            "gene": "PRKN",
+            "variant_id": "frameshift",
+            "consequence": "frameshift_variant",
+            "clinvar_class": "none",
+            "inheritance_status": "AR_comphet_candidate",
+            "hit_source": "small_variant",
+            "evidence_score": 10,
+            "tier": 1,
+            "weighted_evidence_score": 10,
+        },
+    ]
+    for i in range(25):
+        rows.append(
+            {
+                "sample_id": "S1",
+                "gene": f"ADGENE{i}",
+                "variant_id": f"introme_ad{i}",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "inheritance_status": "AD_candidate",
+                "hit_source": "small_variant",
+                "evidence_score": 6,
+                "tier": 2,
+                "weighted_evidence_score": 6,
+            }
+        )
+    df = pd.DataFrame(rows)
+    ranked = rank_candidates(df)
+    assert ranked.iloc[0]["variant_id"] == "R1441C"
+    assert ranked.iloc[1]["variant_id"] == "frameshift"
+    assert (ranked.loc[ranked["variant_id"].str.startswith("introme_ad"), "status_priority"] == 1).all()
+    top = patient_candidates(df, max_per_patient=20)
+    assert "R1441C" in set(top["variant_id"])
+    assert "frameshift" in set(top["variant_id"])
+    # Intron AD noise must not force-keep past the top-N cap.
+    assert len(top) == 20
+    assert sum(vid.startswith("introme_ad") for vid in top["variant_id"]) <= 18
+
+
 def test_lrrk2_ad_plp_outranks_intron_ar_and_lof_sv_noise():
     """LRRK2 R1441C-style AD P/LP must beat intron AR flood and transcript_ablation SVs."""
     rows = [

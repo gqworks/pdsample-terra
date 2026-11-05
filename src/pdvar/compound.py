@@ -283,17 +283,27 @@ def _pair_sv_with_coding(df: pd.DataFrame, idx: list) -> None:
 
 
 def _demote_intron_only_ar(df: pd.DataFrame, idx: list) -> None:
-    """If an AR gene has no strong allele, demote intron/Introme 'solves' to support-only."""
-    if any(_is_strong_allele(df.loc[i]) for i in idx):
-        return
+    """Demote intron/Introme AR labels that should not outrank coding evidence.
+
+    - No strong allele in the gene: demote intron solves / single-hets to support-only
+      (avoid intron-only AR_hom "solves").
+    - Strong coding/LoF allele present: demote weak intron rows labelled ``AR_hom``
+      so an Introme homozygous intron cannot bury coding compound-het partners.
+    """
+    has_strong = any(_is_strong_allele(df.loc[i]) for i in idx)
     for i in idx:
         status = _text(df.at[i, "inheritance_status"])
         if _locked_status(status):
             continue
+        if not _is_weak_intronic(df.loc[i]):
+            continue
+        if has_strong:
+            if status == "AR_hom":
+                df.at[i, "inheritance_status"] = INTRONIC_SUPPORT_STATUS
+            continue
         if status not in SOLVED_AR and status != "AR_single_het":
             continue
-        if _is_weak_intronic(df.loc[i]):
-            df.at[i, "inheritance_status"] = INTRONIC_SUPPORT_STATUS
+        df.at[i, "inheritance_status"] = INTRONIC_SUPPORT_STATUS
 
 
 def _interval(row: pd.Series) -> tuple[int, int] | None:
