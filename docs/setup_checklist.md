@@ -55,8 +55,8 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 - Calling BED: `workflow/assets/monopdaus-genes.grch38.bed`
 - SV overlap BEDs: `resources/panel/monopdaus-genes.grch38.bed`, `resources/panel/monopdaus-exons.grch38.bed`
 - Inheritance table: `resources/panel/monopdaus-gene-inheritance.csv` (placeholder labels)
-- ExpansionHunter catalog: `workflow/assets/expansionhunter_pd.hg38.json` (19 loci; NOTCH2NLC, FGF14, BEAN1, and LRP12 are not in this catalog)
-- STR pathogenicity floors: `config/config.yaml` → `str_loci` (GeneReviews-cited; covers EH loci plus NOTCH2NLC, FGF14, FXN; BEAN1/LRP12 cited but null count)
+- ExpansionHunter catalog: `workflow/assets/expansionhunter_pd.hg38.json` (19 loci; NOTCH2NLC, FGF14, BEAN1, LRP12, and FXN are not in this catalog)
+- STR pathogenicity floors / onset ranges: `config/config.yaml` → `str_loci` and `workflow/assets/expansionhunter_catalog_sources.tsv` (STRchive v2.28.0; covers EH loci plus NOTCH2NLC, FGF14, BEAN1, LRP12, FXN)
 - Config: `config/config.yaml`, `config/columns.yaml`, `config/gene_phenotypes.yaml`
 - QC scripts: `workflow/scripts/check_reference.py`, `workflow/scripts/qc_summary.py`
 
