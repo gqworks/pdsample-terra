@@ -85,12 +85,15 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
             continue
         first_o = first & other
         second_o = second & other
+        # Do not let a same-gene hom (often a weak Introme intron) inflate the
+        # non-hom hit count into a false AR_comphet_candidate.
+        n_hits_other = int(second_o.sum())
         introme = grp["evidence_reasons"].fillna("").str.contains("introme_high").to_numpy()
-        if first_o.any() and n_hits >= 2:
-            splice_hit = second & (~first | introme)
+        if first_o.any() and n_hits_other >= 2:
+            splice_hit = second_o & (~first_o | introme)
             df.loc[idx[second_o], "inheritance_status"] = "AR_comphet_candidate"
-            if (splice_hit & other).any() and (second & ~splice_hit).any():
-                df.loc[idx[splice_hit & other], "inheritance_status"] = "AR_second_hit_splice"
+            if splice_hit.any() and (second_o & ~splice_hit).any():
+                df.loc[idx[splice_hit], "inheritance_status"] = "AR_second_hit_splice"
         elif first_o.any():
             df.loc[idx[first_o], "inheritance_status"] = "AR_single_het"
     return df

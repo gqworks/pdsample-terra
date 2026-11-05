@@ -46,6 +46,17 @@ def test_ar_hom_does_not_bury_coding_partners(cfg):
     assert (out["ar_hit_count"] == 3).all()
 
 
+def test_ar_hom_does_not_inflate_single_coding_to_comphet(cfg):
+    """A lone coding het plus intron AR_hom is AR_single_het, not a false comp-het."""
+    out = _run(cfg, [
+        ("S1", "PRKN", "AR", "het", 1, "none", "null_variant"),
+        ("S1", "PRKN", "AR", "hom", 2, "high", "absent_gnomad;introme_high"),
+    ])
+    by_reason = out.set_index("evidence_reasons")["inheritance_status"]
+    assert by_reason["null_variant"] == "AR_single_het"
+    assert by_reason["absent_gnomad;introme_high"] == "AR_hom"
+
+
 def test_ar_second_hit_from_introme(cfg):
     out = _run(cfg, [
         ("S1", "PRKN", "AR", "het", 1, "none", "null_variant"),
