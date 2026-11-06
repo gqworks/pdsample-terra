@@ -49,8 +49,8 @@ CURATION_COLUMNS = [
     "variant_class", "dosage_mechanism", "phase_relation", "phase_source",
     "lof_weight", "weighted_evidence_score", "svtype", "biomarker_notes",
     "str_locus", "str_expanded", "heteroplasmy",
-    "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
-    "mitimpact_hgvs", "gnomad_af_het", "incidental", "disposition",
+    "mitomap_status", "mitomap_gb_freq", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
+    "mlc_score", "mitimpact_hgvs", "gnomad_af_het", "incidental", "disposition",
 ]
 
 

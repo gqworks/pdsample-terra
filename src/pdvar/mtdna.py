@@ -98,9 +98,16 @@ def apply_mtdna_evidence(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
         if "mitotip_quartile" in df.columns
         else pd.Series(False, index=df.index)
     )
+    mlc_cut = float(scfg.get("mlc_high", 0.5))
+    mlc = (
+        pd.to_numeric(df["mlc_score"], errors="coerce") >= mlc_cut
+        if "mlc_score" in df.columns
+        else pd.Series(False, index=df.index)
+    )
     _add(mitomap, "mitomap_pathogenic")
     _add(apogee, "apogee_pathogenic")
     _add(tip, "mitotip_likely_pathogenic")
+    _add(mlc.fillna(False), "mlc_high")
 
     df["evidence_score"] = score
     df["evidence_reasons"] = reason_list

@@ -74,6 +74,8 @@ def _mt(path: Path) -> None:
                 "##INFO=<ID=MI_gene,Number=1,Type=String,Description=MitImpact gene>",
                 "##INFO=<ID=MI_ClinVar_CLNSIG,Number=1,Type=String,Description=ClinVar>",
                 "##INFO=<ID=MI_MITOMAP_status,Number=1,Type=String,Description=MITOMAP>",
+                "##INFO=<ID=MI_MITOMAP_GB_freq,Number=1,Type=String,Description=MITOMAP GenBank freq>",
+                "##INFO=<ID=MI_MLC_score,Number=1,Type=Float,Description=MLC>",
                 "##INFO=<ID=MI_gnomAD_AF_hom,Number=1,Type=Float,Description=gnomAD AF hom>",
                 "##INFO=<ID=MI_APOGEE2,Number=1,Type=String,Description=APOGEE2>",
                 "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
@@ -82,7 +84,8 @@ def _mt(path: Path) -> None:
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSYNTHETIC_SAMPLE",
                 "M\t11778\t.\tG\tA\t.\tPASS\t"
                 "GENE=MT-ND4;MI_gene=MT-ND4;MI_ClinVar_CLNSIG=Pathogenic;"
-                "MI_MITOMAP_status=Cfrm-[P];MI_gnomAD_AF_hom=0.0002;MI_APOGEE2=Pathogenic\t"
+                "MI_MITOMAP_status=Cfrm-[P];MI_MITOMAP_GB_freq=0.00012;MI_MLC_score=0.72;"
+                "MI_gnomAD_AF_hom=0.0002;MI_APOGEE2=Pathogenic\t"
                 "GT:AF:DP\t0/1:0.4:100",
             ]
         )

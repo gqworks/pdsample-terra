@@ -99,6 +99,8 @@ scoring:
   # 30 is the top 0.1% and 20 is the top 1%. These are rank bands, not pathogenicity calls.
   avi_high: 30
   avi_moderate: 20
+  # MitImpact MLC (mitochondrial local constraint). Deleterious band is score >= 0.5.
+  mlc_high: 0.5
   points:
     clinvar_plp: 10
     clinvar_conflicting: 3
@@ -122,6 +124,7 @@ scoring:
     mitomap_pathogenic: 8
     apogee_pathogenic: 3
     mitotip_likely_pathogenic: 3
+    mlc_high: 1
     # GBA1-PD Browser class bumps for Gauchian catalog SNVs only (not VEP rows).
     gba1_pd_severe: 4
     gba1_pd_mild: 2
@@ -131,6 +134,11 @@ scoring:
     tier1_min_score: 10
     tier2_min_score: 6
     tier3_min_score: 3
+
+# mtDNA curation gates applied when ingesting the MitochondriaPipeline VCF.
+mtdna:
+  min_heteroplasmy: 0.01          # inclusive; FORMAT AF as a fraction (1%)
+  require_mitomap_entry: true     # keep only rows with MITOMAP_Disease_GenBank_Freq
 
 splicing:
   introme_high: 0.9
