@@ -44,8 +44,8 @@ VARIANT_COLUMNS = [
     "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
     "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
     "clinvar", "clinvar_class", "variant_class", "hit_source", "heteroplasmy",
-    "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
-    "mitimpact_hgvs", "repeat_count", "str_locus", "str_expanded", "str_citation", "copy_number",
+    "mitomap_status", "mitomap_gb_freq", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
+    "mlc_score", "mitimpact_hgvs", "repeat_count", "str_locus", "str_expanded", "str_citation", "copy_number",
     "dosage_mechanism", "dosage_event", "scored_dosage",
 ]
 
@@ -466,8 +466,29 @@ def parse_gauchian(path: str | Path, sample_prefix: str | None = None, default_s
     return table, seen, carriers
 
 
-def parse_mtdna(path: str | Path, sample_prefix: str | None = None) -> tuple[pd.DataFrame, set[str], set[str]]:
+_BLANK_ANNOT = {"", ".", "na", "nan", "none"}
+
+
+def _has_mitomap_entry(value: object) -> bool:
+    """True when MitImpact wrote a MITOMAP disease GenBank frequency."""
+    return str(value or "").strip().lower() not in _BLANK_ANNOT
+
+
+def _mtdna_rules(cfg: dict | None) -> dict:
+    block = (cfg or {}).get("mtdna") or {}
+    return {
+        "min_heteroplasmy": float(block.get("min_heteroplasmy", 0.01)),
+        "require_mitomap_entry": bool(block.get("require_mitomap_entry", True)),
+    }
+
+
+def parse_mtdna(
+    path: str | Path,
+    sample_prefix: str | None = None,
+    cfg: dict | None = None,
+) -> tuple[pd.DataFrame, set[str], set[str]]:
     path = Path(path)
+    rules = _mtdna_rules(cfg)
     header = [sample for sample in read_samples(path) if not sample_prefix or sample.startswith(sample_prefix)]
     rows: list[dict] = []
     carriers: set[str] = set()
@@ -485,10 +506,14 @@ def parse_mtdna(path: str | Path, sample_prefix: str | None = None) -> tuple[pd.
         gnomad_het = _float_or_none(info.get("MI_gnomAD_AF_het"))
         apogee_score = _float_or_none(info.get("MI_APOGEE2_score"))
         mitotip_score = _float_or_none(info.get("MI_MitoTIP"))
+        mlc_score = _float_or_none(info.get("MI_MLC_score"))
+        mitomap_gb = str(info.get("MI_MITOMAP_GB_freq") or "").strip()
+        if rules["require_mitomap_entry"] and not _has_mitomap_entry(mitomap_gb):
+            continue
         for sample, fmt in _prefix(record["samples"], sample_prefix).items():
             gt = str(fmt.get("GT") or "./.")
             heteroplasmy = _float_or_none(fmt.get("AF") or info.get("AF"))
-            if not _carrier_gt(gt) and not (heteroplasmy is not None and heteroplasmy > 0):
+            if heteroplasmy is None or heteroplasmy < rules["min_heteroplasmy"]:
                 continue
             carriers.add(str(sample))
             alt = record["alt"].split(",")[0]
@@ -516,6 +541,8 @@ def parse_mtdna(path: str | Path, sample_prefix: str | None = None) -> tuple[pd.
                     hit_source="mtdna",
                     heteroplasmy=heteroplasmy if heteroplasmy is not None else pd.NA,
                     mitomap_status=str(info.get("MI_MITOMAP_status") or ""),
+                    mitomap_gb_freq=mitomap_gb,
+                    mlc_score=mlc_score if mlc_score is not None else pd.NA,
                     apogee2_class=str(info.get("MI_APOGEE2") or ""),
                     apogee2_score=apogee_score if apogee_score is not None else pd.NA,
                     mitotip_score=mitotip_score if mitotip_score is not None else pd.NA,
@@ -594,5 +621,5 @@ def ingest_sample_callsets(
 
     add("expansionhunter", expansionhunter, lambda path: parse_expansionhunter(path, cfg))
     add("gauchian", gauchian, lambda path: parse_gauchian(path, default_sample=sample_id))
-    add("mtdna", mtdna, lambda path: parse_mtdna(path))
+    add("mtdna", mtdna, lambda path: parse_mtdna(path, cfg=cfg))
     return _concat(frames), pd.DataFrame(assessments)

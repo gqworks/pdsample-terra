@@ -18,6 +18,7 @@ def test_apply_mtdna_evidence_adds_mitomap_apogee_mitotip():
                 "mitomap_status": "Cfrm-[P]",
                 "apogee2_class": "Pathogenic",
                 "mitotip_quartile": "",
+                "mlc_score": 0.72,
                 "clinvar_class": "P/LP",
                 "gnomad_af": 0.0002,
             },
@@ -38,7 +39,8 @@ def test_apply_mtdna_evidence_adds_mitomap_apogee_mitotip():
     mito = out[out["hit_source"] == "mtdna"].iloc[0]
     assert "mitomap_pathogenic" in mito["evidence_reasons"]
     assert "apogee_pathogenic" in mito["evidence_reasons"]
-    assert mito["evidence_score"] == 2 + 8 + 3
+    assert "mlc_high" in mito["evidence_reasons"]
+    assert mito["evidence_score"] == 2 + 8 + 3 + 1
     assert mito["tier"] == 1
     nuclear = out[out["hit_source"] == "small_variant"].iloc[0]
     assert nuclear["evidence_score"] == 10

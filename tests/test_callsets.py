@@ -36,6 +36,8 @@ def _mt(path: Path) -> None:
                 "##INFO=<ID=MI_gene,Number=1,Type=String,Description=MitImpact gene>",
                 "##INFO=<ID=MI_ClinVar_CLNSIG,Number=1,Type=String,Description=ClinVar>",
                 "##INFO=<ID=MI_MITOMAP_status,Number=1,Type=String,Description=MITOMAP>",
+                "##INFO=<ID=MI_MITOMAP_GB_freq,Number=1,Type=String,Description=MITOMAP GenBank freq>",
+                "##INFO=<ID=MI_MLC_score,Number=1,Type=Float,Description=MLC>",
                 "##INFO=<ID=MI_gnomAD_AF_hom,Number=1,Type=Float,Description=gnomAD AF hom>",
                 "##INFO=<ID=MI_gnomAD_AF_het,Number=1,Type=Float,Description=gnomAD AF het>",
                 "##INFO=<ID=MI_APOGEE2,Number=1,Type=String,Description=APOGEE2>",
@@ -49,6 +51,7 @@ def _mt(path: Path) -> None:
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_A",
                 "chrM\t11778\t.\tG\tA\t.\tPASS\t"
                 "GENE=MT-ND4;MI_gene=MT-ND4;MI_ClinVar_CLNSIG=Pathogenic;MI_MITOMAP_status=Cfrm-[P];"
+                "MI_MITOMAP_GB_freq=0.00012;MI_MLC_score=0.72;"
                 "MI_gnomAD_AF_hom=0.0002;MI_gnomAD_AF_het=0.0002;MI_APOGEE2=Pathogenic;"
                 "MI_APOGEE2_score=0.926;MI_HGVS=NC_012920.1:m.11778G>A\t"
                 "GT:AF:DP\t0/1:0.42:800",
@@ -91,6 +94,8 @@ def test_sample_callsets_ingested_and_kept(tmp_path, cfg):
     assert float(mito["gnomad_af"]) == 0.0002
     assert float(mito["gnomad_af_het"]) == 0.0002
     assert mito["mitimpact_hgvs"] == "NC_012920.1:m.11778G>A"
+    assert mito["mitomap_gb_freq"] == "0.00012"
+    assert float(mito["mlc_score"]) == 0.72
     status = assessment.set_index("module")["callset_status"]
     assert status["expansionhunter"] == "STR carrier"
 
@@ -203,6 +208,29 @@ def test_drop_redundant_gauchian_snvs_prefers_small_variant():
     )
     out = callsets.drop_redundant_gauchian_snvs(df)
     assert set(out["variant_id"]) == {"1-155238214-A-C", "GBA1-c.667T>C-S"}
+
+
+def test_mtdna_drops_low_heteroplasmy_and_missing_mitomap(tmp_path, cfg):
+    path = tmp_path / "mt.vcf"
+    path.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "##FORMAT=<ID=AF,Number=A,Type=Float,Description=AF>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_A",
+                "chrM\t11778\t.\tG\tA\t.\tPASS\tMI_MITOMAP_GB_freq=0.0001\tGT:AF\t0/1:0.005",
+                "chrM\t3460\t.\tG\tA\t.\tPASS\tMI_MITOMAP_GB_freq=0.0001\tGT:AF\t0/1:0.01",
+                "chrM\t3243\t.\tA\tG\t.\tPASS\tMI_MITOMAP_status=Cfrm-[P]\tGT:AF\t0/1:0.40",
+                "chrM\t8993\t.\tT\tG\t.\tPASS\tMI_MITOMAP_GB_freq=0.001\tGT:AF\t0/1:0.80",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    table, assessment = callsets.ingest_sample_callsets("SAMPLE_A", mtdna=path, cfg=cfg)
+    assert set(table["pos"].astype(int)) == {3460, 8993}
+    assert assessment.loc[assessment["module"] == "mtdna", "callset_status"].iloc[0] == "mtDNA carrier"
 
 
 def test_single_foreign_sample_is_relabelled(tmp_path, cfg):

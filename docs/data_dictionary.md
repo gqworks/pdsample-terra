@@ -32,7 +32,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` (from dbNSFP `clinvar_clnsig`) |
 | `gnomad_af`, `gnomad_popmax_af` | Nuclear: from dbNSFP `gnomAD4.1_joint_AF` / `gnomAD4.1_joint_POPMAX_AF` (lifted to INFO for Introme). mtDNA: `gnomad_af` is MitImpact `AF_hom_gnomad` (gnomAD v3.1). Missing means rare |
 | `gnomad_af_het` | mtDNA only: MitImpact `AF_het_gnomad` |
-| `mitomap_status`, `apogee2_class`, `apogee2_score`, `mitotip_score`, `mitotip_quartile`, `mitimpact_hgvs` | MitImpact annotations on `hit_source=mtdna` rows when `mtdna_mitimpact` was set |
+| `mitomap_status`, `mitomap_gb_freq`, `apogee2_class`, `apogee2_score`, `mitotip_score`, `mitotip_quartile`, `mlc_score`, `mitimpact_hgvs` | MitImpact annotations on kept `hit_source=mtdna` rows. `mlc_score` ≥ 0.5 adds `mlc_high`. Rows with heteroplasmy below 1% or a blank `MITOMAP_Disease_GenBank_Freq` are dropped before scoring |
 | `cadd`, `revel` | From academic dbNSFP 5.4a (`CADD_phred` / `REVEL_score`) or optional CADD/REVEL plugins |
 | `sift`, `sift_pred`, `polyphen`, `polyphen_pred` | From dbNSFP (`SIFT_*` / `Polyphen2_HDIV_*`); optional VEP cache `--sift/--polyphen` if `vep_sift_polyphen` is enabled |
 | `eigen`, `muttaster`, `muttaster_pred`, `fathmm`, `fathmm_pred` | From dbNSFP when set; 5.4a uses `fathmm-XF_coding_*` (maps to `fathmm` / `fathmm_pred`) |
@@ -40,7 +40,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `avi_phred`, `avi_raw`, `avi_quantile`, `avi_url` | AlphaGenome AVI for SNVs from the precomputed table when `avi_table` was set. `avi_raw` and `avi_phred` are copied from the table. `avi_quantile` is derived as `1 - 10^(-avi_phred/10)`, so it is only as precise as the published Phred. Phred 20 is the top 1% of genome-wide SNVs. Empty when `avi_table` was unset, the allele is not an SNV, or the table had no row |
 | `introme_score`, `introme_class` | Introme v2 score and high / moderate / low |
 | `str_locus`, `str_expanded` | ExpansionHunter locus. `str_expanded` is true when `max(REPCN)` meets the cited `str_loci` floor |
-| `heteroplasmy` | mtDNA allele fraction when the caller wrote `AF` |
+| `heteroplasmy` | mtDNA allele fraction from FORMAT `AF`. Alleles below 1% are not ingested |
 | `age_onset`, `symptoms`, `ethnicity` | Patient fields copied from the sample row when they were provided |
 | `onset_match`, `matched_features`, `phenotype_score` | Concordance against `config/gene_phenotypes.yaml`. Onset in range is +2, outside is -2, and each matched feature or enriched ancestry is +1 |
 | `clinical_match` | `matched`, `unmatched`, `uninformative`, `no_profile`, or `not_assessed`. Risk rows are repeated under Phenotype concordance in the report |

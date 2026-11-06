@@ -44,9 +44,11 @@ def test_annotate_mtdna_joins_mitimpact_stub(tmp_path):
     table.write_text(
         "Start,Ref,Alt,Gene_symbol,class,ref_aa,alt_aa,aa_pos,HGVS_genomic,"
         "APOGEE2,APOGEE2_score,Clinvar_CLNSIG,Clinvar_CLNDN,MITOMAP_Disease_Status,"
+        "MITOMAP_Disease_GenBank_Freq,MLC_score,"
         "AF_hom_gnomad,AF_het_gnomad,MitoTIP_Score,Mitotip_Quartile\n"
         "11778,G,A,MT-ND4,protein-coding,R,H,340,NC_012920.1:m.11778G>A,"
         "Pathogenic,0.926,Pathogenic,Leber_optic_atrophy,Cfrm-[P],"
+        "0.00012,0.72,"
         "0.0002,0.0002,,\n",
         encoding="utf-8",
     )
@@ -72,6 +74,8 @@ def test_annotate_mtdna_joins_mitimpact_stub(tmp_path):
     assert "MI_ClinVar_CLNSIG=Pathogenic" in text
     assert "MI_MITOMAP_status=Cfrm-[P]" in text
     assert "MI_gnomAD_AF_hom=0.0002" in text
+    assert "MI_MLC_score=0.72" in text
+    assert "MI_MITOMAP_GB_freq=0.00012" in text
     assert "MI_gene=MT-ND4" in text
     # Unmatched allele keeps original INFO.
     assert "chrM\t100\t.\tA\tC\t.\tPASS\t.\tGT\t0/1" in text
