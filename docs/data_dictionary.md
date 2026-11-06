@@ -21,6 +21,8 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `rank` | Order inside the sample. Solved recessive statuses come first |
 | `gene`, `moi` | Panel symbol after aliasing, and AD / AR / XL / RISK / UNKNOWN |
 | `variant_id` | `chrom-pos-ref-alt` with no `chr` prefix |
+| `hgvsc`, `hgvsp` | VEP HGVS for the picked transcript, written next to `variant_id`. Coding change is `transcript:c.` and protein change is `transcript:p.` |
+| `svtype`, `svlen` | Structural-variant type and length. `svlen` is INFO/SVLEN, sign kept, so a spec-compliant deletion is negative. When the tag is missing, the value is `end - pos` |
 | `consequence`, `zygosity`, `genotype` | VEP consequence and the carried genotype. Male homozygous X small variants are hemizygous |
 | `tier`, `evidence_score`, `evidence_reasons` | Point triage. Tier 1 is the highest score band |
 | `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, and the other statuses in `src/pdvar/report.py` |

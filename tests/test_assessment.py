@@ -55,6 +55,10 @@ def test_sv_dosage_and_not_assessed(tmp_path):
     assert prkn["zygosity"] == "het"
     assert prkn["cn_inferred_gt"] == True  # noqa: E712
     assert prkn["consequence"] == "transcript_ablation"
+    assert prkn["svlen"] == 300
+    assert snca["svlen"] == 1300
+    assert sv.sv_length({"SVLEN": "-250"}, 1000, 1250) == -250
+    assert sv.sv_length({}, 1000, 1000) is None
     assert prkn["filter"] == "PASS"
     multi = table[(table["gene"] == "PRKN") & (table["sv_id"] == "multi")].iloc[0]
     assert multi["filter"] == "MULTIALLELIC"

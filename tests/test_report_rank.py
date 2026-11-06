@@ -1,6 +1,36 @@
 import pandas as pd
 
-from pdvar.report import patient_candidates, rank_candidates
+from pdvar.report import order_candidate_columns, patient_candidates, rank_candidates
+
+
+def test_hgvs_and_svlen_sit_with_genomic_coordinates():
+    frame = pd.DataFrame(
+        [
+            {
+                "consequence": "missense_variant",
+                "hgvsp": "ENSP00000000000.1:p.Arg1Cys",
+                "rank": 1,
+                "variant_id": "1-10-A-G",
+                "hgvsc": "ENST00000000000.1:c.1A>G",
+                "gene": "PRKN",
+                "svlen": pd.NA,
+                "chrom": "1",
+                "pos": 10,
+            }
+        ]
+    )
+    ordered = order_candidate_columns(frame)
+    assert list(ordered.columns) == [
+        "rank",
+        "gene",
+        "variant_id",
+        "chrom",
+        "pos",
+        "hgvsc",
+        "hgvsp",
+        "svlen",
+        "consequence",
+    ]
 
 
 def test_sv_coding_comphet_outranks_intronic_ar_hom_flood():

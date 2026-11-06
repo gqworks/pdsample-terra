@@ -45,10 +45,18 @@ CURATION_COLUMNS = [
     "age_onset", "onset_category", "sex", "ethnicity",
     "onset_match", "matched_features", "phenotype_score", "clinical_match", "symptoms",
     "variant_class", "dosage_mechanism",
-    "svtype", "biomarker_notes",
+    "svtype", "svlen", "biomarker_notes",
     "str_locus", "str_expanded", "heteroplasmy",
     "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
     "mitimpact_hgvs", "gnomad_af_het",
+]
+
+# Genomic id, then the c./p. HGVS and SV length, so the report table reads
+# coordinates and annotations together.
+LEAD_COLUMNS = [
+    "rank", "sample_id", "gene", "moi", "inheritance_status",
+    "variant_id", "chrom", "pos", "ref", "alt", "end",
+    "hgvsc", "hgvsp", "svtype", "svlen",
 ]
 
 
@@ -150,6 +158,15 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     gauchian = hit.eq("gauchian")
     lof_sv = hit.eq("sv") & (mech.eq("lof") | scored)
     return force_status | plp | gauchian | lof_sv
+
+
+def order_candidate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Put the genomic id, c./p. HGVS, and SV length at the front of the table."""
+    if df is None or df.empty:
+        return df
+    lead = [column for column in LEAD_COLUMNS if column in df.columns]
+    rest = [column for column in df.columns if column not in lead]
+    return df.loc[:, lead + rest]
 
 
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
@@ -293,7 +310,7 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
     if candidates is None or candidates.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "consequence", "zygosity", "tier", "evidence_score", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons") if column in candidates.columns]
+        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "hgvsc", "hgvsp", "svtype", "svlen", "consequence", "zygosity", "tier", "evidence_score", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons") if column in candidates.columns]
         lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)
@@ -438,7 +455,7 @@ def write_sample_outputs(
     """Write the files the Assess task returns to the Terra row."""
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    candidates = candidates if candidates is not None else pd.DataFrame()
+    candidates = order_candidate_columns(candidates if candidates is not None else pd.DataFrame())
     paths = {
         "candidates_tsv": outdir / "candidates.tsv",
         "report_md": outdir / "report.md",
