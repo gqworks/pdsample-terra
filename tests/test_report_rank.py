@@ -1,6 +1,36 @@
 import pandas as pd
 
-from pdvar.report import patient_candidates, rank_candidates
+from pdvar.report import order_candidate_columns, patient_candidates, rank_candidates
+
+
+def test_hgvs_and_svlen_sit_with_genomic_coordinates():
+    frame = pd.DataFrame(
+        [
+            {
+                "consequence": "missense_variant",
+                "hgvsp": "ENSP00000000000.1:p.Arg1Cys",
+                "rank": 1,
+                "variant_id": "1-10-A-G",
+                "hgvsc": "ENST00000000000.1:c.1A>G",
+                "gene": "PRKN",
+                "svlen": pd.NA,
+                "chrom": "1",
+                "pos": 10,
+            }
+        ]
+    )
+    ordered = order_candidate_columns(frame)
+    assert list(ordered.columns) == [
+        "rank",
+        "gene",
+        "variant_id",
+        "chrom",
+        "pos",
+        "hgvsc",
+        "hgvsp",
+        "svlen",
+        "consequence",
+    ]
 
 
 def test_sv_coding_comphet_outranks_intronic_ar_hom_flood():
@@ -14,7 +44,6 @@ def test_sv_coding_comphet_outranks_intronic_ar_hom_flood():
             "inheritance_status": "AR_comphet_candidate",
             "evidence_score": 21,
             "tier": 1,
-            "weighted_evidence_score": 21,
         },
         {
             "sample_id": "MH03900",
@@ -25,7 +54,6 @@ def test_sv_coding_comphet_outranks_intronic_ar_hom_flood():
             "inheritance_status": "AR_comphet_candidate",
             "evidence_score": 8,
             "tier": 2,
-            "weighted_evidence_score": 8,
         },
     ]
     for i in range(20):
@@ -39,7 +67,6 @@ def test_sv_coding_comphet_outranks_intronic_ar_hom_flood():
                 "inheritance_status": "AR_hom",
                 "evidence_score": 7,
                 "tier": 2,
-                "weighted_evidence_score": 7,
             }
         )
     df = pd.DataFrame(rows)
@@ -65,7 +92,6 @@ def test_plp_and_lof_sv_force_kept_when_buried_by_intron_flood():
             "scored_dosage": False,
             "evidence_score": 13,
             "tier": 1,
-            "weighted_evidence_score": 13,
         },
         {
             "sample_id": "MH03900",
@@ -79,7 +105,6 @@ def test_plp_and_lof_sv_force_kept_when_buried_by_intron_flood():
             "scored_dosage": True,
             "evidence_score": 16,
             "tier": 1,
-            "weighted_evidence_score": 16,
         },
     ]
     for i in range(25):
@@ -96,7 +121,6 @@ def test_plp_and_lof_sv_force_kept_when_buried_by_intron_flood():
                 "scored_dosage": False,
                 "evidence_score": 7,
                 "tier": 2,
-                "weighted_evidence_score": 7,
             }
         )
     top = patient_candidates(pd.DataFrame(rows), max_per_patient=20)
@@ -120,7 +144,6 @@ def test_str_expanded_survives_intronic_ar_flood():
             "scored_dosage": False,
             "evidence_score": 8,
             "tier": 2,
-            "weighted_evidence_score": 8,
         },
     ]
     for i in range(30):
@@ -137,7 +160,6 @@ def test_str_expanded_survives_intronic_ar_flood():
                 "scored_dosage": False,
                 "evidence_score": 7,
                 "tier": 2,
-                "weighted_evidence_score": 7,
             }
         )
     df = pd.DataFrame(rows)
@@ -158,7 +180,6 @@ def test_str_expanded_outranks_demoted_intronic_candidate():
             "inheritance_status": "str_expanded",
             "evidence_score": 8,
             "tier": 2,
-            "weighted_evidence_score": 8,
         },
         {
             "sample_id": "MH06257",
@@ -169,7 +190,6 @@ def test_str_expanded_outranks_demoted_intronic_candidate():
             "inheritance_status": "AR_intronic_candidate",
             "evidence_score": 20,
             "tier": 1,
-            "weighted_evidence_score": 20,
         },
     ]
     ranked = rank_candidates(pd.DataFrame(rows))
@@ -189,7 +209,6 @@ def test_gba1_risk_outranks_intronic_ar_flood():
             "hit_source": "small_variant",
             "evidence_score": 14,
             "tier": 1,
-            "weighted_evidence_score": 14,
         },
         {
             "sample_id": "MH00246",
@@ -201,7 +220,6 @@ def test_gba1_risk_outranks_intronic_ar_flood():
             "hit_source": "gauchian",
             "evidence_score": 10,
             "tier": 1,
-            "weighted_evidence_score": 10,
         },
     ]
     for i in range(25):
@@ -216,7 +234,6 @@ def test_gba1_risk_outranks_intronic_ar_flood():
                 "hit_source": "small_variant",
                 "evidence_score": 7,
                 "tier": 2,
-                "weighted_evidence_score": 7,
             }
         )
     ranked = rank_candidates(pd.DataFrame(rows))
@@ -239,7 +256,6 @@ def test_introme_ad_candidate_demoted_to_priority_1():
             "hit_source": "small_variant",
             "evidence_score": 17,
             "tier": 1,
-            "weighted_evidence_score": 17,
         },
         {
             "sample_id": "S1",
@@ -251,7 +267,6 @@ def test_introme_ad_candidate_demoted_to_priority_1():
             "hit_source": "small_variant",
             "evidence_score": 10,
             "tier": 1,
-            "weighted_evidence_score": 10,
         },
     ]
     for i in range(25):
@@ -266,7 +281,6 @@ def test_introme_ad_candidate_demoted_to_priority_1():
                 "hit_source": "small_variant",
                 "evidence_score": 6,
                 "tier": 2,
-                "weighted_evidence_score": 6,
             }
         )
     df = pd.DataFrame(rows)
@@ -295,7 +309,6 @@ def test_lrrk2_ad_plp_outranks_intron_ar_and_lof_sv_noise():
             "hit_source": "small_variant",
             "evidence_score": 17,
             "tier": 1,
-            "weighted_evidence_score": 17,
         },
         {
             "sample_id": "MH06268",
@@ -309,7 +322,6 @@ def test_lrrk2_ad_plp_outranks_intron_ar_and_lof_sv_noise():
             "scored_dosage": True,
             "evidence_score": 18,
             "tier": 1,
-            "weighted_evidence_score": 18,
         },
     ]
     for i in range(30):
@@ -324,7 +336,6 @@ def test_lrrk2_ad_plp_outranks_intron_ar_and_lof_sv_noise():
                 "hit_source": "small_variant",
                 "evidence_score": 7,
                 "tier": 2,
-                "weighted_evidence_score": 7,
             }
         )
     ranked = rank_candidates(pd.DataFrame(rows))

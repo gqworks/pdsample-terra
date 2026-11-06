@@ -16,7 +16,6 @@ inputs:
   # GBA1-PD Browser single-variant extract (Parlar et al. Mov Disord 2023).
   # Joined onto Gauchian catalog SNVs for PD severity class + score bump.
   gba1_pd_browser: resources/gba1/gba1_pd_browser.tsv
-  expression: null
   splicevault: null
   prs_weights: null
 
@@ -79,7 +78,6 @@ filters:
   # Always keep ClinVar P/LP regardless of frequency/consequence filters.
   always_keep_clinvar_plp: true
   # Off-panel STR / GBA1 / mtDNA rows. Quality filters still apply.
-  # TTN truncations are kept even when TTN is off the panel and tagged incidental.
   always_keep_sources:
     - expansionhunter
     - gauchian
@@ -188,17 +186,6 @@ sv:
     - gene: PRKN
       effect: lof
       citation: "Kitada T et al. Nature. 1998;392:605. GeneReviews Parkinson Disease Overview (NBK1223)."
-
-compound:
-  statistical_phasing:
-    enabled: false
-    reference_panel: null
-
-expression:
-  resource: null
-  min_brain_pext: null
-  min_gtex_tpm: null
-  unexpressed_weight: null
 
 liability:
   # From panel notes, not a percentage. Heterozygous findings in these genes are partially_explained.

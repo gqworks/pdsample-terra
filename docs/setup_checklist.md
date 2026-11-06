@@ -60,4 +60,4 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 - Config: `config/config.yaml`, `config/columns.yaml`, `config/gene_phenotypes.yaml`
 - QC scripts: `workflow/scripts/check_reference.py`, `workflow/scripts/qc_summary.py`
 
-Panel inheritance labels, penetrance, PRS beta, and expression cutoffs stay null or placeholder until you cite them. STR pathogenic repeat floors are populated under `str_loci`. The workflow will still rank variants.
+Panel inheritance labels, penetrance, and PRS beta stay null or placeholder until you cite them. STR pathogenic repeat floors are populated under `str_loci`. The workflow will still rank variants.

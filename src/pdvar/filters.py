@@ -6,7 +6,6 @@ import math
 
 import pandas as pd
 
-from .incidental import ttn_truncation_mask
 from .vcf_stream import chrom_bare
 
 
@@ -266,9 +265,6 @@ def apply_filters(df: pd.DataFrame, panel: pd.DataFrame, fcfg: dict) -> pd.DataF
         rescued = df["pass_panel"] & df["pass_quality"] & (df["clinvar_class"] == "P/LP")
         df["clinvar_rescued"] = rescued & ~keep
         keep |= rescued
-    ttn = ttn_truncation_mask(df)
-    df["ttn_truncation"] = ttn
-    keep |= ttn
 
     depth_ok, depth_reason = _depth_rescue_mask(df, fcfg)
     depth_rescue = (

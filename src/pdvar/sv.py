@@ -65,7 +65,7 @@ VARIANT_COLUMNS = [
     "depth", "cohort_af", "gnomad_af", "gnomad_popmax_af", "cadd", "revel",
     "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
     "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
-    "clinvar", "clinvar_class", "variant_class", "hit_source", "svtype", "sv_id",
+    "clinvar", "clinvar_class", "variant_class", "hit_source", "svtype", "svlen", "sv_id",
     "copy_number", "expected_cn", "dosage_mechanism", "dosage_event", "dosage_citation",
     "scored_dosage", "predicted_effects", "exons_overlapped", "exon_count", "filter",
     "cn_inferred_gt",
@@ -267,6 +267,20 @@ def _record_end(info: dict, pos: int) -> int:
     return end if end is not None else pos
 
 
+def sv_length(info: dict, pos: int, end: int) -> int | None:
+    """INFO/SVLEN when the VCF has it, otherwise the POS-to-END span.
+
+    The VCF sign is kept, so a deletion is negative when the caller followed
+    the spec. A missing tag uses ``end - pos``.
+    """
+    tagged = _as_int(info.get("SVLEN"))
+    if tagged is not None:
+        return tagged
+    if end != pos:
+        return int(end) - int(pos)
+    return None
+
+
 def _exon_hits(index: IntervalIndex, info: dict, chrom: str, pos: int, end: int) -> list[dict]:
     hits = list(index.overlap(chrom, pos - 1, end))
     raw = info.get("CPX_INTERVALS")
@@ -354,6 +368,7 @@ def ingest_sv(
         info = record["info"]
         end = _record_end(info, record["pos"])
         svtype = svtype_of(info, record["alt"])
+        svlen = sv_length(info, record["pos"], end)
         raw_effects = _effects_by_gene(info)
         effects: dict[str, set[str]] = {}
         for symbol, labels in raw_effects.items():
@@ -440,6 +455,7 @@ def ingest_sv(
                         "variant_class": "SV",
                         "hit_source": "sv",
                         "svtype": svtype,
+                        "svlen": svlen if svlen is not None else pd.NA,
                         "sv_id": sv_id,
                         "copy_number": cn if cn is not None else pd.NA,
                         "expected_cn": ecn if ecn is not None else 2,
