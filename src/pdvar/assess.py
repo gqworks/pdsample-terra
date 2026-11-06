@@ -19,7 +19,6 @@ from . import (
     gba1_pd,
     inheritance,
     io,
-    isoform,
     liability,
     mtdna,
     normalize,
@@ -30,7 +29,6 @@ from . import (
     sv,
 )
 from .avi import merge_avi
-from .incidental import apply_incidental_tags
 from .vep import parse_vep
 
 def _path(value: object) -> Path | None:
@@ -110,7 +108,7 @@ def _phenotype_frame(sample_id: str, sex: str, payload: dict | None) -> pd.DataF
 
 
 def _empty_candidates() -> pd.DataFrame:
-    return pd.DataFrame(columns=["rank", "sample_id", "gene", "inheritance_status", "incidental"])
+    return pd.DataFrame(columns=["rank", "sample_id", "gene", "inheritance_status"])
 
 
 def assess_sample(
@@ -239,7 +237,6 @@ def assess_sample(
                     pass
             scored, follow = compound.refine(scored, cfg.get("compound"))
             scored = _integrate_special_calls(scored, cfg)
-            scored = apply_incidental_tags(scored)
             pheno = _phenotype_frame(sample_id, sex, _phenotype_payload(sample))
             scored = phenotype.phenotype_concordance(scored, pheno, cfg.get("gene_phenotypes") or {}, cfg["phenotype"])
             scored = biomarkers.apply_biomarker_priors(
@@ -247,11 +244,6 @@ def assess_sample(
                 cfg.get("biomarkers"),
                 early_onset_age=(cfg.get("phenotype") or {}).get("early_onset_age"),
             )
-            expression = None
-            expression_path = _exists(sample.get("expression"))
-            if expression_path is not None:
-                expression = io.read_table(expression_path)
-            scored = isoform.weight_lof(scored, expression, cfg.get("expression") or {})
 
     if scored.empty or "inheritance_status" not in scored.columns:
         candidates = _empty_candidates()

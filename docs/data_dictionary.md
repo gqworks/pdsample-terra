@@ -18,12 +18,12 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 
 | Column | Meaning |
 | --- | --- |
-| `rank` | Order inside the sample. Solved recessive statuses come before incidental |
+| `rank` | Order inside the sample. Solved recessive statuses come first |
 | `gene`, `moi` | Panel symbol after aliasing, and AD / AR / XL / RISK / UNKNOWN |
 | `variant_id` | `chrom-pos-ref-alt` with no `chr` prefix |
 | `consequence`, `zygosity`, `genotype` | VEP consequence and the carried genotype. Male homozygous X small variants are hemizygous |
 | `tier`, `evidence_score`, `evidence_reasons` | Point triage. Tier 1 is the highest score band |
-| `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, `incidental`, and the other statuses in `src/pdvar/report.py` |
+| `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, and the other statuses in `src/pdvar/report.py` |
 | `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `mtdna`, or `sv` |
 | `sv_panel_af` | True GATK-SV reference-panel AF when available (hard-filtered like gnomAD); not the joint-callset INFO/AF |
 | `cohort_af` | In-callset SV allele frequency from INFO/AF or CN_NONREF_FREQ (annotation only; not a hard filter) |
@@ -39,8 +39,6 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `introme_score`, `introme_class` | Introme v2 score and high / moderate / low |
 | `str_locus`, `str_expanded` | ExpansionHunter locus. `str_expanded` is true when `max(REPCN)` meets the cited `str_loci` floor |
 | `heteroplasmy` | mtDNA allele fraction when the caller wrote `AF` |
-| `incidental`, `disposition` | `TTN_truncation` / `incidental` for TTN null alleles. ClinVar is not overwritten |
-| `lof_weight` | 1 while expression cutoffs are null |
 | `age_onset`, `symptoms`, `ethnicity` | Patient fields copied from the sample row when they were provided |
 | `onset_match`, `matched_features`, `phenotype_score` | Concordance against `config/gene_phenotypes.yaml`. Onset in range is +2, outside is -2, and each matched feature or enriched ancestry is +1 |
 | `clinical_match` | `matched`, `unmatched`, `uninformative`, `no_profile`, or `not_assessed`. Risk rows are repeated under Phenotype concordance in the report |

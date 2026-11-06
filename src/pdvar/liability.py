@@ -181,7 +181,7 @@ def classify_cohort(
             for rec in grp.to_dict(orient="records"):
                 status = str(rec.get("inheritance_status") or "")
                 gene = str(rec.get("gene") or "").upper()
-                if status in {"", "not_qualifying", "nan", "incidental"}:
+                if status in {"", "not_qualifying", "nan"}:
                     continue
                 value, citation = _penetrance(gene, status, penetrance_table)
                 component = {

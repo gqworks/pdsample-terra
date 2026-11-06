@@ -92,7 +92,6 @@ workflow PdSample {
     # Pin a SHA so Assess call-cache invalidates when pdvar (src/pdvar) changes.
     # "main" does not change as an input string when the tip of main moves.
     String pdvar_git_commit = "5e7ccc92a6b76ea879bbc7c0e0c4ff3bf1726ce3"
-    File? expression_tsv
     File? splicevault_tsv
     File? prs_weights
     String? age_onset
@@ -785,7 +784,6 @@ workflow PdSample {
       gene_bed = FetchRepoAssets.gene_bed,
       exon_bed = FetchRepoAssets.exon_bed,
       gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
-      expression_tsv = expression_tsv,
       splicevault_tsv = splicevault_tsv,
       prs_weights = prs_weights,
       age_onset = age_onset,

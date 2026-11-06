@@ -1035,7 +1035,6 @@ task Assess {
     File? gene_bed
     File? exon_bed
     File? gba1_pd_browser
-    File? expression_tsv
     File? splicevault_tsv
     File? prs_weights
     String? age_onset
@@ -1096,7 +1095,6 @@ PY
     export GENE_BED="~{gene_bed}"
     export EXON_BED="~{exon_bed}"
     export GBA1_PD_BROWSER="~{gba1_pd_browser}"
-    export EXPRESSION="~{expression_tsv}"
     export SPLICEVAULT="~{splicevault_tsv}"
     export PRS_WEIGHTS="~{prs_weights}"
     export AVI_TSV="~{avi_tsv}"
@@ -1141,7 +1139,6 @@ document = {
     "gene_bed": maybe("GENE_BED"),
     "exon_bed": maybe("EXON_BED"),
     "gba1_pd_browser": maybe("GBA1_PD_BROWSER"),
-    "expression": maybe("EXPRESSION"),
     "splicevault": maybe("SPLICEVAULT"),
     "prs_weights": maybe("PRS_WEIGHTS"),
     "avi_tsv": maybe("AVI_TSV"),

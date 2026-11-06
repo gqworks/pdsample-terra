@@ -30,7 +30,6 @@ STATUS_PRIORITY = {
     "MOI_unknown_candidate": 4,
     # Introme-only intron support demoted below coding / SV AR solves.
     "AR_intronic_candidate": 5,
-    "incidental": 5,
     "not_qualifying": 9,
 }
 
@@ -47,10 +46,10 @@ CURATION_COLUMNS = [
     "age_onset", "onset_category", "sex", "ethnicity",
     "onset_match", "matched_features", "phenotype_score", "clinical_match", "symptoms",
     "variant_class", "dosage_mechanism", "phase_relation", "phase_source",
-    "lof_weight", "weighted_evidence_score", "svtype", "biomarker_notes",
+    "svtype", "biomarker_notes",
     "str_locus", "str_expanded", "heteroplasmy",
     "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
-    "mitimpact_hgvs", "gnomad_af_het", "incidental", "disposition",
+    "mitimpact_hgvs", "gnomad_af_het",
 ]
 
 
@@ -90,10 +89,7 @@ def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
     ad = df["inheritance_status"].fillna("").astype(str).eq("AD_candidate")
     df.loc[ad & df["_intronic_penalty"].eq(1), "status_priority"] = 1
     df["_plp_boost"] = _clinvar_plp_rank_boost(df)
-    if "weighted_evidence_score" in df.columns:
-        df["_rank_score"] = df["weighted_evidence_score"].where(df["weighted_evidence_score"].notna(), df["evidence_score"])
-    else:
-        df["_rank_score"] = df["evidence_score"]
+    df["_rank_score"] = df["evidence_score"]
     # plp_boost before intronic_penalty so LRRK2 R1441C-style hits beat intron AR and
     # transcript_ablation SVs that share status_priority 0.
     sort_cols = ["sample_id", "status_priority", "_plp_boost", "_intronic_penalty", "tier", "_rank_score"]
@@ -294,25 +290,12 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
             lines.append(f"- {row.get('module')}: {row.get('callset_status')}")
         for row in sv_rows:
             lines.append(f"- gatk_sv: {row.get('sv_status')}")
-    incidental = pd.DataFrame()
-    if candidates is not None and not candidates.empty and "incidental" in candidates.columns:
-        incidental = candidates[candidates["incidental"].fillna("").astype(str).str.len() > 0]
-    if not incidental.empty:
-        lines.extend(
-            [
-                "",
-                "## Incidental",
-                "",
-                "TTN truncating variants are tagged incidental. They are not classified as benign and they are not treated as the Parkinson's disease diagnosis.",
-                "",
-            ]
-        )
     lines.extend(_phenotype_lines(candidates, qc))
     lines.extend(["", "## Ranked candidates", ""])
     if candidates is None or candidates.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "consequence", "zygosity", "tier", "evidence_score", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons", "incidental") if column in candidates.columns]
+        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "consequence", "zygosity", "tier", "evidence_score", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons") if column in candidates.columns]
         lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)

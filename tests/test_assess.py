@@ -163,10 +163,9 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert set(gba_rows["phenotype_score"]) == {6}
     pink = candidates[candidates["gene"] == "PINK1"]
     assert set(pink["clinical_match"]) == {"unmatched"}
-    ttn = candidates[candidates["gene"] == "TTN"].iloc[0]
-    assert ttn["inheritance_status"] == "incidental"
-    assert ttn["incidental"] == "TTN_truncation"
-    assert ttn["clinvar_class"] != "B/LB"
+    assert "TTN" not in set(candidates["gene"].astype(str))
+    for column in ("incidental", "disposition", "lof_weight", "weighted_evidence_score", "brain_pext", "brain_expressed"):
+        assert column not in candidates.columns
     assert by_gene["MT-ND4"] == {"mtdna_pathogenic_candidate"}
     mito = candidates[candidates["gene"] == "MT-ND4"].iloc[0]
     assert mito["clinvar_class"] == "P/LP"
