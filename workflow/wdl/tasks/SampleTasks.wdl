@@ -1150,7 +1150,7 @@ PY
     extra=()
     if [[ -n "$GENE_BED" ]]; then extra+=(--gene-bed "$GENE_BED"); fi
     if [[ -n "$EXON_BED" ]]; then extra+=(--exon-bed "$EXON_BED"); fi
-    pdvar assess sample.json \
+    pdvar sample.json \
       --config ~{config_yaml} \
       --columns ~{columns_yaml} \
       --phenotypes ~{phenotypes_yaml} \
