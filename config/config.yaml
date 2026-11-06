@@ -179,11 +179,6 @@ sv:
       effect: lof
       citation: "Kitada T et al. Nature. 1998;392:605. GeneReviews Parkinson Disease Overview (NBK1223)."
 
-compound:
-  statistical_phasing:
-    enabled: false
-    reference_panel: null
-
 liability:
   # From panel notes, not a percentage. Heterozygous findings in these genes are partially_explained.
   reduced_penetrance_genes:

@@ -11,7 +11,6 @@ import pandas as pd
 STATUS_PRIORITY = {
     "AR_hom": 0,
     "AR_comphet_candidate": 0,
-    "AR_comphet_phased": 0,
     "AR_hemizygous": 0,
     "AR_second_hit_splice": 0,
     # AD / XL / risk compete with AR solves so ClinVar P/LP alleles (e.g. LRRK2
@@ -45,7 +44,7 @@ CURATION_COLUMNS = [
     "avi_phred", "avi_raw", "avi_quantile", "avi_url",
     "age_onset", "onset_category", "sex", "ethnicity",
     "onset_match", "matched_features", "phenotype_score", "clinical_match", "symptoms",
-    "variant_class", "dosage_mechanism", "phase_relation", "phase_source",
+    "variant_class", "dosage_mechanism",
     "svtype", "biomarker_notes",
     "str_locus", "str_expanded", "heteroplasmy",
     "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
@@ -131,7 +130,6 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     force_status = status.isin(
         {
             "AR_comphet_candidate",
-            "AR_comphet_phased",
             "AR_hemizygous",
             "AR_second_hit_splice",
             "str_expanded",

@@ -164,7 +164,17 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     pink = candidates[candidates["gene"] == "PINK1"]
     assert set(pink["clinical_match"]) == {"unmatched"}
     assert "TTN" not in set(candidates["gene"].astype(str))
-    for column in ("incidental", "disposition", "lof_weight", "weighted_evidence_score", "brain_pext", "brain_expressed"):
+    for column in (
+        "incidental",
+        "disposition",
+        "lof_weight",
+        "weighted_evidence_score",
+        "brain_pext",
+        "brain_expressed",
+        "phase_relation",
+        "phase_source",
+        "statistical_phasing",
+    ):
         assert column not in candidates.columns
     assert by_gene["MT-ND4"] == {"mtdna_pathogenic_candidate"}
     mito = candidates[candidates["gene"] == "MT-ND4"].iloc[0]

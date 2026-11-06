@@ -27,7 +27,6 @@ from .vcf_stream import chrom_bare, iter_vcf
 SOLVED_STATUSES = {
     "AR_hom",
     "AR_comphet_candidate",
-    "AR_comphet_phased",
     "AR_hemizygous",
     "AR_second_hit_splice",
     "AD_candidate",
@@ -41,7 +40,7 @@ PARTIAL_STATUSES = {
     "review_conflict",
     "mtdna_pathogenic_candidate",
 }
-BIALLELIC = {"AR_hom", "AR_comphet_candidate", "AR_comphet_phased", "AR_hemizygous", "risk_biallelic"}
+BIALLELIC = {"AR_hom", "AR_comphet_candidate", "AR_hemizygous", "risk_biallelic"}
 
 PRS_COLUMNS = ["chrom", "pos", "effect_allele", "other_allele", "weight", "rsid", "citation"]
 

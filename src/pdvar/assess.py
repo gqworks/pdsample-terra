@@ -229,13 +229,7 @@ def assess_sample(
             scored = splicing.summarize_splice_scores(scored)
             scored = inheritance.annotate_moi(scored, panel)
             scored = inheritance.evaluate_inheritance(scored, cfg["inheritance"])
-            phased = _exists(sample.get("phased_vcf"))
-            if phased is not None:
-                try:
-                    scored = compound.attach_phase_from_vcf(scored, phased)
-                except (RuntimeError, FileNotFoundError):
-                    pass
-            scored, follow = compound.refine(scored, cfg.get("compound"))
+            scored, follow = compound.refine(scored)
             scored = _integrate_special_calls(scored, cfg)
             pheno = _phenotype_frame(sample_id, sex, _phenotype_payload(sample))
             scored = phenotype.phenotype_concordance(scored, pheno, cfg.get("gene_phenotypes") or {}, cfg["phenotype"])
