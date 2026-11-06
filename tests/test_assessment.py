@@ -1,13 +1,12 @@
-"""SV dosage, expression weights, liability, and biomarkers."""
+"""SV dosage, liability, and biomarkers."""
 
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from pdvar import biomarkers, isoform, liability, sv
+from pdvar import biomarkers, liability, sv
 from pdvar.config import load_config
-from pdvar.expression_resources import gtex_brain_median
 from pdvar.splicing import merge_splicevault, summarize_splice_scores
 
 
@@ -56,6 +55,10 @@ def test_sv_dosage_and_not_assessed(tmp_path):
     assert prkn["zygosity"] == "het"
     assert prkn["cn_inferred_gt"] == True  # noqa: E712
     assert prkn["consequence"] == "transcript_ablation"
+    assert prkn["svlen"] == 300
+    assert snca["svlen"] == 1300
+    assert sv.sv_length({"SVLEN": "-250"}, 1000, 1250) == -250
+    assert sv.sv_length({}, 1000, 1000) is None
     assert prkn["filter"] == "PASS"
     multi = table[(table["gene"] == "PRKN") & (table["sv_id"] == "multi")].iloc[0]
     assert multi["filter"] == "MULTIALLELIC"
@@ -67,38 +70,6 @@ def test_sv_dosage_and_not_assessed(tmp_path):
     status = assessment.set_index("sample_id")["sv_status"]
     assert status["SAMPLE_D"] == "SV not assessed"
     assert status["SAMPLE_C"] == "SV carrier"
-
-
-def test_isoform_weight_is_neutral_without_cutoff(tmp_path):
-    gct = tmp_path / "tiny.gct"
-    gct.write_text(
-        "\n".join(
-            [
-                "#1.2",
-                "2\t5",
-                "Name\tDescription\tSubstantia nigra\tPutamen\tCaudate\tFrontal Cortex (BA9)\tLiver",
-                "ENSG00000185345\tPRKN\t10\t8\t6\t12\t1",
-                "ENSG00000145335\tSNCA\t1\t1\t1\t1\t9",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    expression = gtex_brain_median(gct)
-    assert expression.loc[expression["gene"] == "PRKN", "gtex_brain_median_tpm"].iloc[0] == 9
-    variants = pd.DataFrame(
-        [
-            {"gene": "PRKN", "consequence": "stop_gained", "chrom": "6", "pos": 10, "evidence_score": 8, "splice_candidate": False},
-            {"gene": "SNCA", "consequence": "stop_gained", "chrom": "4", "pos": 10, "evidence_score": 8, "splice_candidate": False},
-        ]
-    )
-    neutral = isoform.weight_lof(variants, expression, {"min_gtex_tpm": None, "unexpressed_weight": 0.25})
-    assert set(neutral["lof_weight"]) == {1.0}
-    weighted = isoform.weight_lof(variants, expression, {"min_gtex_tpm": 5, "unexpressed_weight": 0.25})
-    assert weighted.loc[weighted["gene"] == "SNCA", "lof_weight"].iloc[0] == 0.25
-    assert weighted.loc[weighted["gene"] == "PRKN", "lof_weight"].iloc[0] == 1.0
-    missing = isoform.weight_lof(variants, None, {})
-    assert set(missing["lof_weight_source"]) == {"neutral_missing_resource"}
 
 
 def test_liability_stays_null_without_citation():

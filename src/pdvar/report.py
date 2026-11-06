@@ -11,7 +11,6 @@ import pandas as pd
 STATUS_PRIORITY = {
     "AR_hom": 0,
     "AR_comphet_candidate": 0,
-    "AR_comphet_phased": 0,
     "AR_hemizygous": 0,
     "AR_second_hit_splice": 0,
     # AD / XL / risk compete with AR solves so ClinVar P/LP alleles (e.g. LRRK2
@@ -30,7 +29,6 @@ STATUS_PRIORITY = {
     "MOI_unknown_candidate": 4,
     # Introme-only intron support demoted below coding / SV AR solves.
     "AR_intronic_candidate": 5,
-    "incidental": 5,
     "not_qualifying": 9,
 }
 
@@ -46,11 +44,19 @@ CURATION_COLUMNS = [
     "avi_phred", "avi_raw", "avi_quantile", "avi_url",
     "age_onset", "onset_category", "sex", "ethnicity",
     "onset_match", "matched_features", "phenotype_score", "clinical_match", "symptoms",
-    "variant_class", "dosage_mechanism", "phase_relation", "phase_source",
-    "lof_weight", "weighted_evidence_score", "svtype", "biomarker_notes",
+    "variant_class", "dosage_mechanism",
+    "svtype", "svlen", "biomarker_notes",
     "str_locus", "str_expanded", "heteroplasmy",
     "mitomap_status", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
-    "mitimpact_hgvs", "gnomad_af_het", "incidental", "disposition",
+    "mitimpact_hgvs", "gnomad_af_het",
+]
+
+# Genomic id, then the c./p. HGVS and SV length, so the report table reads
+# coordinates and annotations together.
+LEAD_COLUMNS = [
+    "rank", "sample_id", "gene", "moi", "inheritance_status",
+    "variant_id", "chrom", "pos", "ref", "alt", "end",
+    "hgvsc", "hgvsp", "svtype", "svlen",
 ]
 
 
@@ -90,10 +96,7 @@ def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
     ad = df["inheritance_status"].fillna("").astype(str).eq("AD_candidate")
     df.loc[ad & df["_intronic_penalty"].eq(1), "status_priority"] = 1
     df["_plp_boost"] = _clinvar_plp_rank_boost(df)
-    if "weighted_evidence_score" in df.columns:
-        df["_rank_score"] = df["weighted_evidence_score"].where(df["weighted_evidence_score"].notna(), df["evidence_score"])
-    else:
-        df["_rank_score"] = df["evidence_score"]
+    df["_rank_score"] = df["evidence_score"]
     # plp_boost before intronic_penalty so LRRK2 R1441C-style hits beat intron AR and
     # transcript_ablation SVs that share status_priority 0.
     sort_cols = ["sample_id", "status_priority", "_plp_boost", "_intronic_penalty", "tier", "_rank_score"]
@@ -135,7 +138,6 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     force_status = status.isin(
         {
             "AR_comphet_candidate",
-            "AR_comphet_phased",
             "AR_hemizygous",
             "AR_second_hit_splice",
             "str_expanded",
@@ -156,6 +158,15 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     gauchian = hit.eq("gauchian")
     lof_sv = hit.eq("sv") & (mech.eq("lof") | scored)
     return force_status | plp | gauchian | lof_sv
+
+
+def order_candidate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Put the genomic id, c./p. HGVS, and SV length at the front of the table."""
+    if df is None or df.empty:
+        return df
+    lead = [column for column in LEAD_COLUMNS if column in df.columns]
+    rest = [column for column in df.columns if column not in lead]
+    return df.loc[:, lead + rest]
 
 
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
@@ -294,25 +305,12 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
             lines.append(f"- {row.get('module')}: {row.get('callset_status')}")
         for row in sv_rows:
             lines.append(f"- gatk_sv: {row.get('sv_status')}")
-    incidental = pd.DataFrame()
-    if candidates is not None and not candidates.empty and "incidental" in candidates.columns:
-        incidental = candidates[candidates["incidental"].fillna("").astype(str).str.len() > 0]
-    if not incidental.empty:
-        lines.extend(
-            [
-                "",
-                "## Incidental",
-                "",
-                "TTN truncating variants are tagged incidental. They are not classified as benign and they are not treated as the Parkinson's disease diagnosis.",
-                "",
-            ]
-        )
     lines.extend(_phenotype_lines(candidates, qc))
     lines.extend(["", "## Ranked candidates", ""])
     if candidates is None or candidates.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "consequence", "zygosity", "tier", "evidence_score", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons", "incidental") if column in candidates.columns]
+        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "hgvsc", "hgvsp", "svtype", "svlen", "consequence", "zygosity", "tier", "evidence_score", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons") if column in candidates.columns]
         lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)
@@ -457,7 +455,7 @@ def write_sample_outputs(
     """Write the files the Assess task returns to the Terra row."""
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    candidates = candidates if candidates is not None else pd.DataFrame()
+    candidates = order_candidate_columns(candidates if candidates is not None else pd.DataFrame())
     paths = {
         "candidates_tsv": outdir / "candidates.tsv",
         "report_md": outdir / "report.md",

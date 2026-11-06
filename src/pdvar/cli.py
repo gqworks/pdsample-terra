@@ -9,7 +9,6 @@ import typer
 
 from .assess import assess_sample, load_sample_json
 from .config import load_config
-from .expression_resources import print_urls
 
 app = typer.Typer(help="Per-sample Parkinson's disease variant assessment", no_args_is_help=True)
 
@@ -38,12 +37,6 @@ def assess(
     )
     for name, path in written.items():
         typer.echo(f"{name}: {path}")
-
-
-@app.command("expression-urls")
-def expression_urls() -> None:
-    """Print GTEx and gnomAD pext resource locations. Nothing is downloaded."""
-    typer.echo(print_urls())
 
 
 if __name__ == "__main__":

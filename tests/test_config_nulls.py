@@ -1,4 +1,4 @@
-"""Shipped liability/expression thresholds stay null; STR cutoffs are cited when known."""
+"""Shipped liability thresholds stay null; STR cutoffs are cited when known."""
 
 from pdvar.config import load_config
 
@@ -9,8 +9,7 @@ def test_shipped_config_has_null_penetrance():
     assert liability["penetrance"] in ({}, None)
     assert liability["prs_beta"] is None
     assert liability["prs_beta_citation"] is None
-    assert cfg["expression"]["min_brain_pext"] is None
-    assert cfg["expression"]["unexpressed_weight"] is None
+    assert "expression" not in cfg
     assert "cohort_size" not in cfg
     assert "lookup_max_gnomad_af" not in cfg["splicing"]
     assert "lookup_min_score" not in cfg["splicing"]
