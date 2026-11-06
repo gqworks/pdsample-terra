@@ -13,6 +13,16 @@ from .config import load_config
 app = typer.Typer(help="Per-sample Parkinson's disease variant assessment", no_args_is_help=True)
 
 
+@app.callback()
+def main() -> None:
+    """Per-sample Parkinson's disease variant assessment.
+
+    A callback keeps ``assess`` as a named subcommand. Typer drops the command
+    name when an app has only one command, which makes ``pdvar assess sample.json``
+    treat ``assess`` as the sample path.
+    """
+
+
 @app.command()
 def assess(
     sample_json: Path = typer.Argument(..., help="Internal per-sample JSON written by the WDL Assess task."),
