@@ -1034,6 +1034,9 @@ task Assess {
     File panel_csv
     File? gene_bed
     File? exon_bed
+    File ref_fasta
+    File ref_fasta_index
+    File gtf
     File? gba1_pd_browser
     File? splicevault_tsv
     File? prs_weights
@@ -1055,7 +1058,7 @@ task Assess {
     "symptoms": symptoms_value,
     "ethnicity": ethnicity_value
   })
-  Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + 150)
+  Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(gtf, "GiB") + 150)
   command <<<
     set -euo pipefail
     # Always (re)install when a commit is set. A pre-baked pdvar image otherwise
@@ -1094,6 +1097,9 @@ PY
     export QC_JSON="~{qc_json}"
     export GENE_BED="~{gene_bed}"
     export EXON_BED="~{exon_bed}"
+    export REF_FASTA="~{ref_fasta}"
+    export REF_FAI="~{ref_fasta_index}"
+    export SPLICE_GTF="~{gtf}"
     export GBA1_PD_BROWSER="~{gba1_pd_browser}"
     export SPLICEVAULT="~{splicevault_tsv}"
     export PRS_WEIGHTS="~{prs_weights}"
@@ -1138,6 +1144,9 @@ document = {
     "introme_tsv": os.environ["INTROME_TSV"],
     "gene_bed": maybe("GENE_BED"),
     "exon_bed": maybe("EXON_BED"),
+    "ref_fasta": os.environ["REF_FASTA"],
+    "ref_fasta_index": os.environ["REF_FAI"],
+    "gtf": os.environ["SPLICE_GTF"],
     "gba1_pd_browser": maybe("GBA1_PD_BROWSER"),
     "splicevault": maybe("SPLICEVAULT"),
     "prs_weights": maybe("PRS_WEIGHTS"),
