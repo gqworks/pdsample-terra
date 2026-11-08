@@ -148,6 +148,12 @@ def test_pdsample_is_the_only_entry_workflow():
     assert '"PdSample.phenotype_report": "${this.phenotype_report}"' in terra
     assert "File? phenotype_report" in text
     assert "Array[File] candidates = Assess.candidates" in text
+    assess_call = text.split("call Tasks.Assess {", 1)[1].split("output {", 1)[0]
+    assert "ref_fasta = ref_fasta" in assess_call
+    assert "ref_fasta_index = ref_fasta_index" in assess_call
+    assert "gtf = introme_gtf" in assess_call
+    assert 'export REF_FASTA="~{ref_fasta}"' in sample_tasks
+    assert '"gtf": os.environ["SPLICE_GTF"]' in sample_tasks
     assert "File candidates_tsv" not in text
     assert "File report_html" not in text
     assert "File report_md" not in text

@@ -29,6 +29,7 @@ from . import (
     sv,
 )
 from .avi import merge_avi
+from .splice_heuristics import IndexedFasta, annotate_splice_heuristics, prepare_exons
 from .vep import parse_vep
 
 def _path(value: object) -> Path | None:
@@ -105,6 +106,32 @@ def _phenotype_frame(sample_id: str, sex: str, payload: dict | None) -> pd.DataF
     row = {"sample_id": sample_id, "sex": sex}
     row.update(phenotype.phenotype_for_frame(payload))
     return pd.DataFrame([row])
+
+
+def _annotate_splice_heuristics(
+    scored: pd.DataFrame,
+    notes: dict,
+    fasta_path: Path | None,
+    fai_path: Path | None,
+    gtf_path: Path | None,
+    panel: pd.DataFrame,
+    cfg: dict,
+) -> pd.DataFrame:
+    """Label Figure 3/4 splice windows. A missing FASTA or GTF leaves the columns blank."""
+    if notes.get("splice_heuristics") != "called":
+        return annotate_splice_heuristics(scored, None, None)
+    fasta = None
+    try:
+        fasta = IndexedFasta(fasta_path, fai_path)
+        genes = panel["gene"] if "gene" in panel.columns else None
+        exons = prepare_exons(gtf_path, genes, cfg.get("gene_aliases"))
+        return annotate_splice_heuristics(scored, exons, fasta)
+    except (OSError, ValueError, UnicodeError):
+        notes["splice_heuristics"] = "not_assessed"
+        return annotate_splice_heuristics(scored, None, None)
+    finally:
+        if fasta is not None:
+            fasta.close()
 
 
 def _empty_candidates() -> pd.DataFrame:
@@ -205,6 +232,10 @@ def assess_sample(
     if avi_path is not None:
         avi_table = io.read_table(avi_path)
     notes["avi"] = "called" if not avi_table.empty else "not_assessed"
+    fasta_path = _exists(sample.get("ref_fasta"))
+    fai_path = _exists(sample.get("ref_fasta_index"))
+    gtf_path = _exists(sample.get("gtf"))
+    notes["splice_heuristics"] = "called" if fasta_path and fai_path and gtf_path else "not_assessed"
 
     follow = pd.DataFrame()
     if variants.empty:
@@ -227,6 +258,7 @@ def assess_sample(
             if vault is not None:
                 scored = splicing.merge_splicevault(scored, io.read_table(vault))
             scored = splicing.summarize_splice_scores(scored)
+            scored = _annotate_splice_heuristics(scored, notes, fasta_path, fai_path, gtf_path, panel, cfg)
             scored = inheritance.annotate_moi(scored, panel)
             scored = inheritance.evaluate_inheritance(scored, cfg["inheritance"])
             scored, follow = compound.refine(scored)

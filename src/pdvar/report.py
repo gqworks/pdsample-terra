@@ -37,6 +37,7 @@ CURATION_COLUMNS = [
     "zygosity", "tier", "evidence_score", "evidence_reasons", "inheritance_status", "hit_source",
     "gba1_pd_class", "gba1_gd_acmg", "gba1_pd_variant_name", "gba1_pd_matched_cdna",
     "introme_class", "introme_score", "introme_cohort_af", "introme_n_carriers", "introme_gene_region",
+    "splice_rule", "splice_subgroup", "splice_sav_pct", "splice_heuristic_n",
     "clinvar_class", "gnomad_af", "gnomad_popmax_af",
     "cadd", "revel",
     "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
@@ -310,7 +311,7 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
     if candidates is None or candidates.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "hgvsc", "hgvsp", "svtype", "svlen", "consequence", "zygosity", "tier", "evidence_score", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons") if column in candidates.columns]
+        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "hgvsc", "hgvsp", "svtype", "svlen", "consequence", "zygosity", "tier", "evidence_score", "splice_rule", "splice_subgroup", "splice_sav_pct", "splice_heuristic_n", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons") if column in candidates.columns]
         lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)
