@@ -140,13 +140,17 @@ def test_pdsample_is_the_only_entry_workflow():
     assert '"PdSample.bam": "${this.bam_or_cram_file}"' in terra
     assert '"PdSample.bai": "${this.bai}"' in terra
     assert '"PdSample.sex": "${this.sex}"' in terra
-    assert '"PdSample.age_onset": "${this.age_onset}"' in terra
-    assert '"PdSample.symptoms": "${this.symptoms}"' in terra
-    assert '"PdSample.ethnicity": "${this.ethnicity}"' in terra
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "pheno[Phenotype report or age, symptoms, ancestry] --> assess" in readme
     assert '"PdSample.phenotype_report": "${this.phenotype_report}"' in terra
+    assert "PdSample.age_onset" not in terra
+    assert "PdSample.symptoms" not in terra
+    assert "PdSample.ethnicity" not in terra
+    assert '"PdSample.phenotype":' not in terra
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "pheno[Phenotype report txt] --> assess" in readme
     assert "File? phenotype_report" in text
+    assert "String? age_onset" not in text
+    assert "String? symptoms" not in text
+    assert "String? ethnicity" not in text
     assert "Array[File] candidates = Assess.candidates" in text
     assess_call = text.split("call Tasks.Assess {", 1)[1].split("output {", 1)[0]
     assert "ref_fasta = ref_fasta" in assess_call
@@ -197,10 +201,7 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File sample_json" not in tasks
     assert "File report_md" not in tasks
     assert "PHENOTYPE_REPORT" in tasks
-    assert "String? ethnicity" in text
-    assert "ethnicity = ethnicity" in text
-    assert "write_json" in tasks
-    assert '"ethnicity": ethnicity_value' in tasks
+    assert "phenotype_report = phenotype_report" in text
     assert '"PdSample.sv_ref_panel_vcf": "${workspace.ref_panel_vcf}"' in terra
     assert '"PdSample.sv_ref_std_scramble_vcf_tar": "${workspace.ref_panel_std_scramble_vcf_tar}"' in terra
     assert "sv_empty_file" not in terra

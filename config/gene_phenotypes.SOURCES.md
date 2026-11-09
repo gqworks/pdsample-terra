@@ -1,8 +1,9 @@
 # Sources for `gene_phenotypes.yaml`
 
 Starter literature synthesis behind each profile in `config/gene_phenotypes.yaml`. It is not a
-formal systematic review. Onset ranges and keywords were chosen for triage concordance and must
-be reviewed by a clinician before they inform reporting.
+formal systematic review. Onset ranges, keywords, and ancestry annotations were updated from
+clinician review (KRK; `gene_phenotypes_KRK.docx`). Citation rows below still document the
+literature anchors used to draft the profiles.
 
 Profile confidence:
 

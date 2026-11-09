@@ -1040,24 +1040,12 @@ task Assess {
     File? gba1_pd_browser
     File? splicevault_tsv
     File? prs_weights
-    String? age_onset
-    String? symptoms
-    String? ethnicity
     File? phenotype_report
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
     String pdvar_git_commit = "5e7ccc92a6b76ea879bbc7c0e0c4ff3bf1726ce3"
   }
-  String age_value = select_first([age_onset, ""])
-  String symptoms_value = select_first([symptoms, ""])
-  String ethnicity_value = select_first([ethnicity, ""])
-  # write_json keeps quotes and newlines in free-text symptoms out of the shell.
-  File phenotype_json = write_json({
-    "age_onset": age_value,
-    "symptoms": symptoms_value,
-    "ethnicity": ethnicity_value
-  })
   Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(gtf, "GiB") + 150)
   command <<<
     set -euo pipefail
@@ -1104,7 +1092,6 @@ PY
     export SPLICEVAULT="~{splicevault_tsv}"
     export PRS_WEIGHTS="~{prs_weights}"
     export AVI_TSV="~{avi_tsv}"
-    export PHENOTYPE_JSON="~{phenotype_json}"
     export PHENOTYPE_REPORT="~{phenotype_report}"
     export PDVAR_GIT_COMMIT="~{pdvar_git_commit}"
     export PDVAR_VERSION="$(tr -d '\n' < pdvar_version.txt)"
@@ -1117,13 +1104,8 @@ def maybe(key):
     return value or None
 
 qc = json.loads(Path(os.environ["QC_JSON"]).read_text(encoding="utf-8"))
-raw_phenotype = json.loads(Path(os.environ["PHENOTYPE_JSON"]).read_text(encoding="utf-8"))
 phenotype = {}
-for key in ("age_onset", "symptoms", "ethnicity"):
-    value = str(raw_phenotype.get(key) or "").strip()
-    if value:
-        phenotype[key] = value
-report_path = os.environ.get("PHENOTYPE_REPORT", "").strip()
+report_path = maybe("PHENOTYPE_REPORT")
 if report_path:
     phenotype["report_text"] = Path(report_path).read_text(encoding="utf-8")
 if os.environ.get("PDVAR_VERSION"):

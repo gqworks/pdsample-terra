@@ -387,8 +387,8 @@ def _phenotype_lines(candidates: pd.DataFrame, qc: dict) -> list[str]:
     lines = ["", "## Phenotype concordance", ""]
     if not info.get("provided"):
         lines.append(
-            "Age at onset, symptoms, ancestry, and the phenotype report were blank, so clinical concordance was not assessed. "
-            "Provide a phenotype report, or fill age_onset, symptoms, and ethnicity, when the patient has them."
+            "No phenotype report was supplied, so clinical concordance was not assessed. "
+            "Provide a GP2-style phenotype_report text file on the sample table when the patient has one."
         )
         return lines
     lines.extend(_phenotype_detail_lines(info))
