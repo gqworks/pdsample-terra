@@ -94,9 +94,8 @@ workflow PdSample {
     String pdvar_git_commit = "5e7ccc92a6b76ea879bbc7c0e0c4ff3bf1726ce3"
     File? splicevault_tsv
     File? prs_weights
-    String? age_onset
-    String? symptoms
-    String? ethnicity
+    # Optional GP2-style phenotype text. Age at onset, ancestry, and clinical fields
+    # are read from this file only (no separate sample-table phenotype columns).
     File? phenotype_report
 
     File mt_dict
@@ -789,9 +788,6 @@ workflow PdSample {
       gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
       splicevault_tsv = splicevault_tsv,
       prs_weights = prs_weights,
-      age_onset = age_onset,
-      symptoms = symptoms,
-      ethnicity = ethnicity,
       phenotype_report = phenotype_report,
       pdvar_docker = pdvar_docker,
       pdvar_git_url = pdvar_git_url,
