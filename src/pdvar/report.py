@@ -24,7 +24,8 @@ STATUS_PRIORITY = {
     "mtdna_pathogenic_candidate": 0,
     "AR_single_het": 3,
     "review_conflict": 3,
-    "mtdna_variant": 2,
+    # Haplogroup / unannotated mtDNA stays off the shortlist (see patient_candidates).
+    "mtdna_variant": 8,
     "str_expanded": 1,
     "MOI_unknown_candidate": 4,
     # Introme-only intron support demoted below coding / SV AR solves.
@@ -171,12 +172,19 @@ def order_candidate_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
-    """Top-N per sample among qualifying rows, plus forced clinical keepers."""
+    """Top-N per sample among qualifying rows, plus forced clinical keepers.
+
+    Generic ``mtdna_variant`` rows (score 0 / ClinVar B/LB haplogroup alleles) are
+    not shortlisted. Only ``mtdna_pathogenic_candidate`` mtDNA appears, via the
+    must-keep mask.
+    """
     ranked = rank_candidates(df)
-    qualifying = ranked[ranked["inheritance_status"] != "not_qualifying"].copy()
+    status = ranked["inheritance_status"].fillna("").astype(str)
+    qualifying = ranked[~status.isin(["not_qualifying", "mtdna_variant"])].copy()
     if qualifying.empty:
         return qualifying
-    # Re-rank after dropping not_qualifying so rank<=N is among reportable rows.
+    # Re-rank after dropping not_qualifying / haplogroup mtDNA so rank<=N is among
+    # reportable rows.
     qualifying["rank"] = qualifying.groupby("sample_id", sort=False).cumcount() + 1
     top = qualifying[qualifying["rank"] <= max_per_patient]
     must = qualifying[_must_keep_mask(qualifying)]
