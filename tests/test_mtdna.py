@@ -108,3 +108,45 @@ def test_must_keep_only_pathogenic_mtdna():
     keep = _must_keep_mask(df)
     assert bool(keep.iloc[0]) is True
     assert bool(keep.iloc[1]) is False
+
+
+def test_generic_mtdna_variant_not_shortlisted():
+    from pdvar.report import patient_candidates
+
+    df = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "PINK1",
+                "inheritance_status": "AR_single_het",
+                "clinvar_class": "none",
+                "hit_source": "small_variant",
+                "consequence": "missense_variant",
+                "evidence_score": 2,
+                "tier": 4,
+            },
+            {
+                "sample_id": "S1",
+                "gene": "MT-CYB",
+                "inheritance_status": "mtdna_variant",
+                "clinvar_class": "B/LB",
+                "hit_source": "mtdna",
+                "consequence": "mitochondrial_variant",
+                "evidence_score": -10,
+                "tier": 4,
+            },
+            {
+                "sample_id": "S1",
+                "gene": "MT-ND4",
+                "inheritance_status": "mtdna_pathogenic_candidate",
+                "clinvar_class": "P/LP",
+                "hit_source": "mtdna",
+                "consequence": "mitochondrial_variant",
+                "evidence_score": 12,
+                "tier": 1,
+            },
+        ]
+    )
+    top = patient_candidates(df, max_per_patient=20)
+    assert set(top["gene"]) == {"PINK1", "MT-ND4"}
+    assert "mtdna_variant" not in set(top["inheritance_status"])
