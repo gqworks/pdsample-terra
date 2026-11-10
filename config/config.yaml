@@ -159,6 +159,11 @@ inheritance:
   ar_second_hit_min_tier: 3
   allow_introme_second_hit: true
   unknown_moi_min_tier: 2    # panel genes with inheritance "unknown" (low-confidence candidates)
+  # Splice / intron LoF is not the Mendelian mechanism for GoF or dominant-negative AD
+  # genes (panel `mechanism` column). Weak intron / Introme-only AD hits in those genes
+  # become AD_gof_intronic (demoted). ClinVar P/LP and coding alleles are kept.
+  demote_gof_ad_intronic: true
+  gof_intronic_mechanisms: [gof, dn]
 
 phenotype:
   early_onset_age: 50        # EOPD threshold
