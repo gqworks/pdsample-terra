@@ -29,10 +29,31 @@ _POP_HEADER = (
 )
 
 
+def _is_gzip_path(path: Path) -> bool:
+    name = str(path).lower()
+    if name.endswith((".gz", ".bgz")):
+        return True
+    # Cromwell may localize without a recognized suffix; sniff gzip magic.
+    if not path.is_file():
+        return False
+    try:
+        with path.open("rb") as handle:
+            return handle.read(2) == b"\x1f\x8b"
+    except OSError:
+        return False
+
+
 def _open_text(path: Path, mode: str = "rt"):
-    if str(path).endswith(".gz"):
-        return gzip.open(path, mode, encoding="utf-8" if "t" in mode else None)
-    return path.open(mode, encoding="utf-8" if "t" in mode else None)
+    encoding = "utf-8" if "t" in mode else None
+    # Only sniff existing inputs; for write modes trust the suffix.
+    use_gzip = (
+        str(path).lower().endswith((".gz", ".bgz"))
+        if "w" in mode
+        else _is_gzip_path(path)
+    )
+    if use_gzip:
+        return gzip.open(path, mode, encoding=encoding)
+    return path.open(mode, encoding=encoding)
 
 
 def bare_chrom(chrom: str) -> str:
