@@ -3,6 +3,11 @@ data/raw/*/*
 resources/bravo-dbsnp-all.vcf.gz
 resources/bravo-dbsnp-all.vcf.gz.tbi
 resources/bravo-dbsnp-all.vcf.gz.csi
+# Panel-sliced gnomAD AF is staged to the Terra bucket, not git.
+resources/gnomad/*.vcf.bgz
+resources/gnomad/*.vcf.bgz.tbi
+resources/gnomad/*.log
+resources/gnomad/_verify.sh
 data/interim/*
 data/processed/*
 results/*/*

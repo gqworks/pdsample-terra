@@ -71,6 +71,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File? avi_table" in text
     assert "File? avi_table_index" in text
     assert "File? gnomad_genomes_vcf" not in text
+    assert "File? gnomad_af_vcf" in text
+    assert "File? gnomad_af_vcf_index" in text
     assert "File? clinvar_vcf" not in text
     assert "File? cadd_snv" in text
     assert "File? revel" in text
@@ -84,7 +86,11 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "VepAnnotate" in text
     assert "PrepareDbnsfpForVep" not in text
     assert "LiftGnomadInfo" in text
+    assert "AnnotateGnomadAf" in text
+    assert "annotate_gnomad_af.py" in sample_tasks
+    assert "task AnnotateGnomadAf" in sample_tasks
     assert "sample_id = sample_id" in text.split("call Tasks.LiftGnomadInfo", 1)[1].split("call Tasks.ExpansionHunter", 1)[0]
+    assert "AnnotateGnomadAf.annotated_vcf" in text.split("call Tasks.LiftGnomadInfo", 1)[1].split("call Tasks.ExpansionHunter", 1)[0]
     assert 'name = sample_id + ".sv.vcf.gz"' in text
     assert 'name = sample_id + ".sv.vcf.gz.tbi"' in text
     assert "File sv_vcf = NameSvVcf.released" in text
@@ -119,6 +125,10 @@ def test_pdsample_is_the_only_entry_workflow():
     assert terra_json["PdSample.dbnsfp_index"].endswith("dbNSFP5.4a_grch38.gz.tbi")
     assert "PdSample.dbnsfp_variant_chroms" not in terra_json
     assert "PdSample.gnomad_genomes_vcf" not in terra_json
+    assert terra_json["PdSample.gnomad_af_vcf"].endswith("gnomad.joint.v4.1.panel.sites.vcf.bgz")
+    assert terra_json["PdSample.gnomad_af_vcf_index"].endswith(
+        "gnomad.joint.v4.1.panel.sites.vcf.bgz.tbi"
+    )
     assert "PdSample.clinvar_vcf" not in terra_json
     dockstore = (ROOT / ".dockstore.yml").read_text(encoding="utf-8")
     assert "PdSample.wdl" in dockstore
