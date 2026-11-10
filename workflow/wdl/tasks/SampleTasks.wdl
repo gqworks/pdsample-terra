@@ -161,6 +161,7 @@ pairs = [
     ("workflow/scripts/annotate_avi.py", "annotate_avi.py"),
     ("workflow/scripts/annotate_mtdna.py", "annotate_mtdna.py"),
     ("workflow/scripts/lift_gnomad_from_csq.py", "lift_gnomad_from_csq.py"),
+    ("workflow/scripts/annotate_gnomad_af.py", "annotate_gnomad_af.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
@@ -186,6 +187,7 @@ PY
     File annotate_avi_py = "annotate_avi.py"
     File annotate_mtdna_py = "annotate_mtdna.py"
     File lift_gnomad_from_csq_py = "lift_gnomad_from_csq.py"
+    File annotate_gnomad_af_py = "annotate_gnomad_af.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
     File panel_csv = "panel.csv"
@@ -678,6 +680,50 @@ task VepAnnotate {
     memory: "16 GiB"
     disks: "local-disk ~{disk_gb} HDD"
     cpu: threads
+  }
+}
+
+# Join panel-sliced gnomAD v4.1 joint sites AF onto the sample VCF (INFO/gnomAD_AF).
+# Prefer this over dbNSFP CSQ when an allele is present in the sites file.
+task AnnotateGnomadAf {
+  input {
+    File vcf
+    File vcf_index
+    File sites_vcf
+    File sites_vcf_index
+    File annotate_gnomad_af_py
+    String sample_id
+    String python_docker = "python:3.11.11-slim-bookworm"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(vcf, "GiB") * 3 + size(sites_vcf, "GiB") + size(sites_vcf_index, "GiB") + 150)
+  command <<<
+    set -euo pipefail
+    apt-get update -qq
+    apt-get install -y -qq tabix >/dev/null
+    # Cromwell may localize the sites index beside a different basename.
+    sites="~{sites_vcf}"
+    sites_index="~{sites_vcf_index}"
+    if [[ ! -e "${sites}.tbi" && -e "$sites_index" ]]; then
+      ln -sf "$sites_index" "${sites}.tbi"
+    fi
+    python3 "~{annotate_gnomad_af_py}" \
+      --in-vcf "~{vcf}" \
+      --sites-vcf "$sites" \
+      --out-vcf "~{sample_id}.gnomad_af.vcf"
+    bgzip -f "~{sample_id}.gnomad_af.vcf"
+    tabix -p vcf "~{sample_id}.gnomad_af.vcf.gz"
+  >>>
+  output {
+    File annotated_vcf = "~{sample_id}.gnomad_af.vcf.gz"
+    File annotated_vcf_index = "~{sample_id}.gnomad_af.vcf.gz.tbi"
+  }
+  runtime {
+    docker: python_docker
+    preemptible: preemptible
+    memory: "8 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 2
   }
 }
 

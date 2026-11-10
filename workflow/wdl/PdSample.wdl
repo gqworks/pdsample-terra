@@ -39,12 +39,16 @@ workflow PdSample {
     File? revel
     File? revel_index
     # Academic dbNSFP 5.4a VEP-ready single file (bgzip + tabix), e.g. dbNSFP5.4a_grch38.gz.
-    # Includes clinvar_clnsig + gnomAD4.1 joint AF (no separate ClinVar/gnomAD --custom).
+    # Includes clinvar_clnsig + gnomAD4.1 joint AF for missense/splice; not genome-wide AF.
     File? dbnsfp
     File? dbnsfp_index
     String dbnsfp_fields = "SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Eigen-phred_coding,MutationTaster_score,MutationTaster_pred,fathmm-XF_coding_score,fathmm-XF_coding_pred,CADD_phred,REVEL_score,clinvar_clnsig,gnomAD4.1_joint_AF,gnomAD4.1_joint_POPMAX_AF"
     # Off by default: SIFT/PolyPhen2 come from dbNSFP 5.4a (avoid duplicating cache-native VEP).
     Boolean vep_sift_polyphen = false
+    # Panel-sliced gnomAD v4.1 joint sites (AF_joint / AF_grpmax_joint). Rebuild when the
+    # panel BED changes (workflow/scripts/build_panel_gnomad_af.sh). Unset keeps dbNSFP-only AF.
+    File? gnomad_af_vcf
+    File? gnomad_af_vcf_index
 
     File somalier_sites
     Float max_freemix = 0.02
@@ -447,10 +451,22 @@ workflow PdSample {
       extra_args = vep_extra_args,
       preemptible = preemptible
   }
+  if (defined(gnomad_af_vcf) && defined(gnomad_af_vcf_index)) {
+    call Tasks.AnnotateGnomadAf {
+      input:
+        vcf = VepAnnotate.vep_vcf,
+        vcf_index = VepAnnotate.vep_index,
+        sites_vcf = select_first([gnomad_af_vcf]),
+        sites_vcf_index = select_first([gnomad_af_vcf_index]),
+        annotate_gnomad_af_py = FetchRepoAssets.annotate_gnomad_af_py,
+        sample_id = sample_id,
+        preemptible = preemptible
+    }
+  }
   call Tasks.LiftGnomadInfo {
     input:
-      vcf = VepAnnotate.vep_vcf,
-      vcf_index = VepAnnotate.vep_index,
+      vcf = select_first([AnnotateGnomadAf.annotated_vcf, VepAnnotate.vep_vcf]),
+      vcf_index = select_first([AnnotateGnomadAf.annotated_vcf_index, VepAnnotate.vep_index]),
       lift_gnomad_from_csq_py = FetchRepoAssets.lift_gnomad_from_csq_py,
       sample_id = sample_id,
       preemptible = preemptible

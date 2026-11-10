@@ -11,7 +11,8 @@ flowchart TD
   hc --> gt[GenotypeGVCFs and hard filters]
   gt --> norm[PASS and bcftools norm]
   norm --> vep[VEP 116]
-  vep --> lift[Lift gnomAD INFO]
+  vep --> gnomadAf[Annotate panel gnomAD AF]
+  gnomadAf --> lift[Lift gnomAD INFO]
   lift --> introme[Introme v2 on the panel BED]
   norm --> avi[AlphaGenome Atlas AVI]
   qc --> eh[ExpansionHunter]
@@ -71,7 +72,7 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 6. **STRs.** ExpansionHunter 5.0.0 with the vendored 19-locus catalog `workflow/assets/expansionhunter_pd.hg38.json`.
 7. **GBA1.** Gauchian 1.0.2.
 8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0, then optional MitImpact 4 CSV annotation (`mtdna_mitimpact`) for ClinVar / MITOMAP / gnomAD mtDNA AF / APOGEE2 / MitoTIP.
-9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and gnomAD v4.1 joint AF (no separate ClinVar/gnomAD VCF customs; cache-native VEP SIFT/PolyPhen off by default). Optional genome-wide CADD/REVEL plugins remain as a fallback. `LiftGnomadInfo` copies AF from CSQ into `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`.
+9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and missense/splice gnomAD v4.1 joint AF fallback (cache-native VEP SIFT/PolyPhen off by default). Optional panel-sliced **gnomAD v4.1 joint** sites (`gnomad_af_vcf`) annotate complete panel AF including intron/UTR; rebuild with `workflow/scripts/build_panel_gnomad_af.sh` when the panel BED changes. Optional genome-wide CADD/REVEL plugins remain as a fallback. `AnnotateGnomadAf` + `LiftGnomadInfo` expose `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`.
 10. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
 11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
 12. **Assess.** `pdvar` ranks candidates and writes the Terra outputs. When `phenotype_report` is set, the GP2-style report is compared with `config/gene_phenotypes.yaml`. `clinical_match` on a risk variant records whether that gene's onset range, key clinical features, or enriched ancestry fit the patient. The match is a triage note. It does not add evidence points. A higher `phenotype_score` breaks ties after tier and AlphaGenome Phred. Profiles cover every gene in `resources/panel/monopdaus-gene-inheritance.csv` (sources and confidence in `config/gene_phenotypes.SOURCES.md`). They are a starter literature synthesis and need expert clinical review. Low-evidence candidates and the risk genes PSAP and TMEM175 have minimal profiles with no onset range, so they are usually `uninformative`. A gene outside the panel is `no_profile`.

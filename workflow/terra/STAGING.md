@@ -19,6 +19,8 @@ See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 | `PdSample.avi_table_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/alphagenome/alphagenome_variant_impact_score_snvs.tsv.gz.tbi` | Tabix index for that table | small |
 | `PdSample.dbnsfp` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz` | Academic dbNSFP 5.4a VEP-ready GRCh38 (bgzip) | ~55 GB |
 | `PdSample.dbnsfp_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | Tabix index for that file | small |
+| `PdSample.gnomad_af_vcf` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.joint.v4.1.panel.sites.vcf.bgz` | Panel-sliced gnomAD v4.1 joint sites (`AF_joint`) | depends on panel |
+| `PdSample.gnomad_af_vcf_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.joint.v4.1.panel.sites.vcf.bgz.tbi` | Tabix index for that file | small |
 | `PdSample.mtdna_mitimpact` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/mitimpact/MitImpact4_V059.csv` | MitImpact 4 CSV (unzip from MitImpact downloads) | ~20 MB unzipped |
 
 `PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are `bam` and optional `bai`). BAM + `.bai` and CRAM (with or without `.crai`) both work: `EnsureBam` converts CRAM to BAM/BAI before callers run. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
@@ -140,11 +142,12 @@ Point `PdSample.vep_cache` and `PdSample.somalier_sites` at those two objects. P
 
 ## VEP pathogenicity annotations (academic dbNSFP 5.4a)
 
-gnomAD AF, ClinVar significance, CADD, REVEL, and the other in-silico scores all come from **dbNSFP 5.4a** (no separate gnomAD / ClinVar VCF `--custom` inputs). SpliceAI for triage is from **Introme**, not VEP.
+ClinVar significance, CADD, REVEL, and the other in-silico scores come from **dbNSFP 5.4a** (no separate ClinVar VCF `--custom`). dbNSFP also carries missense/splice `gnomAD4.1_joint_*` as a fallback. **Genome-wide panel AF** (intron/UTR/synonymous included) comes from the panel-sliced gnomAD sites file below. SpliceAI for triage is from **Introme**, not VEP.
 
 | Input | Staged path | Source |
 | --- | --- | --- |
 | `dbnsfp` / `dbnsfp_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz` / `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | Academic **dbNSFP 5.4a** VEP-ready single file (bgzip + tabix). |
+| `gnomad_af_vcf` / `gnomad_af_vcf_index` | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.joint.v4.1.panel.sites.vcf.bgz` (+ `.tbi`) | Panel-sliced **gnomAD v4.1 joint** sites (`AF_joint` / `AF_grpmax_joint`). |
 
 ### Stage academic dbNSFP 5.4a (VEP-ready single file)
 
@@ -153,7 +156,26 @@ gnomAD AF, ClinVar significance, CADD, REVEL, and the other in-silico scores all
 3. Point `PdSample.dbnsfp` and `PdSample.dbnsfp_index` at those objects (pre-filled in `PdSample.terra_inputs.json`).
 4. Default `dbnsfp_fields` matches `dbNSFP5.4a_variant.columns.tsv`: SIFT/PolyPhen2, Eigen, MutationTaster, fathmm-XF, `CADD_phred`, `REVEL_score`, `clinvar_clnsig`, `gnomAD4.1_joint_AF`, `gnomAD4.1_joint_POPMAX_AF`. Classic `FATHMM_*` is **not** in 5.4a.
 
-SIFT and PolyPhen come from dbNSFP (`SIFT_*` / `Polyphen2_HDIV_*`). Cache-native VEP `--sift/--polyphen` is off by default (`vep_sift_polyphen=false`) to avoid duplicating those scores. `LiftGnomadInfo` copies `gnomAD4.1_joint_*` from CSQ into `INFO/gnomAD_AF` / `INFO/AF_popmax` for Introme’s rare filter. `pdvar` maps `clinvar_clnsig` → `clinvar_class`.
+SIFT and PolyPhen come from dbNSFP (`SIFT_*` / `Polyphen2_HDIV_*`). Cache-native VEP `--sift/--polyphen` is off by default (`vep_sift_polyphen=false`) to avoid duplicating those scores. `AnnotateGnomadAf` (when `gnomad_af_vcf` is set) writes `INFO/gnomAD_AF` / `AF_popmax` from the panel sites file; `LiftGnomadInfo` then fills any remaining empty AF from dbNSFP CSQ for Introme’s rare filter. `pdvar` maps `clinvar_clnsig` → `clinvar_class`.
+
+### Stage panel-sliced gnomAD v4.1 joint AF
+
+Public source (Google Cloud Public Datasets):
+
+`gs://gcp-public-data--gnomad/release/4.1/vcf/joint/gnomad.joint.v4.1.sites.chr{1..22,X,Y}.vcf.bgz`
+
+1. Build a panel extract with `workflow/scripts/build_panel_gnomad_af.sh` using `resources/panel/monopdaus-genes.grch38.bed` (or the calling BED). Example:
+
+```bash
+./workflow/scripts/build_panel_gnomad_af.sh \
+  --bed resources/panel/monopdaus-genes.grch38.bed \
+  --gnomad-dir gs://gcp-public-data--gnomad/release/4.1/vcf/joint \
+  --out gnomad.joint.v4.1.panel.sites.vcf.bgz
+```
+
+2. Upload `gnomad.joint.v4.1.panel.sites.vcf.bgz` and `.tbi` to `resources/gnomad/` in the workspace bucket.
+3. Point `PdSample.gnomad_af_vcf` / `PdSample.gnomad_af_vcf_index` at those objects (pre-filled in `PdSample.terra_inputs.json`). Leave unset to keep dbNSFP-only AF.
+4. **When the panel gene BED changes**, re-run the script and overwrite (or version) the staged objects. No WDL/`pdvar` code change is required for gene add/remove.
 
 ## mtDNA MitImpact 4
 
