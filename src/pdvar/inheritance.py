@@ -10,11 +10,52 @@ PANEL_ANNOTATIONS = {
     "moi_notes": "moi_notes",
     "confidence": "panel_confidence",
     "risk_allele_exception": "risk_allele_exception",
+    "mechanism": "mechanism",
+    "mechanism_notes": "mechanism_notes",
 }
+
+# AD genes where splice LoF does not match the Mendelian disease mechanism.
+GOF_LIKE_MECHANISMS = frozenset({"gof", "dn"})
+
+# Weak noncoding terms that Introme may elevate but that do not create a GoF/DN protein.
+_WEAK_INTRONIC_TERMS = frozenset(
+    {
+        "intron_variant",
+        "non_coding_transcript_variant",
+        "splice_region_variant",
+        "splice_polypyrimidine_tract_variant",
+        "splice_donor_5th_base_variant",
+        "donor_canonical",
+        "acceptor_canonical",
+        "donor_region",
+        "acceptor_region",
+    }
+)
+_CODINGISH_TERMS = frozenset(
+    {
+        "missense_variant",
+        "frameshift_variant",
+        "stop_gained",
+        "stop_lost",
+        "start_lost",
+        "splice_acceptor_variant",
+        "splice_donor_variant",
+        "transcript_ablation",
+        "inframe_insertion",
+        "inframe_deletion",
+        "protein_altering_variant",
+        "structural_variant",
+        "copy_number_variation",
+        "copy_number_gain",
+        "copy_number_loss",
+    }
+)
+
+AD_GOF_INTRONIC_STATUS = "AD_gof_intronic"
 
 
 def annotate_moi(df: pd.DataFrame, panel: pd.DataFrame) -> pd.DataFrame:
-    """Add panel MOI, notes, confidence and risk-allele flag; genes not on the panel get ``NOT_IN_PANEL``."""
+    """Add panel MOI, notes, confidence, mechanism and risk-allele flag; genes not on the panel get ``NOT_IN_PANEL``."""
     df = df.copy()
     genes = df["gene"].astype(str).str.upper()
     info = panel.set_index("gene")
@@ -22,6 +63,63 @@ def annotate_moi(df: pd.DataFrame, panel: pd.DataFrame) -> pd.DataFrame:
         if src in info.columns:
             df[dest] = genes.map(info[src])
     df["moi"] = df["moi"].fillna("NOT_IN_PANEL") if "moi" in df.columns else "NOT_IN_PANEL"
+    if "mechanism" in df.columns:
+        df["mechanism"] = df["mechanism"].fillna("").astype(str).str.strip().str.lower()
+    return df
+
+
+def _consequence_term_sets(series: pd.Series) -> list[set[str]]:
+    out: list[set[str]] = []
+    for raw in series.fillna("").astype(str):
+        terms: set[str] = set()
+        for part in raw.replace(",", "&").split("&"):
+            t = part.strip()
+            if t:
+                terms.add(t)
+        out.append(terms)
+    return out
+
+
+def weak_intronic_mask(df: pd.DataFrame) -> pd.Series:
+    """True for intron / splice-region noise without coding or ClinVar P/LP support."""
+    clin = (
+        df["clinvar_class"].fillna("").astype(str)
+        if "clinvar_class" in df.columns
+        else pd.Series("", index=df.index, dtype=str)
+    )
+    cons = df["consequence"] if "consequence" in df.columns else pd.Series("", index=df.index)
+    term_sets = _consequence_term_sets(cons)
+    weak = []
+    for terms, cv in zip(term_sets, clin.tolist()):
+        if cv == "P/LP":
+            weak.append(False)
+            continue
+        if terms & _CODINGISH_TERMS:
+            weak.append(False)
+            continue
+        weak.append(bool(terms & _WEAK_INTRONIC_TERMS) or (bool(terms) and terms <= _WEAK_INTRONIC_TERMS))
+    return pd.Series(weak, index=df.index, dtype=bool)
+
+
+def demote_gof_ad_intronic(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
+    """Demote weak intron AD hits in GoF / DN genes to ``AD_gof_intronic``.
+
+    Splice-disrupting alleles remove or truncate product; they do not create the
+    toxic / hyperactive / dominant-negative proteins that drive these AD diseases.
+    """
+    if not icfg.get("demote_gof_ad_intronic", True):
+        return df
+    if "mechanism" not in df.columns or "inheritance_status" not in df.columns:
+        return df
+    mechanisms = {
+        str(m).strip().lower()
+        for m in (icfg.get("gof_intronic_mechanisms") or sorted(GOF_LIKE_MECHANISMS))
+    } or set(GOF_LIKE_MECHANISMS)
+    df = df.copy()
+    gof_like = df["mechanism"].fillna("").astype(str).str.lower().isin(mechanisms)
+    ad = df["inheritance_status"].fillna("").astype(str).eq("AD_candidate")
+    demote = ad & gof_like & weak_intronic_mask(df)
+    df.loc[demote, "inheritance_status"] = AD_GOF_INTRONIC_STATUS
     return df
 
 
@@ -34,6 +132,7 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
 
     Statuses:
       AD_candidate          qualifying variant in an AD gene
+      AD_gof_intronic       weak intron/Introme hit in a GoF/DN AD gene (demoted)
       AR_hom                qualifying homozygous variant in an AR gene
                             (other same-gene alleles are still labelled; a hom
                             does not leave coding partners as not_qualifying)
@@ -96,4 +195,5 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
                 df.loc[idx[splice_hit], "inheritance_status"] = "AR_second_hit_splice"
         elif first_o.any():
             df.loc[idx[first_o], "inheritance_status"] = "AR_single_het"
-    return df
+
+    return demote_gof_ad_intronic(df, icfg)

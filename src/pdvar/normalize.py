@@ -246,4 +246,6 @@ def normalize_panel(df: pd.DataFrame, mapping: dict[str, str], aliases: dict[str
         df["risk_allele_exception"] = (
             df["risk_allele_exception"].astype(str).str.strip().str.lower().isin(["true", "1", "yes"])
         )
+    if "mechanism" in df.columns:
+        df["mechanism"] = df["mechanism"].fillna("").astype(str).str.strip().str.lower()
     return df.drop_duplicates("gene")
