@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import importlib.util
 import sys
 from pathlib import Path
@@ -92,3 +93,38 @@ def test_annotate_accepts_bare_chrom_and_standard_af(tmp_path: Path):
     assert "gnomAD_AF=0.02" in text
     assert "AF_popmax=0.03" in text
     assert "DP=10" in text
+
+
+def test_annotate_reads_bgz_sites(tmp_path: Path):
+    """Panel sites are staged as .vcf.bgz; must not be opened as plain UTF-8."""
+    sites_text = (
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                '##INFO=<ID=AF_joint,Number=A,Type=Float,Description="joint AF">',
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
+                "chr1\t154588785\t.\tG\tC\t.\tPASS\tAF_joint=0.9852",
+            ]
+        )
+        + "\n"
+    )
+    sites = tmp_path / "sites.vcf.bgz"
+    with gzip.open(sites, "wt", encoding="utf-8") as handle:
+        handle.write(sites_text)
+    sample = tmp_path / "sample.vcf.gz"
+    with gzip.open(sample, "wt", encoding="utf-8") as handle:
+        handle.write(
+            "\n".join(
+                [
+                    "##fileformat=VCFv4.2",
+                    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
+                    "chr1\t154588785\t.\tG\tC\t.\tPASS\t.",
+                ]
+            )
+            + "\n"
+        )
+    out = tmp_path / "out.vcf"
+    matched = annotate(sample, sites, out)
+    text = out.read_text(encoding="utf-8")
+    assert matched == 1
+    assert "gnomAD_AF=0.9852" in text
