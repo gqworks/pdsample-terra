@@ -29,7 +29,11 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `AD_gof_intronic` (weak intron in GoF/DN AD gene), `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, and the other statuses in `src/pdvar/report.py` |
 | `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `mtdna`, or `sv` |
 | `sv_panel_af` | True GATK-SV reference-panel AF when available (hard-filtered like gnomAD); not the joint-callset INFO/AF |
-| `cohort_af` | In-callset SV allele frequency from INFO/AF or CN_NONREF_FREQ (annotation only; not a hard filter) |
+| `cohort_af` | In-callset SV allele frequency from INFO/AF or CN_NONREF_FREQ (annotation only, except depth-only artifact QC) |
+| `sv_algorithms` | INFO/ALGORITHMS from GATK-SV |
+| `sv_evidence` | FORMAT EV evidence classes (RD / PE / SR) |
+| `rd_gq` | FORMAT RD_GQ when present |
+| `ogq` | FORMAT OGQ when present |
 | `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` (from dbNSFP `clinvar_clnsig`) |
 | `gnomad_af`, `gnomad_popmax_af` | Nuclear: prefer panel-sliced gnomAD v4.1 joint sites (`AF_joint` / `AF_grpmax_joint` → INFO); else dbNSFP `gnomAD4.1_joint_*` via CSQ lift. mtDNA: `gnomad_af` is MitImpact `AF_hom_gnomad` (gnomAD v3.1). Missing means rare |
 | `gnomad_af_het` | mtDNA only: MitImpact `AF_het_gnomad` |

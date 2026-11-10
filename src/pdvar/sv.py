@@ -68,8 +68,17 @@ VARIANT_COLUMNS = [
     "clinvar", "clinvar_class", "variant_class", "hit_source", "svtype", "svlen", "sv_id",
     "copy_number", "expected_cn", "dosage_mechanism", "dosage_event", "dosage_citation",
     "scored_dosage", "predicted_effects", "exons_overlapped", "exon_count", "filter",
-    "cn_inferred_gt",
+    "cn_inferred_gt", "sv_algorithms", "sv_evidence", "rd_gq", "ogq",
 ]
+
+# Default QC for common depth-only IGV artifacts that remain FILTER=PASS.
+DEFAULT_DEPTH_ONLY_ARTIFACT = {
+    "enabled": True,
+    "max_rd_gq": 5.0,
+    "min_cohort_af": 0.05,
+}
+
+_PESR_EVIDENCE = frozenset({"PE", "SR"})
 
 
 def _as_float(value: object) -> float | None:
@@ -125,6 +134,64 @@ def passes_filter(filt: str, exclude: set[str] | None = None) -> bool:
     if not tags or not tags.issubset(ALLOWED_SV_FILTERS):
         return False
     if exclude and tags & set(exclude):
+        return False
+    return True
+
+
+def _csv_tokens(value: object) -> set[str]:
+    if value is None or value is True or value == "." or value == "":
+        return set()
+    return {part.strip().upper() for part in re.split(r"[,;]", str(value)) if part.strip() and part.strip() != "."}
+
+
+def is_depth_only_algorithms(info: dict) -> bool:
+    """True when INFO/ALGORITHMS is exclusively ``depth``."""
+    algs = _csv_tokens(info.get("ALGORITHMS"))
+    return bool(algs) and algs == {"DEPTH"}
+
+
+def has_pesr_format_evidence(fmt: dict) -> bool:
+    """True when FORMAT ``EV`` includes paired-end or split-read support."""
+    return bool(_csv_tokens(fmt.get("EV")) & _PESR_EVIDENCE)
+
+
+def depth_only_artifact_config(sv_cfg: dict | None) -> dict:
+    """Resolve depth-only artifact QC knobs from ``config.sv``."""
+    cfg = sv_cfg or {}
+    return {
+        "enabled": bool(cfg.get("drop_depth_only_artifacts", DEFAULT_DEPTH_ONLY_ARTIFACT["enabled"])),
+        "max_rd_gq": float(cfg.get("depth_only_artifact_max_rd_gq", DEFAULT_DEPTH_ONLY_ARTIFACT["max_rd_gq"])),
+        "min_cohort_af": float(
+            cfg.get("depth_only_artifact_min_cohort_af", DEFAULT_DEPTH_ONLY_ARTIFACT["min_cohort_af"])
+        ),
+    }
+
+
+def is_depth_only_artifact(
+    info: dict,
+    fmt: dict,
+    cohort_af: float | None,
+    *,
+    max_rd_gq: float = 5.0,
+    min_cohort_af: float = 0.05,
+) -> bool:
+    """True for common depth-only DELs/CNVs that look like IGV coverage artifacts.
+
+    Requires all of: ``ALGORITHMS=depth`` only, FORMAT ``EV`` without PE/SR,
+    ``RD_GQ`` or ``OGQ`` at or below ``max_rd_gq``, and cohort AF at or above
+    ``min_cohort_af``. Rare depth-only events are kept.
+    """
+    if not is_depth_only_algorithms(info):
+        return False
+    if has_pesr_format_evidence(fmt):
+        return False
+    if cohort_af is None or cohort_af < min_cohort_af:
+        return False
+    rd_gq = _as_float(fmt.get("RD_GQ"))
+    ogq = _as_float(fmt.get("OGQ"))
+    weak_rd = rd_gq is not None and rd_gq <= max_rd_gq
+    weak_ogq = ogq is not None and ogq <= max_rd_gq
+    if not (weak_rd or weak_ogq):
         return False
     return True
 
@@ -335,6 +402,7 @@ def ingest_sv(
     dosage_rules: list[dict] | None = None,
     snv_samples: list[str] | None = None,
     auto_index: bool = True,
+    depth_artifact: dict | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Return ``(variant_table, sv_assessment)``.
 
@@ -349,6 +417,7 @@ def ingest_sv(
     header_samples = read_samples(vcf)
     exclude = set(exclude_filters if exclude_filters is not None else DEFAULT_EXCLUDE_FILTERS)
     rules = dosage_rules if dosage_rules is not None else DEFAULT_DOSAGE_RULES
+    artifact_cfg = depth_only_artifact_config(depth_artifact)
     panel_genes = set(apply_gene_aliases(panel["gene"], aliases))
     gene_ids = {}
     if "gene_id" in panel.columns:
@@ -405,6 +474,18 @@ def ingest_sv(
                 gq = _as_float(fmt.get("RD_GQ"))
             allele_index = _allele_index(gt)
             cohort_af = cohort_frequency(info, svtype, allele_index)
+            if artifact_cfg["enabled"] and is_depth_only_artifact(
+                info,
+                fmt,
+                cohort_af,
+                max_rd_gq=artifact_cfg["max_rd_gq"],
+                min_cohort_af=artifact_cfg["min_cohort_af"],
+            ):
+                continue
+            algorithms = str(info.get("ALGORITHMS") or "") if info.get("ALGORITHMS") not in {True, None} else ""
+            evidence = str(fmt.get("EV") or "")
+            rd_gq = _as_float(fmt.get("RD_GQ"))
+            ogq = _as_float(fmt.get("OGQ"))
             for gene in sorted(gene_symbols):
                 predicted = effects.get(gene, set())
                 n_exons = len({(h["chrom"], h["start"], h["end"]) for h in exons_by_gene.get(gene, [])})
@@ -435,6 +516,7 @@ def ingest_sv(
                         # it as sv_panel_af; that field is reserved for a true GATK-SV
                         # reference-panel AF when available, and hard frequency filters
                         # must not treat in-cohort AF as population frequency.
+                        # Depth-only artifact QC above is the sole cohort-AF hard drop.
                         "sv_panel_af": pd.NA,
                         "cohort_af": cohort_af,
                         "gnomad_af": gnomad_af,
@@ -468,6 +550,10 @@ def ingest_sv(
                         "exon_count": exon_counts.get(gene, 0),
                         "filter": record["filter"],
                         "cn_inferred_gt": inferred,
+                        "sv_algorithms": algorithms,
+                        "sv_evidence": evidence,
+                        "rd_gq": rd_gq if rd_gq is not None else pd.NA,
+                        "ogq": ogq if ogq is not None else pd.NA,
                     }
                 )
     table = pd.DataFrame(rows) if rows else empty_variant_table()
