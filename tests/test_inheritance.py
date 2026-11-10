@@ -91,6 +91,111 @@ def test_annotate_moi_from_panel():
     assert out.loc[0, "panel_confidence"] == "high"
 
 
+def test_annotate_moi_mechanism():
+    panel = pd.DataFrame(
+        {
+            "gene": ["LRRK2", "GRN"],
+            "moi": ["AD", "AD"],
+            "mechanism": ["GOF", "lof"],
+            "mechanism_notes": ["kinase", "HI"],
+        }
+    )
+    out = inheritance.annotate_moi(pd.DataFrame({"gene": ["LRRK2", "GRN"]}), panel)
+    assert out["mechanism"].tolist() == ["gof", "lof"]
+    assert out.loc[0, "mechanism_notes"] == "kinase"
+
+
+def test_gof_ad_intronic_demoted(cfg):
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "LRRK2",
+                "moi": "AD",
+                "mechanism": "gof",
+                "zygosity": "het",
+                "tier": 2,
+                "introme_class": "high",
+                "evidence_reasons": "introme_high",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+            },
+            {
+                "sample_id": "S1",
+                "gene": "LRRK2",
+                "moi": "AD",
+                "mechanism": "gof",
+                "zygosity": "het",
+                "tier": 1,
+                "introme_class": "none",
+                "evidence_reasons": "clinvar_plp",
+                "consequence": "missense_variant",
+                "clinvar_class": "P/LP",
+            },
+            {
+                "sample_id": "S1",
+                "gene": "GRN",
+                "moi": "AD",
+                "mechanism": "lof",
+                "zygosity": "het",
+                "tier": 2,
+                "introme_class": "high",
+                "evidence_reasons": "introme_high",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+            },
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, cfg["inheritance"])
+    by_id = out.set_index(out["gene"] + ":" + out["consequence"])["inheritance_status"]
+    assert by_id["LRRK2:intron_variant"] == "AD_gof_intronic"
+    assert by_id["LRRK2:missense_variant"] == "AD_candidate"
+    assert by_id["GRN:intron_variant"] == "AD_candidate"
+
+
+def test_dn_ad_intronic_demoted(cfg):
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "VPS35",
+                "moi": "AD",
+                "mechanism": "dn",
+                "zygosity": "het",
+                "tier": 2,
+                "introme_class": "high",
+                "evidence_reasons": "introme_high",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+            }
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, cfg["inheritance"])
+    assert out.loc[0, "inheritance_status"] == "AD_gof_intronic"
+
+
+def test_gof_demotion_can_be_disabled(cfg):
+    icfg = {**cfg["inheritance"], "demote_gof_ad_intronic": False}
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "SNCA",
+                "moi": "AD",
+                "mechanism": "gof",
+                "zygosity": "het",
+                "tier": 2,
+                "introme_class": "high",
+                "evidence_reasons": "introme_high",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+            }
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, icfg)
+    assert out.loc[0, "inheritance_status"] == "AD_candidate"
+
+
 def test_gene_alias_mapping():
     from pdvar.normalize import apply_gene_aliases
     assert apply_gene_aliases(pd.Series(["gba", "PRKN"]), {"GBA": "GBA1"}).tolist() == ["GBA1", "PRKN"]
