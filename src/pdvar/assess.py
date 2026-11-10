@@ -173,15 +173,17 @@ def assess_sample(
     exons = _exists(exon_bed) or _exists(cfg.get("paths", {}).get("exon_bed"))
     if bed is None or exons is None:
         raise FileNotFoundError("gene_bed and exon_bed are required to assess the SV VCF")
+    sv_cfg = cfg.get("sv") or {}
     table, sv_assessment = sv.ingest_sv(
         sv_path,
         bed,
         exons,
         panel,
         aliases=cfg.get("gene_aliases"),
-        exclude_filters=(cfg.get("sv") or {}).get("exclude_filters"),
-        dosage_rules=(cfg.get("sv") or {}).get("dosage_rules"),
+        exclude_filters=sv_cfg.get("exclude_filters"),
+        dosage_rules=sv_cfg.get("dosage_rules"),
         snv_samples=[sample_id],
+        depth_artifact=sv_cfg,
     )
     frames.append(_relabel(table, sample_id))
     # Workflow may set sv_status to "prior" (reuse this.sv_vcf), "joint"
