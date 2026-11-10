@@ -38,3 +38,6 @@ panel:                          # resources/panel/monopdaus-gene-inheritance.csv
   risk_allele_exception: risk_allele_exception
   confidence: confidence        # high / medium / low
   sources: sources
+  # AD GoF vs LoF triage for intron/Introme demotion (see resources/panel/ad_mechanism.SOURCES.md).
+  mechanism: mechanism          # gof / lof / dn / mixed / unknown (blank for non-AD)
+  mechanism_notes: mechanism_notes

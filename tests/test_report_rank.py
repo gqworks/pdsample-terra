@@ -296,6 +296,45 @@ def test_introme_ad_candidate_demoted_to_priority_1():
     assert sum(vid.startswith("introme_ad") for vid in top["variant_id"]) <= 18
 
 
+def test_ad_gof_intronic_ranks_below_lof_ad_intron_and_str():
+    """GoF AD intron noise sits below LoF AD intron demotion and STR expansions."""
+    rows = [
+        {
+            "sample_id": "S1",
+            "gene": "ATXN8OS",
+            "variant_id": "str",
+            "consequence": "short_tandem_repeat_expansion",
+            "clinvar_class": "none",
+            "inheritance_status": "str_expanded",
+            "evidence_score": 8,
+            "tier": 2,
+        },
+        {
+            "sample_id": "S1",
+            "gene": "GRN",
+            "variant_id": "grn_intron",
+            "consequence": "intron_variant",
+            "clinvar_class": "none",
+            "inheritance_status": "AD_candidate",
+            "evidence_score": 6,
+            "tier": 2,
+        },
+        {
+            "sample_id": "S1",
+            "gene": "LRRK2",
+            "variant_id": "lrrk2_intron",
+            "consequence": "intron_variant",
+            "clinvar_class": "none",
+            "inheritance_status": "AD_gof_intronic",
+            "evidence_score": 20,
+            "tier": 1,
+        },
+    ]
+    ranked = rank_candidates(pd.DataFrame(rows))
+    assert list(ranked["variant_id"]) == ["str", "grn_intron", "lrrk2_intron"]
+    assert ranked.loc[ranked["variant_id"] == "lrrk2_intron", "status_priority"].iloc[0] == 6
+
+
 def test_lrrk2_ad_plp_outranks_intron_ar_and_lof_sv_noise():
     """LRRK2 R1441C-style AD P/LP must beat intron AR flood and transcript_ablation SVs."""
     rows = [
