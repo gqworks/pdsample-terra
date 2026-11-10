@@ -79,6 +79,14 @@ _HGVS_OFFSET = re.compile(r"c\.(?:\d+)(?P<sign>[+-])(?P<dist>\d+)")
 _HGVS_TRANSCRIPT = re.compile(r"^(?P<id>(?:ENST|NM_|NR_|XM_|XR_)\d+)")
 _GTF_ATTR = re.compile(r'(\w+)\s+"([^"]*)"')
 _PYRIMIDINE = frozenset("CT")
+_COMPLEMENT = str.maketrans("ACGT", "TGCA")
+
+
+def _coding_base(base: str, strand: str) -> str:
+    """Map a genomic (VCF / FASTA) base onto the coding strand."""
+    if strand == "-":
+        return base.translate(_COMPLEMENT)
+    return base
 
 
 @dataclass(frozen=True)
@@ -444,7 +452,8 @@ def _junction_distance(key: str) -> int:
     return abs(int(key)) - 1
 
 
-def _window(fasta: object, chrom: str, coords: dict[int, int]) -> dict[int, str] | None:
+def _window(fasta: object, chrom: str, coords: dict[int, int], strand: str = "+") -> dict[int, str] | None:
+    """Fetch motif bases in coding-strand orientation (Sullivan REF / Alt sense)."""
     start = min(coords.values())
     end = max(coords.values())
     try:
@@ -453,7 +462,10 @@ def _window(fasta: object, chrom: str, coords: dict[int, int]) -> dict[int, str]
         return None
     if len(seq) != end - start + 1:
         return None
-    return {offset: seq[genomic - start] for offset, genomic in coords.items()}
+    return {
+        offset: _coding_base(seq[genomic - start], strand)
+        for offset, genomic in coords.items()
+    }
 
 
 def _hgvs_hint(hgvsc: object) -> tuple[str, str] | None:
@@ -477,11 +489,12 @@ def _nearest(
     pos: int,
     ref: str,
     hint: tuple[str, str] | None,
-) -> tuple[str, str, dict[int, str]] | None:
-    best: tuple[tuple[int, int], str, str, dict[int, str]] | None = None
+) -> tuple[str, str, dict[int, str], str] | None:
+    best: tuple[tuple[int, int], str, str, dict[int, str], str] | None = None
     for exon in exons:
         if exon.chrom != chrom:
             continue
+        coding_ref = _coding_base(ref, exon.strand)
         for side, key_fn, offsets, genomic in (
             ("donor", _donor_key, _DONOR_OFFSETS, _donor_genomic),
             ("acceptor", _acceptor_key, _ACCEPTOR_OFFSETS, _acceptor_genomic),
@@ -490,17 +503,17 @@ def _nearest(
             if key is None:
                 continue
             coords = {offset: genomic(offset, exon) for offset in offsets}
-            bases = _window(fasta, chrom, coords)
+            bases = _window(fasta, chrom, coords, exon.strand)
             changed = 1 if key == "E+1" else (-int(key[2:]) if key.startswith("E-") else int(key))
-            if bases is None or bases.get(changed) != ref:
+            if bases is None or bases.get(changed) != coding_ref:
                 continue
             prefer = 0 if hint == (side, key) else 1
             rank = (_junction_distance(key), prefer)
             if best is None or rank < best[0]:
-                best = (rank, side, key, bases)
+                best = (rank, side, key, bases, exon.strand)
     if best is None:
         return None
-    return best[1], best[2], best[3]
+    return best[1], best[2], best[3], best[4]
 
 
 def annotate_splice_heuristics(
@@ -538,8 +551,13 @@ def annotate_splice_heuristics(
             found = _nearest(fasta, gene_exons, chrom, int(pos), ref, hint)
         if found is None:
             continue
-        side, key, bases = found
-        called = classify_donor(key, bases, alt) if side == "donor" else classify_acceptor(key, bases, alt)
+        side, key, bases, strand = found
+        coding_alt = _coding_base(alt, strand)
+        called = (
+            classify_donor(key, bases, coding_alt)
+            if side == "donor"
+            else classify_acceptor(key, bases, coding_alt)
+        )
         if called is None:
             continue
         rule, subgroup = called

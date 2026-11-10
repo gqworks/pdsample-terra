@@ -124,10 +124,24 @@ def test_mid_exon_and_indel_stay_blank():
     assert out["evidence_score"] == 1
 
 
-def test_minus_strand_donor_uses_transcript_orientation():
-    # +1/+2 of a minus-strand exon are genomic 600 then 599.
-    row = _call(600, "G", "A", {599: "T"}, exons=[MINUS])
+def test_minus_strand_donor_uses_coding_strand_ref():
+    # Coding donor GT at +1/+2 is genomic CA (FASTA/VCF are plus-strand).
+    # Coding G>A at +1 is genomic C>T.
+    row = _call(600, "C", "T", {599: "A"}, exons=[MINUS])
     _expect(row, "DD2", "standard", 99.9, 2218)
+
+
+def test_minus_strand_plus5_ref_g_is_genomic_c():
+    # Coding +5 G (DD4 when E-1 is not G) is genomic C at exon.start-4 = 596.
+    # Coding G>A is genomic C>T. Default E-1 genomic A -> coding T (not G).
+    row = _call(596, "C", "T", exons=[MINUS])
+    _expect(row, "DD4", "standard", 99.7, 583)
+
+
+def test_minus_strand_genomic_gt_is_not_treated_as_coding_donor():
+    # Genomic GT at +1/+2 is coding CA — not a GT donor, so no DD2 call.
+    row = _call(600, "G", "A", {599: "T"}, exons=[MINUS])
+    assert pd.isna(row["splice_rule"])
 
 
 def test_gtf_exon_and_wrapped_fasta(tmp_path):
