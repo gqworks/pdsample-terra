@@ -71,11 +71,10 @@ VARIANT_COLUMNS = [
     "cn_inferred_gt", "sv_algorithms", "sv_evidence", "rd_gq", "ogq",
 ]
 
-# Default QC for common depth-only IGV artifacts that remain FILTER=PASS.
+# Default QC for depth-only IGV artifacts that remain FILTER=PASS.
 DEFAULT_DEPTH_ONLY_ARTIFACT = {
     "enabled": True,
     "max_rd_gq": 5.0,
-    "min_cohort_af": 0.05,
 }
 
 _PESR_EVIDENCE = frozenset({"PE", "SR"})
@@ -161,31 +160,23 @@ def depth_only_artifact_config(sv_cfg: dict | None) -> dict:
     return {
         "enabled": bool(cfg.get("drop_depth_only_artifacts", DEFAULT_DEPTH_ONLY_ARTIFACT["enabled"])),
         "max_rd_gq": float(cfg.get("depth_only_artifact_max_rd_gq", DEFAULT_DEPTH_ONLY_ARTIFACT["max_rd_gq"])),
-        "min_cohort_af": float(
-            cfg.get("depth_only_artifact_min_cohort_af", DEFAULT_DEPTH_ONLY_ARTIFACT["min_cohort_af"])
-        ),
     }
 
 
 def is_depth_only_artifact(
     info: dict,
     fmt: dict,
-    cohort_af: float | None,
     *,
     max_rd_gq: float = 5.0,
-    min_cohort_af: float = 0.05,
 ) -> bool:
-    """True for common depth-only DELs/CNVs that look like IGV coverage artifacts.
+    """True for depth-only DELs/CNVs that look like IGV coverage artifacts.
 
     Requires all of: ``ALGORITHMS=depth`` only, FORMAT ``EV`` without PE/SR,
-    ``RD_GQ`` or ``OGQ`` at or below ``max_rd_gq``, and cohort AF at or above
-    ``min_cohort_af``. Rare depth-only events are kept.
+    and ``RD_GQ`` or ``OGQ`` at or below ``max_rd_gq``. Cohort AF is not used.
     """
     if not is_depth_only_algorithms(info):
         return False
     if has_pesr_format_evidence(fmt):
-        return False
-    if cohort_af is None or cohort_af < min_cohort_af:
         return False
     rd_gq = _as_float(fmt.get("RD_GQ"))
     ogq = _as_float(fmt.get("OGQ"))
@@ -477,9 +468,7 @@ def ingest_sv(
             if artifact_cfg["enabled"] and is_depth_only_artifact(
                 info,
                 fmt,
-                cohort_af,
                 max_rd_gq=artifact_cfg["max_rd_gq"],
-                min_cohort_af=artifact_cfg["min_cohort_af"],
             ):
                 continue
             algorithms = str(info.get("ALGORITHMS") or "") if info.get("ALGORITHMS") not in {True, None} else ""
@@ -516,7 +505,6 @@ def ingest_sv(
                         # it as sv_panel_af; that field is reserved for a true GATK-SV
                         # reference-panel AF when available, and hard frequency filters
                         # must not treat in-cohort AF as population frequency.
-                        # Depth-only artifact QC above is the sole cohort-AF hard drop.
                         "sv_panel_af": pd.NA,
                         "cohort_af": cohort_af,
                         "gnomad_af": gnomad_af,

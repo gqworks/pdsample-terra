@@ -23,12 +23,11 @@ def test_depth_only_artifact_helpers():
     fmt = {"GT": "1/1", "EV": "RD", "RD_GQ": "1", "OGQ": "1", "GQ": "43"}
     assert sv.is_depth_only_algorithms(info)
     assert not sv.has_pesr_format_evidence(fmt)
-    assert sv.is_depth_only_artifact(info, fmt, 0.49)
-    assert not sv.is_depth_only_artifact(info, fmt, 0.01)  # rare depth CNV kept
-    assert not sv.is_depth_only_artifact(info, {**fmt, "EV": "RD,PE"}, 0.49)
-    assert not sv.is_depth_only_artifact(info, {**fmt, "RD_GQ": "20", "OGQ": "20"}, 0.49)
+    assert sv.is_depth_only_artifact(info, fmt)  # cohort AF is not required
+    assert not sv.is_depth_only_artifact(info, {**fmt, "EV": "RD,PE"})
+    assert not sv.is_depth_only_artifact(info, {**fmt, "RD_GQ": "20", "OGQ": "20"})
     assert not sv.is_depth_only_algorithms({"ALGORITHMS": "manta,depth"})
-    assert sv.is_depth_only_artifact(info, {"EV": "RD", "OGQ": "2"}, 0.2)  # OGQ-only weak
+    assert sv.is_depth_only_artifact(info, {"EV": "RD", "OGQ": "2"})  # OGQ-only weak
 
 
 def test_sv_dosage_and_not_assessed(tmp_path):
@@ -86,15 +85,15 @@ def test_sv_dosage_and_not_assessed(tmp_path):
 
 
 def test_sv_drops_common_depth_only_artifacts(tmp_path):
-    """SOX6-style PASS depth DELs (no PE/SR, weak RD_GQ, high cohort AF) are dropped."""
+    """PASS depth DELs with no PE/SR and weak RD_GQ/OGQ are dropped regardless of AF."""
     genes = tmp_path / "genes.bed"
     exons = tmp_path / "exons.bed"
     genes.write_text(
-        "chr11\t15956448\t16749591\tENSG\tSOX6\nchr6\t900\t4000\tENSG\tPRKN\n",
+        "chr11\t15956448\t16749591\tENSG\tSOX6\nchr6\t900\t4000\tENSG\tPRKN\nchr3\t193593000\t193690000\tENSG\tOPA1\n",
         encoding="utf-8",
     )
     exons.write_text(
-        "chr11\t16231128\t16234771\tENSG\tSOX6\nchr6\t1000\t1200\tENSG\tPRKN\n",
+        "chr11\t16231128\t16234771\tENSG\tSOX6\nchr6\t1000\t1200\tENSG\tPRKN\nchr3\t193663600\t193673500\tENSG\tOPA1\n",
         encoding="utf-8",
     )
     vcf = tmp_path / "sv.vcf"
@@ -119,28 +118,28 @@ def test_sv_drops_common_depth_only_artifacts(tmp_path):
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_A",
                 # SOX6-like artifact: depth-only, EV=RD, RD_GQ=1, AF=0.49
                 "chr11\t16228501\tsox6_art\tN\t<DEL>\t55\tPASS\tEND=16239001;SVTYPE=DEL;SVLEN=10501;AF=0.488532;ALGORITHMS=depth;EVIDENCE=BAF,RD;PREDICTED_LOF=SOX6\tGT:ECN:EV:GQ:OGQ:RD_CN:RD_GQ\t1/1:2:RD:43:1:0:1",
-                # Rare depth-only CNV kept (AF below threshold)
-                "chr6\t1000\trare_depth\tN\t<DEL>\t.\tPASS\tEND=1300;SVTYPE=DEL;SVLEN=300;AF=0.002;ALGORITHMS=depth;EVIDENCE=RD;PREDICTED_LOF=PRKN\tGT:ECN:EV:GQ:OGQ:RD_CN:RD_GQ\t0/1:2:RD:60:1:1:1",
-                # Common but PE-supported — kept
+                # OPA1-like rare depth-only with weak RD_GQ — also dropped (no AF gate)
+                "chr3\t193663575\topa1_art\tN\t<DEL>\t.\tPASS\tEND=193673575;SVTYPE=DEL;SVLEN=10001;AF=0.020642;ALGORITHMS=depth;EVIDENCE=RD;PREDICTED_LOF=OPA1\tGT:ECN:EV:GQ:OGQ:RD_CN:RD_GQ\t0/1:2:RD:58:2:1:1",
+                # PE-supported — kept
                 "chr6\t2000\tpesr\tN\t<DEL>\t.\tPASS\tEND=2300;SVTYPE=DEL;SVLEN=300;AF=0.4;ALGORITHMS=manta;EVIDENCE=PE,SR;PREDICTED_LOF=PRKN\tGT:ECN:EV:GQ:OGQ:RD_CN:RD_GQ\t0/1:2:PE,SR:90:90:1:2",
-                # Depth-only common but strong RD_GQ/OGQ — kept
+                # Depth-only but strong RD_GQ/OGQ — kept
                 "chr6\t3000\tstrong_depth\tN\t<DEL>\t.\tPASS\tEND=3300;SVTYPE=DEL;SVLEN=300;AF=0.4;ALGORITHMS=depth;EVIDENCE=RD;PREDICTED_LOF=PRKN\tGT:ECN:EV:GQ:OGQ:RD_CN:RD_GQ\t0/1:2:RD:80:20:1:20",
             ]
         )
         + "\n",
         encoding="utf-8",
     )
-    panel = pd.DataFrame({"gene": ["SOX6", "PRKN"], "gene_id": ["1", "2"]})
+    panel = pd.DataFrame({"gene": ["SOX6", "PRKN", "OPA1"], "gene_id": ["1", "2", "3"]})
     table, _ = sv.ingest_sv(vcf, genes, exons, panel, snv_samples=["SAMPLE_A"], auto_index=False)
     ids = set(table["sv_id"].astype(str))
     assert "sox6_art" not in ids
-    assert "rare_depth" in ids
+    assert "opa1_art" not in ids
     assert "pesr" in ids
     assert "strong_depth" in ids
-    rare = table[table["sv_id"] == "rare_depth"].iloc[0]
-    assert rare["sv_algorithms"] == "depth"
-    assert rare["sv_evidence"] == "RD"
-    assert float(rare["rd_gq"]) == 1.0
+    kept = table[table["sv_id"] == "strong_depth"].iloc[0]
+    assert kept["sv_algorithms"] == "depth"
+    assert kept["sv_evidence"] == "RD"
+    assert float(kept["rd_gq"]) == 20.0
 
 
 def test_liability_stays_null_without_citation():
