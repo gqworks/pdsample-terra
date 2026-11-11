@@ -382,3 +382,52 @@ def test_lrrk2_ad_plp_outranks_intron_ar_and_lof_sv_noise():
     top = patient_candidates(pd.DataFrame(rows), max_per_patient=20)
     assert top.iloc[0]["variant_id"] == "R1441C"
     assert "R1441C" in set(top["variant_id"])
+
+
+def test_clinvar_rank_order_plp_then_vus_coding_then_vus_intron():
+    """Among same MOI status: P/LP coding > VUS coding > VUS intron > none."""
+    rows = [
+        {
+            "sample_id": "S1",
+            "gene": "XPR1",
+            "variant_id": "none_missense",
+            "consequence": "missense_variant",
+            "clinvar_class": "none",
+            "inheritance_status": "AD_candidate",
+            "evidence_score": 6,
+            "tier": 2,
+        },
+        {
+            "sample_id": "S1",
+            "gene": "XPR1",
+            "variant_id": "vus_intron",
+            "consequence": "intron_variant",
+            "clinvar_class": "VUS",
+            "inheritance_status": "AD_candidate",
+            "evidence_score": 3,
+            "tier": 3,
+        },
+        {
+            "sample_id": "S1",
+            "gene": "XPR1",
+            "variant_id": "vus_missense",
+            "consequence": "missense_variant",
+            "clinvar_class": "VUS",
+            "evidence_score": 3,
+            "tier": 3,
+            "inheritance_status": "AD_candidate",
+        },
+        {
+            "sample_id": "S1",
+            "gene": "XPR1",
+            "variant_id": "plp_missense",
+            "consequence": "missense_variant",
+            "clinvar_class": "P/LP",
+            "inheritance_status": "AD_candidate",
+            "evidence_score": 10,
+            "tier": 1,
+        },
+    ]
+    ranked = rank_candidates(pd.DataFrame(rows))
+    # Intron AD_candidate gets status_priority 1; coding AD stay at 0.
+    assert list(ranked["variant_id"]) == ["plp_missense", "vus_missense", "none_missense", "vus_intron"]

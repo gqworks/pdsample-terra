@@ -80,6 +80,28 @@ def _consequence_term_sets(series: pd.Series) -> list[set[str]]:
     return out
 
 
+def clinvar_vus_mask(df: pd.DataFrame) -> pd.Series:
+    """True where ``clinvar_class`` is ClinVar VUS (coding or non-coding)."""
+    if "clinvar_class" not in df.columns:
+        return pd.Series(False, index=df.index, dtype=bool)
+    return df["clinvar_class"].fillna("").astype(str).eq("VUS")
+
+
+def clinvar_vus_coding_mask(df: pd.DataFrame) -> pd.Series:
+    """True for ClinVar VUS alleles with a codingish consequence (missense/null/inframe/…)."""
+    vus = clinvar_vus_mask(df)
+    if not vus.any():
+        return vus
+    cons = df["consequence"] if "consequence" in df.columns else pd.Series("", index=df.index)
+    term_sets = _consequence_term_sets(cons)
+    coding = pd.Series(
+        [bool(terms & _CODINGISH_TERMS) for terms in term_sets],
+        index=df.index,
+        dtype=bool,
+    )
+    return vus & coding
+
+
 def weak_intronic_mask(df: pd.DataFrame) -> pd.Series:
     """True for intron / splice-region noise without coding or ClinVar P/LP support."""
     clin = (
@@ -144,6 +166,10 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
       risk_biallelic        homozygous or >=2 qualifying variants in a risk gene (e.g. GBA1 -> Gaucher)
       MOI_unknown_candidate qualifying variant in a panel gene with inheritance "unknown"
       not_qualifying        below the tier threshold for its MOI, or not on the panel
+
+    When ``qualify_clinvar_vus`` is on (default), ClinVar VUS alleles also qualify
+    regardless of tier (coding and non-coding). Ranking prefers P/LP, then coding
+    VUS, then non-coding VUS.
     """
     df = df.copy()
     df["inheritance_status"] = "not_qualifying"
@@ -154,12 +180,20 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
     ar_second = _qualifies(df, icfg["ar_second_hit_min_tier"])
     if icfg.get("allow_introme_second_hit", True) and "introme_class" in df.columns:
         ar_second |= df["introme_class"] == "high"
+    # ClinVar VUS (coding or non-coding) qualify below the usual tier floor.
+    if icfg.get("qualify_clinvar_vus", True):
+        vus_q = clinvar_vus_mask(df)
+        ad_q = ad_q | vus_q
+        ar_first = ar_first | vus_q
+        ar_second = ar_second | vus_q
 
     df.loc[(df["moi"] == "AD") & ad_q, "inheritance_status"] = "AD_candidate"
     df.loc[(df["moi"] == "RISK") & ad_q, "inheritance_status"] = "risk_carrier"
     df.loc[(df["moi"] == "XL") & ad_q & (df["zygosity"] == "hemi"), "inheritance_status"] = "XL_hemi"
     df.loc[(df["moi"] == "XL") & ad_q & (df["zygosity"] != "hemi"), "inheritance_status"] = "AD_candidate"
     unknown_q = _qualifies(df, icfg.get("unknown_moi_min_tier", icfg["ad_min_tier"]))
+    if icfg.get("qualify_clinvar_vus", True):
+        unknown_q = unknown_q | clinvar_vus_mask(df)
     df.loc[(df["moi"] == "UNKNOWN") & unknown_q, "inheritance_status"] = "MOI_unknown_candidate"
 
     for (_, _), grp in df[(df["moi"] == "RISK") & ad_q].groupby(["sample_id", "gene"]):

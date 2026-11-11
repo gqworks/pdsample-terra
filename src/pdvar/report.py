@@ -91,6 +91,21 @@ def _clinvar_plp_rank_boost(df: pd.DataFrame) -> pd.Series:
     return (~(clin.eq("P/LP") & codingish)).astype(int)
 
 
+def _clinvar_vus_coding_rank_boost(df: pd.DataFrame) -> pd.Series:
+    """Prefer ClinVar VUS coding alleles after P/LP (0 beats 1)."""
+    from .inheritance import clinvar_vus_coding_mask
+
+    return (~clinvar_vus_coding_mask(df)).astype(int)
+
+
+def _clinvar_vus_noncoding_rank_boost(df: pd.DataFrame) -> pd.Series:
+    """Prefer other ClinVar VUS after coding VUS (0 beats 1)."""
+    from .inheritance import clinvar_vus_coding_mask, clinvar_vus_mask
+
+    vus = clinvar_vus_mask(df)
+    return (~(vus & ~clinvar_vus_coding_mask(df))).astype(int)
+
+
 def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["status_priority"] = df["inheritance_status"].map(STATUS_PRIORITY).fillna(9)
@@ -100,12 +115,24 @@ def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
     ad = df["inheritance_status"].fillna("").astype(str).eq("AD_candidate")
     df.loc[ad & df["_intronic_penalty"].eq(1), "status_priority"] = 1
     df["_plp_boost"] = _clinvar_plp_rank_boost(df)
+    df["_vus_coding_boost"] = _clinvar_vus_coding_rank_boost(df)
+    df["_vus_noncoding_boost"] = _clinvar_vus_noncoding_rank_boost(df)
     df["_rank_score"] = df["evidence_score"]
+    # ClinVar order: P/LP coding, then VUS coding, then other VUS, then the rest.
     # plp_boost before intronic_penalty so LRRK2 R1441C-style hits beat intron AR and
     # transcript_ablation SVs that share status_priority 0.
-    sort_cols = ["sample_id", "status_priority", "_plp_boost", "_intronic_penalty", "tier", "_rank_score"]
-    asc = [True, True, True, True, True, False]
-    drop_cols = ["_rank_score", "_intronic_penalty", "_plp_boost"]
+    sort_cols = [
+        "sample_id",
+        "status_priority",
+        "_plp_boost",
+        "_vus_coding_boost",
+        "_vus_noncoding_boost",
+        "_intronic_penalty",
+        "tier",
+        "_rank_score",
+    ]
+    asc = [True, True, True, True, True, True, True, False]
+    drop_cols = ["_rank_score", "_intronic_penalty", "_plp_boost", "_vus_coding_boost", "_vus_noncoding_boost"]
     if "avi_phred" in df.columns:
         df["_avi"] = pd.to_numeric(df["avi_phred"], errors="coerce").fillna(-1)
         sort_cols.append("_avi")

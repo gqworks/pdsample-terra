@@ -101,6 +101,7 @@ scoring:
   mlc_high: 0.5
   points:
     clinvar_plp: 10
+    clinvar_vus: 3             # ClinVar VUS; inheritance also qualifies VUS below the tier floor
     clinvar_conflicting: 3
     clinvar_blb: -10
     null_variant: 8          # stop_gained, frameshift, canonical splice, start_lost, transcript_ablation
@@ -159,6 +160,9 @@ inheritance:
   ar_second_hit_min_tier: 3
   allow_introme_second_hit: true
   unknown_moi_min_tier: 2    # panel genes with inheritance "unknown" (low-confidence candidates)
+  # ClinVar VUS alleles (coding or non-coding) qualify for MOI hits even below the
+  # usual tier floor. Ranking prefers P/LP, then coding VUS, then non-coding VUS.
+  qualify_clinvar_vus: true
   # Splice / intron LoF is not the Mendelian mechanism for GoF or dominant-negative AD
   # genes (panel `mechanism` column). Weak intron / Introme-only AD hits in those genes
   # become AD_gof_intronic (demoted). ClinVar P/LP and coding alleles are kept.

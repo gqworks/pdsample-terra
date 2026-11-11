@@ -207,3 +207,229 @@ def test_hets_in_different_samples_not_comphet(cfg):
         ("S2", "PRKN", "AR", "het", 1, "none", "null_variant"),
     ])
     assert set(out["inheritance_status"]) == {"AR_single_het"}
+
+
+def test_clinvar_vus_ad_missense_qualifies_below_tier(cfg):
+    """XPR1-style AD missense VUS at tier 4 becomes AD_candidate (het or hom)."""
+    for zyg in ("het", "hom"):
+        rows = pd.DataFrame(
+            [
+                {
+                    "sample_id": "S1",
+                    "gene": "XPR1",
+                    "moi": "AD",
+                    "mechanism": "lof",
+                    "zygosity": zyg,
+                    "tier": 4,
+                    "introme_class": "none",
+                    "evidence_reasons": "",
+                    "consequence": "missense_variant",
+                    "clinvar_class": "VUS",
+                }
+            ]
+        )
+        out = inheritance.evaluate_inheritance(rows, cfg["inheritance"])
+        assert out.loc[0, "inheritance_status"] == "AD_candidate", zyg
+
+
+def test_clinvar_vus_ad_intron_qualifies_or_demotes(cfg):
+    """Non-coding AD VUS qualifies; GoF genes still demote weak intron hits."""
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "XPR1",
+                "moi": "AD",
+                "mechanism": "lof",
+                "zygosity": "het",
+                "tier": 4,
+                "introme_class": "none",
+                "evidence_reasons": "",
+                "consequence": "intron_variant",
+                "clinvar_class": "VUS",
+            },
+            {
+                "sample_id": "S1",
+                "gene": "LRRK2",
+                "moi": "AD",
+                "mechanism": "gof",
+                "zygosity": "het",
+                "tier": 4,
+                "introme_class": "none",
+                "evidence_reasons": "",
+                "consequence": "intron_variant",
+                "clinvar_class": "VUS",
+            },
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, cfg["inheritance"])
+    by_gene = out.set_index("gene")["inheritance_status"]
+    assert by_gene["XPR1"] == "AD_candidate"
+    assert by_gene["LRRK2"] == "AD_gof_intronic"
+
+
+def test_clinvar_vus_ar_patterns(cfg):
+    """AR single VUS, two VUS hets, VUS hom, and VUS + Introme second hit."""
+    single = inheritance.evaluate_inheritance(
+        pd.DataFrame(
+            [
+                {
+                    "sample_id": "S1",
+                    "gene": "PRKN",
+                    "moi": "AR",
+                    "zygosity": "het",
+                    "tier": 4,
+                    "introme_class": "none",
+                    "evidence_reasons": "",
+                    "consequence": "missense_variant",
+                    "clinvar_class": "VUS",
+                }
+            ]
+        ),
+        cfg["inheritance"],
+    )
+    assert single.loc[0, "inheritance_status"] == "AR_single_het"
+
+    two = inheritance.evaluate_inheritance(
+        pd.DataFrame(
+            [
+                {
+                    "sample_id": "S1",
+                    "gene": "PRKN",
+                    "moi": "AR",
+                    "zygosity": "het",
+                    "tier": 4,
+                    "introme_class": "none",
+                    "evidence_reasons": "clinvar_vus",
+                    "consequence": "missense_variant",
+                    "clinvar_class": "VUS",
+                },
+                {
+                    "sample_id": "S1",
+                    "gene": "PRKN",
+                    "moi": "AR",
+                    "zygosity": "het",
+                    "tier": 4,
+                    "introme_class": "none",
+                    "evidence_reasons": "clinvar_vus",
+                    "consequence": "missense_variant",
+                    "clinvar_class": "VUS",
+                },
+            ]
+        ),
+        cfg["inheritance"],
+    )
+    assert set(two["inheritance_status"]) == {"AR_comphet_candidate"}
+
+    hom = inheritance.evaluate_inheritance(
+        pd.DataFrame(
+            [
+                {
+                    "sample_id": "S1",
+                    "gene": "PRKN",
+                    "moi": "AR",
+                    "zygosity": "hom",
+                    "tier": 4,
+                    "introme_class": "none",
+                    "evidence_reasons": "",
+                    "consequence": "missense_variant",
+                    "clinvar_class": "VUS",
+                }
+            ]
+        ),
+        cfg["inheritance"],
+    )
+    assert hom.loc[0, "inheritance_status"] == "AR_hom"
+
+    mixed = inheritance.evaluate_inheritance(
+        pd.DataFrame(
+            [
+                {
+                    "sample_id": "S1",
+                    "gene": "PRKN",
+                    "moi": "AR",
+                    "zygosity": "het",
+                    "tier": 4,
+                    "introme_class": "none",
+                    "evidence_reasons": "clinvar_vus",
+                    "consequence": "missense_variant",
+                    "clinvar_class": "VUS",
+                },
+                {
+                    "sample_id": "S1",
+                    "gene": "PRKN",
+                    "moi": "AR",
+                    "zygosity": "het",
+                    "tier": 4,
+                    "introme_class": "high",
+                    "evidence_reasons": "introme_high",
+                    "consequence": "intron_variant",
+                    "clinvar_class": "none",
+                },
+            ]
+        ),
+        cfg["inheritance"],
+    )
+    assert mixed["inheritance_status"].tolist() == ["AR_comphet_candidate", "AR_second_hit_splice"]
+
+
+def test_clinvar_vus_plus_lof_sv_comphet(cfg):
+    """Coding VUS + LoF SV both qualify → AR_comphet_candidate."""
+    out = inheritance.evaluate_inheritance(
+        pd.DataFrame(
+            [
+                {
+                    "sample_id": "S1",
+                    "gene": "PRKN",
+                    "moi": "AR",
+                    "zygosity": "het",
+                    "tier": 1,
+                    "introme_class": "none",
+                    "evidence_reasons": "null_variant;sv_dosage_lof",
+                    "consequence": "transcript_ablation",
+                    "clinvar_class": "none",
+                    "hit_source": "sv",
+                    "variant_class": "SV",
+                    "svtype": "DEL",
+                    "dosage_mechanism": "lof",
+                },
+                {
+                    "sample_id": "S1",
+                    "gene": "PRKN",
+                    "moi": "AR",
+                    "zygosity": "het",
+                    "tier": 4,
+                    "introme_class": "none",
+                    "evidence_reasons": "clinvar_vus",
+                    "consequence": "missense_variant",
+                    "clinvar_class": "VUS",
+                    "hit_source": "small_variant",
+                    "variant_class": "SNV",
+                },
+            ]
+        ),
+        cfg["inheritance"],
+    )
+    assert set(out["inheritance_status"]) == {"AR_comphet_candidate"}
+
+
+def test_qualify_clinvar_vus_can_be_disabled(cfg):
+    icfg = {**cfg["inheritance"], "qualify_clinvar_vus": False}
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "XPR1",
+                "moi": "AD",
+                "mechanism": "lof",
+                "zygosity": "het",
+                "tier": 4,
+                "introme_class": "none",
+                "evidence_reasons": "",
+                "consequence": "missense_variant",
+                "clinvar_class": "VUS",
+            }
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, icfg)
+    assert out.loc[0, "inheritance_status"] == "not_qualifying"
