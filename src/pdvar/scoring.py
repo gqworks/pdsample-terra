@@ -45,6 +45,7 @@ def evidence_flags(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     fathmm_pred = _text_col(df, "fathmm_pred")
     flags = pd.DataFrame(index=df.index)
     flags["clinvar_plp"] = clinvar == "P/LP"
+    flags["clinvar_vus"] = clinvar == "VUS"
     flags["clinvar_conflicting"] = clinvar == "conflicting"
     flags["clinvar_blb"] = clinvar == "B/LB"
     flags["null_variant"] = is_null_variant(df["consequence"])

@@ -15,6 +15,13 @@ def test_clinvar_pathogenic_is_tier1(cfg):
     assert "clinvar_plp" in row["evidence_reasons"]
 
 
+def test_clinvar_vus_adds_points(cfg):
+    bare = _score(cfg, consequence="missense_variant", clinvar_class="none", gnomad_af=0.01)
+    vus = _score(cfg, consequence="missense_variant", clinvar_class="VUS", gnomad_af=0.01)
+    assert vus["evidence_score"] == bare["evidence_score"] + cfg["scoring"]["points"]["clinvar_vus"]
+    assert "clinvar_vus" in vus["evidence_reasons"]
+
+
 def test_null_variant_with_high_cadd_is_tier1(cfg):
     row = _score(cfg, consequence="frameshift_variant", clinvar_class="none", cadd=35.0, gnomad_af=0.0001)
     assert row["is_null_variant"]
