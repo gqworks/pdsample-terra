@@ -183,13 +183,11 @@ sv:
     # Depth-only small DELs / WGD-outlier depth calls — common IGV "choppy dip" artifacts.
     - DEPTH_LT_5KB
     - SAMPLE_WGD_OUTLIER
-  # Depth-only PASS DELs that stay above DEPTH_LT_5KB (e.g. SOX6 ~10 kb) but lack PE/SR
-  # and have weak depth genotypes are often IGV artifacts enriched in the joint callset.
-  # Drop when ALL of: ALGORITHMS=depth only, FORMAT EV has no PE/SR, RD_GQ or OGQ <= max,
-  # and cohort INFO/AF >= min. Rare depth-only CNVs (low AF) are kept.
+  # Depth-only PASS DELs that stay above DEPTH_LT_5KB (e.g. SOX6 ~10 kb, OPA1 ~10 kb)
+  # but lack PE/SR and have weak depth genotypes are often IGV artifacts.
+  # Drop when ALL of: ALGORITHMS=depth only, FORMAT EV has no PE/SR, RD_GQ or OGQ <= max.
   drop_depth_only_artifacts: true
   depth_only_artifact_max_rd_gq: 5
-  depth_only_artifact_min_cohort_af: 0.05
   # Mechanism labels. LoF SVs use null_variant + sv_dosage_lof; SNCA copy-gain reuses null_variant as sv_dosage_gain.
   dosage_rules:
     - gene: SNCA
