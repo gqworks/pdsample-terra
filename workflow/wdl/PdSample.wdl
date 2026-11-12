@@ -280,9 +280,9 @@ workflow PdSample {
     String python_docker = "python:3.11.11-slim-bookworm"
   }
 
-  # Blank Terra sample cells arrive as "". Only a non-empty gs:// (or local) path
-  # becomes a File for Assess localization.
-  File? phenotype_report_file = if phenotype_report != "" then phenotype_report else None
+  # Blank Terra sample cells arrive as "". WDL 1.0 has no None, so use an empty
+  # Array[File] when unset; Assess localizes only when this has one path.
+  Array[File] phenotype_report_files = if phenotype_report != "" then [phenotype_report] else []
 
   call Tasks.FetchRepoAssets {
     input:
@@ -810,7 +810,7 @@ workflow PdSample {
       gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
       splicevault_tsv = splicevault_tsv,
       prs_weights = prs_weights,
-      phenotype_report = phenotype_report_file,
+      phenotype_report_files = phenotype_report_files,
       pdvar_docker = pdvar_docker,
       pdvar_git_url = pdvar_git_url,
       pdvar_git_commit = pdvar_git_commit
