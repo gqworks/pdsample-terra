@@ -63,7 +63,13 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "gatk-sv/v1.1.1/wdl/" in (
         ROOT / "workflow" / "wdl" / "vendor" / "gatk-sv" / "GATKSVPipelineSingleSample.wdl"
     ).read_text(encoding="utf-8")
-    assert "gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl" in text
+    assert 'import "vendor/mitochondria_m2_wdl/MitochondriaPipeline.wdl"' in text
+    mito_m2 = (
+        ROOT / "workflow" / "wdl" / "vendor" / "mitochondria_m2_wdl" / "AlignAndCall.wdl"
+    ).read_text(encoding="utf-8")
+    # CallMt / CallShiftedMt must not call size() (Terra batch __disk_size timeouts).
+    assert "Int disk_size = 100" in mito_m2
+    assert 'size(input_bam, "GB") + size(ref_fasta, "GB") + size(ref_fai, "GB")' not in mito_m2
     sample_tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert "pysam==0.24.1" in sample_tasks
     assert "alphagenome==" not in sample_tasks
