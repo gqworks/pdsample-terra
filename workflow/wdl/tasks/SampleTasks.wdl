@@ -883,20 +883,22 @@ task ReleaseAfterQc {
 }
 
 # Prefer an existing GatherSampleEvidence index; otherwise tabix-index the VCF.
+# index_files is 0-or-1 (WDL 1.0 has no None for blank Terra String paths).
 task PreferOrBuildTabix {
   input {
     File vcf
-    File? index
+    Array[File] index_files = []
     String name
     String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
     Int preemptible = 3
   }
   Int disk_gb = ceil(size(vcf, "GiB") + 20)
-  Boolean have_index = defined(index)
   command <<<
     set -euo pipefail
-    if [[ "~{have_index}" == "true" ]]; then
-      ln "~{index}" "~{name}" || cp -a "~{index}" "~{name}"
+    # sep="" so an empty index_files array does not evaluate [0] at render time.
+    idx='~{sep="" index_files}'
+    if [[ -n "${idx}" ]]; then
+      ln "${idx}" "~{name}" || cp -a "${idx}" "~{name}"
     else
       base="$(basename "~{vcf}")"
       ln -s "~{vcf}" "${base}"
@@ -928,17 +930,18 @@ task PreferOrBuildTabix {
 task SubsetJointSvVcf {
   input {
     File joint_vcf
-    File? joint_vcf_index
+    # 0-or-1 array so blank Terra/workspace index strings do not become File "".
+    Array[File] joint_vcf_index_files = []
     String sample_id
     String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(joint_vcf, "GiB") * 2 + size(select_first([joint_vcf_index, joint_vcf]), "GiB") + 50)
+  Int disk_gb = ceil(size(joint_vcf, "GiB") * 2 + size(select_first(flatten([joint_vcf_index_files, [joint_vcf]])), "GiB") + 50)
   command <<<
     set -euo pipefail
     sample="~{sample_id}"
     vcf="~{joint_vcf}"
-    idx='~{default="" joint_vcf_index}'
+    idx='~{sep="" joint_vcf_index_files}'
     # Prefer a sidecar index when Cromwell localized one; otherwise build it.
     if [[ -n "${idx}" ]]; then
       base="$(basename "${vcf}")"

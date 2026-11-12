@@ -149,18 +149,20 @@ workflow PdSample {
     # counts + pe + sr + sd to skip evidence collection entirely; provide each
     # caller VCF to skip that caller. Indexes are not separate WDL inputs —
     # keep .tbi objects next to the primary paths in GCS when tools need them.
-    File? sv_case_manta_vcf
-    File? sv_case_wham_vcf
-    File? sv_case_scramble_vcf
-    File? sv_case_counts_file
-    File? sv_case_pe_file
-    File? sv_case_sr_file
-    File? sv_case_sd_file
+    # Strings so Terra blank sample cells ("") stay unset instead of illegal File "".
+    String sv_case_manta_vcf = ""
+    String sv_case_wham_vcf = ""
+    String sv_case_scramble_vcf = ""
+    String sv_case_counts_file = ""
+    String sv_case_pe_file = ""
+    String sv_case_sr_file = ""
+    String sv_case_sd_file = ""
     # Optional per-sample prior SV VCF (Terra: this.sv_vcf / this.sv_vcf_index).
     # When set, skips both SubsetJointSvVcf and GATKSVPipelineSingleSample and
     # reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
-    File? sv_prior_vcf
-    File? sv_prior_vcf_index
+    # String so blank this.sv_vcf cells do not select the prior path or fail localization.
+    String sv_prior_vcf = ""
+    String sv_prior_vcf_index = ""
     # Optional cohort joint-called SV VCF (e.g. GATK-SV CleanVcf / FinalizeGVCF
     # multi-sample output). Bind as a workspace attribute (workspace.sv_joint_vcf),
     # not a sample-table column. Used only when sv_prior_vcf is unset. When set
@@ -169,8 +171,11 @@ workflow PdSample {
     # back to GATKSVPipelineSingleSample. Panel / evidence inputs below are
     # unused on the prior/joint paths but remain required File inputs for the
     # single-sample path.
-    File? sv_joint_vcf
-    File? sv_joint_vcf_index
+    String sv_joint_vcf = ""
+    String sv_joint_vcf_index = ""
+    # Leave unset. WDL 1.0 has no None; blank String paths coerce to this File?
+    # when falling through to GATK-SV case evidence inputs.
+    File? optional_file_none
     File sv_ref_samples_list
     File sv_ref_ped_file
     File sv_genome_file
@@ -283,6 +288,19 @@ workflow PdSample {
   # Blank Terra sample cells arrive as "". WDL 1.0 has no None, so use an empty
   # Array[File] when unset; Assess localizes only when this has one path.
   Array[File] phenotype_report_files = if phenotype_report != "" then [phenotype_report] else []
+  # SV path selection: non-empty prior → joint subset → GATK-SV (optional case_*
+  # evidence reuse) → full GATK-SV when case_* are also blank.
+  Array[File] sv_prior_vcf_files = if sv_prior_vcf != "" then [sv_prior_vcf] else []
+  Array[File] sv_prior_vcf_index_files = if sv_prior_vcf_index != "" then [sv_prior_vcf_index] else []
+  Array[File] sv_joint_vcf_files = if sv_joint_vcf != "" then [sv_joint_vcf] else []
+  Array[File] sv_joint_vcf_index_files = if sv_joint_vcf_index != "" then [sv_joint_vcf_index] else []
+  File? case_manta_vcf = if sv_case_manta_vcf != "" then sv_case_manta_vcf else optional_file_none
+  File? case_wham_vcf = if sv_case_wham_vcf != "" then sv_case_wham_vcf else optional_file_none
+  File? case_scramble_vcf = if sv_case_scramble_vcf != "" then sv_case_scramble_vcf else optional_file_none
+  File? case_counts_file = if sv_case_counts_file != "" then sv_case_counts_file else optional_file_none
+  File? case_pe_file = if sv_case_pe_file != "" then sv_case_pe_file else optional_file_none
+  File? case_sr_file = if sv_case_sr_file != "" then sv_case_sr_file else optional_file_none
+  File? case_sd_file = if sv_case_sd_file != "" then sv_case_sd_file else optional_file_none
 
   call Tasks.FetchRepoAssets {
     input:
@@ -559,23 +577,25 @@ workflow PdSample {
       python_docker = python_docker,
       preemptible = preemptible
   }
-  # SV precedence: prior sample VCF → joint subset → GATK-SV call.
+  # SV precedence: prior sample VCF → joint subset → GATK-SV call (with optional
+  # case_* evidence). Blank Terra strings are ignored so the next path runs.
   # scatter+if keeps Array[File] outputs for flatten with the GatkSv if-branch.
-  Boolean use_prior_sv = defined(sv_prior_vcf)
+  Boolean use_prior_sv = length(sv_prior_vcf_files) > 0
   if (use_prior_sv) {
     call Tasks.PreferOrBuildTabix as PriorSvIndex {
       input:
-        vcf = select_first([sv_prior_vcf]),
-        index = sv_prior_vcf_index,
+        vcf = sv_prior_vcf_files[0],
+        index_files = sv_prior_vcf_index_files,
         name = sample_id + ".sv.vcf.gz.tbi",
         preemptible = preemptible
     }
   }
-  scatter (unused in if defined(sv_joint_vcf) && !use_prior_sv then [1] else []) {
+  Boolean try_joint_sv = length(sv_joint_vcf_files) > 0 && !use_prior_sv
+  scatter (unused in if try_joint_sv then [1] else []) {
     call Tasks.SubsetJointSvVcf {
       input:
-        joint_vcf = select_first([sv_joint_vcf]),
-        joint_vcf_index = sv_joint_vcf_index,
+        joint_vcf = sv_joint_vcf_files[0],
+        joint_vcf_index_files = sv_joint_vcf_index_files,
         sample_id = sample_id,
         preemptible = preemptible
     }
@@ -592,13 +612,13 @@ workflow PdSample {
         reference_version = "38",
         use_melt = sv_use_melt,
         use_scramble = sv_use_scramble,
-        case_manta_vcf = sv_case_manta_vcf,
-        case_wham_vcf = sv_case_wham_vcf,
-        case_scramble_vcf = sv_case_scramble_vcf,
-        case_counts_file = sv_case_counts_file,
-        case_pe_file = sv_case_pe_file,
-        case_sr_file = sv_case_sr_file,
-        case_sd_file = sv_case_sd_file,
+        case_manta_vcf = case_manta_vcf,
+        case_wham_vcf = case_wham_vcf,
+        case_scramble_vcf = case_scramble_vcf,
+        case_counts_file = case_counts_file,
+        case_pe_file = case_pe_file,
+        case_sr_file = case_sr_file,
+        case_sd_file = case_sd_file,
         ref_samples_list = sv_ref_samples_list,
         ref_ped_file = sv_ref_ped_file,
         genome_file = sv_genome_file,
@@ -708,28 +728,28 @@ workflow PdSample {
     call Tasks.PreferOrBuildTabix as EvidenceMantaIndex {
       input:
         vcf = GatkSvSingle.manta_vcf,
-        index = GatkSvSingle.manta_index,
+        index_files = select_all([GatkSvSingle.manta_index]),
         name = sample_id + ".manta.vcf.gz.tbi",
         preemptible = preemptible
     }
     call Tasks.PreferOrBuildTabix as EvidenceWhamIndex {
       input:
         vcf = GatkSvSingle.wham_vcf,
-        index = GatkSvSingle.wham_index,
+        index_files = select_all([GatkSvSingle.wham_index]),
         name = sample_id + ".wham.vcf.gz.tbi",
         preemptible = preemptible
     }
     call Tasks.PreferOrBuildTabix as EvidenceScrambleIndex {
       input:
         vcf = GatkSvSingle.scramble_vcf,
-        index = GatkSvSingle.scramble_index,
+        index_files = select_all([GatkSvSingle.scramble_index]),
         name = sample_id + ".scramble.vcf.gz.tbi",
         preemptible = preemptible
     }
   }
   # Prefer prior, then GatkSv (sample absent from joint → fallback), then joint.
   # select_all turns optional if-branch File? into a 0-or-1 Array for flatten.
-  Array[File] prior_sv_vcfs = select_all([sv_prior_vcf])
+  Array[File] prior_sv_vcfs = sv_prior_vcf_files
   File sample_sv_vcf = select_first(flatten([prior_sv_vcfs, select_all([GatkSvSingle.final_vcf]), SubsetJointSvVcf.vcf]))
   File sample_sv_vcf_index = select_first(flatten([select_all([PriorSvIndex.out]), select_all([GatkSvSingle.final_vcf_idx]), SubsetJointSvVcf.vcf_index]))
   # Stage as sample_id.sv.vcf.gz (GATK-SV finals are opaque; prior/joint already match).

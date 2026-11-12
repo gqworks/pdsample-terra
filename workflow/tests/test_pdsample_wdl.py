@@ -544,13 +544,14 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert "Boolean sv_use_scramble = true" in text
     assert "use_melt = sv_use_melt" in text
     assert "use_scramble = sv_use_scramble" in text
-    assert "case_manta_vcf = sv_case_manta_vcf" in text
-    assert "case_wham_vcf = sv_case_wham_vcf" in text
-    assert "case_scramble_vcf = sv_case_scramble_vcf" in text
-    assert "case_counts_file = sv_case_counts_file" in text
-    assert "case_pe_file = sv_case_pe_file" in text
-    assert "case_sr_file = sv_case_sr_file" in text
-    assert "case_sd_file = sv_case_sd_file" in text
+    assert "case_manta_vcf = case_manta_vcf" in text
+    assert "case_wham_vcf = case_wham_vcf" in text
+    assert "case_scramble_vcf = case_scramble_vcf" in text
+    assert "case_counts_file = case_counts_file" in text
+    assert "case_pe_file = case_pe_file" in text
+    assert "case_sr_file = case_sr_file" in text
+    assert "case_sd_file = case_sd_file" in text
+    assert 'String sv_case_manta_vcf = ""' in text
     assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
@@ -587,13 +588,15 @@ def test_sv_joint_vcf_skips_gatksv_single():
     text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
-    assert "File? sv_prior_vcf" in text
-    assert "File? sv_prior_vcf_index" in text
-    assert "Boolean use_prior_sv = defined(sv_prior_vcf)" in text
+    assert 'String sv_prior_vcf = ""' in text
+    assert 'String sv_prior_vcf_index = ""' in text
+    assert "Array[File] sv_prior_vcf_files" in text
+    assert "Boolean use_prior_sv = length(sv_prior_vcf_files) > 0" in text
     assert "call Tasks.PreferOrBuildTabix as PriorSvIndex" in text
-    assert "File? sv_joint_vcf" in text
-    assert "File? sv_joint_vcf_index" in text
-    assert "scatter (unused in if defined(sv_joint_vcf) && !use_prior_sv then [1] else [])" in text
+    assert 'String sv_joint_vcf = ""' in text
+    assert 'String sv_joint_vcf_index = ""' in text
+    assert "Boolean try_joint_sv = length(sv_joint_vcf_files) > 0 && !use_prior_sv" in text
+    assert "scatter (unused in if try_joint_sv then [1] else [])" in text
     assert (
         "Boolean use_joint_sv = !use_prior_sv && select_first(flatten([SubsetJointSvVcf.sample_found, [false]]))"
         in text
@@ -601,16 +604,22 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert "if (!use_prior_sv && !use_joint_sv)" in text
     assert "call Tasks.SubsetJointSvVcf" in text
     assert "call GatkSv.GATKSVPipelineSingleSample as GatkSvSingle" in text
+    assert "case_manta_vcf = case_manta_vcf" in text
+    assert "File? optional_file_none" in text
     assert (
         "sample_sv_vcf = select_first(flatten([prior_sv_vcfs, select_all([GatkSvSingle.final_vcf]), SubsetJointSvVcf.vcf]))"
         in text
     )
+    assert "Array[File] prior_sv_vcfs = sv_prior_vcf_files" in text
     assert (
         'sv_status = if use_prior_sv then "prior" else if use_joint_sv then "joint" else "called"'
         in text
     )
     assert "task PreferOrBuildTabix" in tasks
+    assert "Array[File] index_files = []" in tasks
+    assert 'idx=\'~{sep="" index_files}\'' in tasks
     assert "task SubsetJointSvVcf" in tasks
+    assert "Array[File] joint_vcf_index_files = []" in tasks
     assert "Boolean sample_found = read_boolean(\"sample_found.txt\")" in tasks
     assert 'bcftools view -s "${sample}" --min-ac 1' in tasks
     assert "falling back to GATKSVPipelineSingleSample" in tasks
