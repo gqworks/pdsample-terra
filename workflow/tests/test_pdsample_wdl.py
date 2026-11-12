@@ -548,17 +548,20 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert "case_wham_vcf = case_wham_vcf" in text
     assert "case_scramble_vcf = case_scramble_vcf" in text
     assert "case_counts_file = case_counts_file" in text
-    assert "case_pe_file = case_pe_file" in text
-    assert "case_sr_file = case_sr_file" in text
-    assert "case_sd_file = case_sd_file" in text
+    assert "case_pe_file = case_pesr_disc" in text
+    assert "case_sr_file = case_pesr_split" in text
+    assert "case_sd_file = case_pesr_sd" in text
+    assert 'String sv_case_pesr_disc = ""' in text
+    assert 'String sv_case_pesr_split = ""' in text
+    assert 'String sv_case_pesr_sd = ""' in text
     assert 'String sv_case_manta_vcf = ""' in text
     assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
     assert '"PdSample.sv_case_counts_file": "${this.Coverage_count}"' in terra
-    assert '"PdSample.sv_case_pe_file": "${this.pesr_disc}"' in terra
-    assert '"PdSample.sv_case_sr_file": "${this.pesr_split}"' in terra
-    assert '"PdSample.sv_case_sd_file": "${this.pesr_sd}"' in terra
+    assert '"PdSample.sv_case_pesr_disc": "${this.pesr_disc}"' in terra
+    assert '"PdSample.sv_case_pesr_split": "${this.pesr_split}"' in terra
+    assert '"PdSample.sv_case_pesr_sd": "${this.pesr_sd}"' in terra
     assert '"PdSample.sv_case_wham_vcf": "${this.wham_vcf}"' in terra
     assert '"PdSample.sv_case_scramble_vcf": "${this.scramble_vcf}"' in terra
     assert "gq_recalibrator_model_file = sv_gq_recalibrator_model_file" in text
