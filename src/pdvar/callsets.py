@@ -253,6 +253,29 @@ def gba_c_dot(value: object) -> str:
     return f"c.{body}" if body else ""
 
 
+def _gauchian_protein_tokens(rec_text: str, raw_row: dict) -> list[str]:
+    """Collect short protein alleles from ``GBAP1_like`` and haplotype JSON."""
+    from .gba1_pd import is_gauchian_protein_token
+
+    tokens: list[str] = []
+
+    def add(value: object) -> None:
+        text = str(value or "").strip().rstrip("/")
+        if is_gauchian_protein_token(text) and text not in tokens:
+            tokens.append(text)
+
+    if rec_text:
+        add(rec_text)
+    haplotypes = raw_row.get("haplotypes")
+    if isinstance(haplotypes, dict):
+        for key in ("variants_allele1", "variants_allele2"):
+            alleles = haplotypes.get(key)
+            if isinstance(alleles, list):
+                for allele in alleles:
+                    add(allele)
+    return tokens
+
+
 def parse_other_variants(text: object) -> list[tuple[str, str]]:
     """Split Gauchian ``other_variants`` into ``(hgvsc, hgvsp)`` pairs."""
     if _empty_gauchian_text(text):
@@ -359,6 +382,9 @@ def parse_gauchian(path: str | Path, sample_prefix: str | None = None, default_s
     pathogenic = _column(raw, ["pathogenic", "classification", "clinical_significance"])
     other_variants = _column(raw, ["other_variants", "Other_variants"])
     raw_counts_col = _column(raw, ["variant_raw_count", "variant_raw_counts"])
+    from .gba1_pd import default_browser_path, load_browser, resolve_gauchian_protein_token
+
+    browser = load_browser(default_browser_path())
     rows = []
     seen: set[str] = set()
     carriers: set[str] = set()
@@ -382,8 +408,23 @@ def parse_gauchian(path: str | Path, sample_prefix: str | None = None, default_s
         other_text = "" if other_variants is None else other_variants.iloc[index]
         parsed_other = parse_other_variants(other_text)
         raw_counts = raw_counts_col.iloc[index] if raw_counts_col is not None else None
-        structural = explicit_deletion or copy_loss or bool(rec_text) or path_flag
-        if not structural and not parsed_other:
+        raw_row = raw.iloc[index].to_dict() if hasattr(raw.iloc[index], "to_dict") else {}
+        protein_tokens = _gauchian_protein_tokens(rec_text, raw_row)
+        resolved_protein: list[tuple[str, str]] = []
+        seen_cdna: set[str] = set()
+        for token in protein_tokens:
+            pair = resolve_gauchian_protein_token(token, browser)
+            if pair is None:
+                continue
+            hgvsc, hgvsp = pair
+            key = gba_c_dot(hgvsc)
+            if key and key not in seen_cdna:
+                seen_cdna.add(key)
+                resolved_protein.append((hgvsc, hgvsp))
+        structural = explicit_deletion or copy_loss or (bool(rec_text) and not protein_tokens) or (
+            path_flag and not protein_tokens
+        )
+        if not structural and not parsed_other and not resolved_protein:
             continue
         carriers.add(sample)
         if structural:
@@ -428,7 +469,11 @@ def parse_gauchian(path: str | Path, sample_prefix: str | None = None, default_s
                     scored_dosage=scored,
                 )
             )
-        for offset, (hgvsc, hgvsp) in enumerate(parsed_other):
+        catalog_variants = list(parsed_other)
+        for hgvsc, hgvsp in resolved_protein:
+            if gba_c_dot(hgvsc) not in {gba_c_dot(c) for c, _ in catalog_variants}:
+                catalog_variants.append((hgvsc, hgvsp))
+        for offset, (hgvsc, hgvsp) in enumerate(catalog_variants):
             depth, allele_balance = _variant_raw_depth_ab(raw_counts, hgvsc, hgvsp)
             consequence = _consequence_from_protein(hgvsp)
             # Gauchian catalogs pathogenic GBA1 alleles; mark P/LP so scoring/ranking keep them.

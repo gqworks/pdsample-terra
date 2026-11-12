@@ -6,6 +6,7 @@ annotation and a score bump on ``hit_source=gauchian`` alleles only.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -27,6 +28,68 @@ CLASS_REASON = {
     "mild": "gba1_pd_mild",
     "risk": "gba1_pd_risk",
 }
+
+_AA1_TO_3 = {
+    "A": "Ala",
+    "C": "Cys",
+    "D": "Asp",
+    "E": "Glu",
+    "F": "Phe",
+    "G": "Gly",
+    "H": "His",
+    "I": "Ile",
+    "K": "Lys",
+    "L": "Leu",
+    "M": "Met",
+    "N": "Asn",
+    "P": "Pro",
+    "Q": "Gln",
+    "R": "Arg",
+    "S": "Ser",
+    "T": "Thr",
+    "V": "Val",
+    "W": "Trp",
+    "Y": "Tyr",
+    "*": "Ter",
+}
+_GAUCHIAN_PROTEIN_TOKEN = re.compile(r"^([A-Z\*])(\d+)([A-Z\*])$")
+
+
+def is_gauchian_protein_token(text: object) -> bool:
+    """True for Gauchian short protein codes such as ``L483P`` (not ``RecNciI``)."""
+    token = str(text or "").strip().rstrip("/")
+    return bool(_GAUCHIAN_PROTEIN_TOKEN.fullmatch(token))
+
+
+def resolve_gauchian_protein_token(token: str, browser: pd.DataFrame) -> tuple[str, str] | None:
+    """Map a Gauchian ``GBAP1_like`` / haplotype token to browser ``(cdna, protein)``."""
+    token = str(token or "").strip().rstrip("/")
+    match = _GAUCHIAN_PROTEIN_TOKEN.fullmatch(token)
+    if match is None or browser.empty:
+        return None
+    ref1, pos, alt1 = match.groups()
+    ref3 = _AA1_TO_3.get(ref1)
+    alt3 = _AA1_TO_3.get(alt1)
+    if not ref3 or not alt3:
+        return None
+    needle = f"({ref3}{pos}{alt3})"
+    proteins = browser.get("protein", pd.Series("", index=browser.index)).astype(str)
+    hits = browser[proteins.str.contains(re.escape(needle), regex=True, na=False)]
+    if hits.empty:
+        return None
+    row = hits.iloc[0]
+    hgvsc = str(row.get("cdna") or "").strip()
+    if not hgvsc:
+        return None
+    protein = str(row.get("protein") or "").strip()
+    if protein.startswith("p.(") and protein.endswith(")"):
+        hgvsp = f"p.{protein[3:-1]}"
+    else:
+        hgvsp = protein
+        paren = re.search(r"\((p\.[^)]+)\)", protein)
+        if paren:
+            hgvsp = paren.group(1)
+    return hgvsc, hgvsp
 
 
 def default_browser_path(cfg: dict | None = None) -> Path | None:
