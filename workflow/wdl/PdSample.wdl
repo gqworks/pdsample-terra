@@ -154,9 +154,9 @@ workflow PdSample {
     String sv_case_wham_vcf = ""
     String sv_case_scramble_vcf = ""
     String sv_case_counts_file = ""
-    String sv_case_pe_file = ""
-    String sv_case_sr_file = ""
-    String sv_case_sd_file = ""
+    String sv_case_pesr_disc = ""
+    String sv_case_pesr_split = ""
+    String sv_case_pesr_sd = ""
     # Optional per-sample prior SV VCF (Terra: this.sv_vcf / this.sv_vcf_index).
     # When set, skips both SubsetJointSvVcf and GATKSVPipelineSingleSample and
     # reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
@@ -298,9 +298,9 @@ workflow PdSample {
   File? case_wham_vcf = if sv_case_wham_vcf != "" then sv_case_wham_vcf else optional_file_none
   File? case_scramble_vcf = if sv_case_scramble_vcf != "" then sv_case_scramble_vcf else optional_file_none
   File? case_counts_file = if sv_case_counts_file != "" then sv_case_counts_file else optional_file_none
-  File? case_pe_file = if sv_case_pe_file != "" then sv_case_pe_file else optional_file_none
-  File? case_sr_file = if sv_case_sr_file != "" then sv_case_sr_file else optional_file_none
-  File? case_sd_file = if sv_case_sd_file != "" then sv_case_sd_file else optional_file_none
+  File? case_pesr_disc = if sv_case_pesr_disc != "" then sv_case_pesr_disc else optional_file_none
+  File? case_pesr_split = if sv_case_pesr_split != "" then sv_case_pesr_split else optional_file_none
+  File? case_pesr_sd = if sv_case_pesr_sd != "" then sv_case_pesr_sd else optional_file_none
 
   call Tasks.FetchRepoAssets {
     input:
@@ -616,9 +616,9 @@ workflow PdSample {
         case_wham_vcf = case_wham_vcf,
         case_scramble_vcf = case_scramble_vcf,
         case_counts_file = case_counts_file,
-        case_pe_file = case_pe_file,
-        case_sr_file = case_sr_file,
-        case_sd_file = case_sd_file,
+        case_pe_file = case_pesr_disc,
+        case_sr_file = case_pesr_split,
+        case_sd_file = case_pesr_sd,
         ref_samples_list = sv_ref_samples_list,
         ref_ped_file = sv_ref_ped_file,
         genome_file = sv_genome_file,
