@@ -180,6 +180,38 @@ def test_native_gauchian_json_other_variants(tmp_path, cfg):
     assert status["gauchian"] == "GBA1 carrier"
 
 
+def test_gauchian_gbap1_like_protein_resolves_to_cdna(tmp_path, cfg):
+    """GBAP1_like tokens such as L483P/ must become catalog SNV rows, not unscored SVs."""
+    path = tmp_path / "MONOPDAUS.gauchian.json"
+    path.write_text(
+        json.dumps(
+            {
+                "MONOPDAUS_000008": {
+                    "deletion_CN": 2,
+                    "GBAP1_like_variant_exon9_11": "L483P/",
+                    "other_variants": "",
+                    "variant_raw_count": {"c.1448T>C(p.Leu483Pro)": "17,71"},
+                    "haplotypes": {
+                        "is_carrier": True,
+                        "variants_allele1": ["L483P"],
+                        "variants_allele2": [],
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    table, assessment = callsets.ingest_sample_callsets("MONOPDAUS_000008", gauchian=path, cfg=cfg)
+    assert not table.empty
+    assert set(table["dosage_event"]) == {"other_variant"}
+    assert set(table["hgvsc"]) == {"c.1448T>C"}
+    row = table.iloc[0]
+    assert row["consequence"] == "missense_variant"
+    assert row["clinvar_class"] == "P/LP"
+    assert row["depth"] == 88.0
+    assert assessment.set_index("module")["callset_status"]["gauchian"] == "GBA1 carrier"
+
+
 def test_drop_redundant_gauchian_snvs_prefers_small_variant():
     df = pd.DataFrame(
         [
