@@ -52,7 +52,7 @@ Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https:
 | `bam_or_cram_file` | yes | Aligned GRCh38 BAM or CRAM for this row. |
 | `bai` | no | BAM index (`.bai`) or CRAM index (`.crai`). Leave blank for an unindexed CRAM; `EnsureBam` builds a `.bai` after conversion. |
 | `sex` | no | Karyotypic sex for QC and X-linked calling: `male` or `female`. Blank, `unspecified`, or anything else is inferred from somalier, then from the X heterozygosity rate. Not used as phenotype concordance input. |
-| `phenotype_report` | no | `gs://` text file in the GP2-style sheet layout (`GP2ID`, sex, age at onset, levodopa, exposures and comorbidities). Leave the cell empty when the patient has no report. |
+| `phenotype_report` | no | `gs://` text file in the GP2-style sheet layout (`GP2ID`, sex, age at onset, levodopa, exposures and comorbidities). Leave the cell empty when the patient has no report (bound as a String so blank cells do not become an illegal empty File path). |
 
 Add `phenotype_report` to the sample table even when a row leaves it blank. `workflow/terra/PdSample.terra_inputs.json` binds `this.phenotype_report`. The file is parsed into age at onset, levodopa, sampling age, diagnosis, and the comorbidity list for concordance. There are no separate sample-table columns for age at onset, symptoms, or ethnicity.
 
