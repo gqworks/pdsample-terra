@@ -1129,16 +1129,16 @@ PY
     export MTDNA_ANNOTATION="~{mtdna_annotation}"
     export INTROME_TSV="~{introme_tsv}"
     export QC_JSON="~{qc_json}"
-    export GENE_BED="~{gene_bed}"
-    export EXON_BED="~{exon_bed}"
+    export GENE_BED='~{default="" gene_bed}'
+    export EXON_BED='~{default="" exon_bed}'
     export REF_FASTA="~{ref_fasta}"
     export REF_FAI="~{ref_fasta_index}"
     export SPLICE_GTF="~{gtf}"
-    export GBA1_PD_BROWSER="~{gba1_pd_browser}"
-    export SPLICEVAULT="~{splicevault_tsv}"
-    export PRS_WEIGHTS="~{prs_weights}"
-    export AVI_TSV="~{avi_tsv}"
-    export PHENOTYPE_REPORT="~{phenotype_report}"
+    export GBA1_PD_BROWSER='~{default="" gba1_pd_browser}'
+    export SPLICEVAULT='~{default="" splicevault_tsv}'
+    export PRS_WEIGHTS='~{default="" prs_weights}'
+    export AVI_TSV='~{default="" avi_tsv}'
+    export PHENOTYPE_REPORT='~{default="" phenotype_report}'
     export PDVAR_GIT_COMMIT="~{pdvar_git_commit}"
     export PDVAR_VERSION="$(tr -d '\n' < pdvar_version.txt)"
     python3 - <<'PY'

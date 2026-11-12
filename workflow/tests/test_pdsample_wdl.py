@@ -157,7 +157,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert '"PdSample.phenotype":' not in terra
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "pheno[Phenotype report txt] --> assess" in readme
-    assert "File? phenotype_report" in text
+    assert 'String phenotype_report = ""' in text
+    assert "File? phenotype_report_file" in text
+    assert "phenotype_report = phenotype_report_file" in text
     assert "String? age_onset" not in text
     assert "String? symptoms" not in text
     assert "String? ethnicity" not in text
@@ -211,7 +213,6 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File sample_json" not in tasks
     assert "File report_md" not in tasks
     assert "PHENOTYPE_REPORT" in tasks
-    assert "phenotype_report = phenotype_report" in text
     assert '"PdSample.sv_ref_panel_vcf": "${workspace.ref_panel_vcf}"' in terra
     assert '"PdSample.sv_ref_std_scramble_vcf_tar": "${workspace.ref_panel_std_scramble_vcf_tar}"' in terra
     assert "sv_empty_file" not in terra

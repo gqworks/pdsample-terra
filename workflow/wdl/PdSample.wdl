@@ -100,7 +100,9 @@ workflow PdSample {
     File? prs_weights
     # Optional GP2-style phenotype text. Age at onset, ancestry, and clinical fields
     # are read from this file only (no separate sample-table phenotype columns).
-    File? phenotype_report
+    # String (not File?) so Terra blank sample cells ("") do not become an illegal
+    # File path that fails Assess with "Could not build the path """.
+    String phenotype_report = ""
 
     File mt_dict
     File mt_fasta
@@ -277,6 +279,10 @@ workflow PdSample {
     String hc_gatk_docker = "us.gcr.io/broad-gatk/gatk:4.6.1.0"
     String python_docker = "python:3.11.11-slim-bookworm"
   }
+
+  # Blank Terra sample cells arrive as "". Only a non-empty gs:// (or local) path
+  # becomes a File for Assess localization.
+  File? phenotype_report_file = if phenotype_report != "" then phenotype_report else None
 
   call Tasks.FetchRepoAssets {
     input:
@@ -804,7 +810,7 @@ workflow PdSample {
       gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
       splicevault_tsv = splicevault_tsv,
       prs_weights = prs_weights,
-      phenotype_report = phenotype_report,
+      phenotype_report = phenotype_report_file,
       pdvar_docker = pdvar_docker,
       pdvar_git_url = pdvar_git_url,
       pdvar_git_commit = pdvar_git_commit
