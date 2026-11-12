@@ -1086,7 +1086,8 @@ task Assess {
     File? gba1_pd_browser
     File? splicevault_tsv
     File? prs_weights
-    File? phenotype_report
+    # Empty when the sample has no report (WDL 1.0 has no None for File?).
+    Array[File] phenotype_report_files = []
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
@@ -1138,7 +1139,7 @@ PY
     export SPLICEVAULT='~{default="" splicevault_tsv}'
     export PRS_WEIGHTS='~{default="" prs_weights}'
     export AVI_TSV='~{default="" avi_tsv}'
-    export PHENOTYPE_REPORT='~{default="" phenotype_report}'
+    export PHENOTYPE_REPORT='~{sep="" phenotype_report_files}'
     export PDVAR_GIT_COMMIT="~{pdvar_git_commit}"
     export PDVAR_VERSION="$(tr -d '\n' < pdvar_version.txt)"
     python3 - <<'PY'

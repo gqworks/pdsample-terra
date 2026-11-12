@@ -158,8 +158,9 @@ def test_pdsample_is_the_only_entry_workflow():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "pheno[Phenotype report txt] --> assess" in readme
     assert 'String phenotype_report = ""' in text
-    assert "File? phenotype_report_file" in text
-    assert "phenotype_report = phenotype_report_file" in text
+    assert "Array[File] phenotype_report_files" in text
+    assert "phenotype_report_files = phenotype_report_files" in text
+    assert " else None" not in text
     assert "String? age_onset" not in text
     assert "String? symptoms" not in text
     assert "String? ethnicity" not in text
