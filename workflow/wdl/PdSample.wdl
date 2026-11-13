@@ -2,7 +2,7 @@ version 1.0
 
 import "tasks/SampleTasks.wdl" as Tasks
 import "Introme.wdl" as IntromeWf
-import "https://raw.githubusercontent.com/broadinstitute/gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl" as Mitochondria
+import "vendor/mitochondria_m2_wdl/MitochondriaPipeline.wdl" as Mitochondria
 import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {

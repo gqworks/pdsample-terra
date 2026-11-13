@@ -11,11 +11,11 @@ bash workflow/scripts/validate_wdl.sh
 The default path runs `womtool validate` on the committed files. PdSample imports:
 
 - `workflow/wdl/vendor/gatk-sv/GATKSVPipelineSingleSample.wdl` (gatk-sv **v1.1.1** with absolute nested HTTP imports and HERVK/LINE1/`n_per_split` pass-throughs)
-- `https://raw.githubusercontent.com/broadinstitute/gatk/4.7.0.0/scripts/mitochondria_m2_wdl/MitochondriaPipeline.wdl`
+- `workflow/wdl/vendor/mitochondria_m2_wdl/MitochondriaPipeline.wdl` (GATK **4.7.0.0** mito bundle: `AlignAndCall.wdl`, `AlignmentPipeline.wdl`; mt-scale tasks use a fixed 64 GB disk so Cromwell does not call `size()` on `CallMt` / `CallShiftedMt` / `FilterContamination` during large Terra batches)
 
-`miniwdl check` uses that same tree. It substitutes `stubs/MitochondriaPipeline.wdl` because upstream `AlignAndCall.wdl` multiplies an optional `Int?` and miniwdl rejects that. `gcp` is how the Introme GPU tasks pass `gpuCount`, `gpuType`, and `nvidiaDriverVersion` to Cromwell. miniwdl warns that it does not know the `gcp` key. That warning is expected and does not fail the check. The object is empty unless `use_gpu` is true, because Cromwell rejects `gpuCount: 0` while creating the job and never starts a VM.
+`miniwdl check` uses that same tree. `gcp` is how the Introme GPU tasks pass `gpuCount`, `gpuType`, and `nvidiaDriverVersion` to Cromwell. miniwdl warns that it does not know the `gcp` key. That warning is expected and does not fail the check. The object is empty unless `use_gpu` is true, because Cromwell rejects `gpuCount: 0` while creating the job and never starts a VM.
 
-`bash workflow/scripts/validate_wdl.sh --offline` replaces the vendored GATK-SV import and the mitochondria import with `workflow/wdl/stubs/`. It is not the Dockstore or Terra check.
+`bash workflow/scripts/validate_wdl.sh --offline` replaces the vendored GATK-SV import with `workflow/wdl/stubs/GATKSVPipelineSingleSample.wdl`. It is not the Dockstore or Terra check.
 
 ## GATK-SV tag
 
@@ -40,7 +40,7 @@ GATK-SV is a required call. Panel and resource `File` inputs are required `PdSam
 | AlphaGenome AVI (precomputed table) | `python:3.11.11-slim-bookworm` | pip `pysam==0.24.1`, local Tabix lookup |
 | ExpansionHunter | `quay.io/biocontainers/expansionhunter:5.0.0--hc26b3af_5` | 5.0.0, 19-locus catalog |
 | Gauchian | `python:3.11.11-slim-bookworm` unless `gauchian_docker` is set | pip `gauchian==1.0.2` |
-| mtDNA | images inside MitochondriaPipeline | GATK 4.7.0.0 |
+| mtDNA | images inside vendored MitochondriaPipeline | GATK 4.7.0.0 |
 | GATK-SV | pins in `PdSample.wdl` (`sv_*_docker`) | gatk-sv v1.1.1, required |
 | Introme preprocessing | `gabyou/data_prepocessing:v2.0` | upstream tag, including the image-name spelling |
 | VariantInfo | `gabyou/variant_info:v3.2` | v3.2 |

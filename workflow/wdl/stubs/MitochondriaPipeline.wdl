@@ -2,7 +2,7 @@ version 1.0
 
 workflow MitochondriaPipeline {
   meta {
-    description: "Validation stub for miniwdl. The committed PdSample.wdl imports GATK 4.7.0.0. womtool validates that real import. miniwdl rejects optional arithmetic in the upstream AlignAndCall.wdl."
+    description: "Offline/validation stub only. The committed PdSample.wdl imports vendor/mitochondria_m2_wdl/MitochondriaPipeline.wdl (GATK 4.7.0.0 with fixed mt-scale disks)."
   }
   input {
     File wgs_aligned_input_bam_or_cram
