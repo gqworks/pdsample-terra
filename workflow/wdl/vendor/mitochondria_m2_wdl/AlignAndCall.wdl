@@ -252,7 +252,7 @@ task GetContamination {
     Int? preemptible_tries
   }
 
-  Int disk_size = 100
+  Int disk_size = 64
 
   meta {
     description: "Uses new Haplochecker to estimate levels of contamination in mitochondria"
@@ -319,7 +319,7 @@ task CollectWgsMetrics {
 
     # runtime
     Int? preemptible_tries
-    Int disk_size = 100
+    Int disk_size = 64
     Int mem = 3
   }
 
@@ -383,7 +383,7 @@ task LiftoverAndCombineVcfs {
     Int? preemptible_tries
   }
 
-  Int disk_size = 100
+  Int disk_size = 64
 
   meta {
     description: "Lifts over shifted vcf of control region and combines it with the rest of the chrM calls."
@@ -440,7 +440,7 @@ task M2 {
     String? gatk_docker_override
     Int? mem
     Int? preemptible_tries
-    Int disk_size = 100
+    Int disk_size = 64
   }
 
   String output_vcf = "raw" + if compress then ".vcf.gz" else ".vcf"
@@ -528,7 +528,7 @@ task Filter {
 
   String output_vcf = base_name + if compress then ".vcf.gz" else ".vcf"
   String output_vcf_index = output_vcf + if compress then ".tbi" else ".idx"
-  Int disk_size = 100
+  Int disk_size = 64
   # select_first so miniwdl accepts optional Float? arithmetic (upstream uses bare optionals).
   Float contamination_major_val = select_first([contamination_major, 0.0])
   Float contamination_minor_val = select_first([contamination_minor, 0.0])

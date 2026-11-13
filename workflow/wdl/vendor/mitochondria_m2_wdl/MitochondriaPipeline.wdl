@@ -257,7 +257,7 @@ task RevertSam {
     # runtime
     Int? preemptible_tries
     Int machine_mem = 2000
-    Int disk_size = 100
+    Int disk_size = 64
   }
   Int java_mem = machine_mem - 1000
 
@@ -308,7 +308,7 @@ task CoverageAtEveryBase {
 
     # runtime
     Int? preemptible_tries
-    Int disk_size = 100
+    Int disk_size = 64
   }
 
   meta {

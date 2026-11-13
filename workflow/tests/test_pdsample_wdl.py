@@ -68,7 +68,7 @@ def test_pdsample_is_the_only_entry_workflow():
         ROOT / "workflow" / "wdl" / "vendor" / "mitochondria_m2_wdl" / "AlignAndCall.wdl"
     ).read_text(encoding="utf-8")
     # CallMt / CallShiftedMt must not call size() (Terra batch __disk_size timeouts).
-    assert "Int disk_size = 100" in mito_m2
+    assert "Int disk_size = 64" in mito_m2
     assert 'size(input_bam, "GB") + size(ref_fasta, "GB") + size(ref_fai, "GB")' not in mito_m2
     sample_tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert "pysam==0.24.1" in sample_tasks

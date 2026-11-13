@@ -26,7 +26,7 @@ workflow AlignmentPipeline {
 
     #Optional runtime arguments
     Int? preemptible_tries
-    Int disk_size = 100
+    Int disk_size = 64
     Int mem = 6
   }
 

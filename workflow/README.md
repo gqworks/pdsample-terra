@@ -11,7 +11,7 @@ bash workflow/scripts/validate_wdl.sh
 The default path runs `womtool validate` on the committed files. PdSample imports:
 
 - `workflow/wdl/vendor/gatk-sv/GATKSVPipelineSingleSample.wdl` (gatk-sv **v1.1.1** with absolute nested HTTP imports and HERVK/LINE1/`n_per_split` pass-throughs)
-- `workflow/wdl/vendor/mitochondria_m2_wdl/MitochondriaPipeline.wdl` (GATK **4.7.0.0** mito bundle: `AlignAndCall.wdl`, `AlignmentPipeline.wdl`; mt-scale tasks use a fixed 100 GB disk so Cromwell does not call `size()` on `CallMt` / `CallShiftedMt` / `FilterContamination` during large Terra batches)
+- `workflow/wdl/vendor/mitochondria_m2_wdl/MitochondriaPipeline.wdl` (GATK **4.7.0.0** mito bundle: `AlignAndCall.wdl`, `AlignmentPipeline.wdl`; mt-scale tasks use a fixed 64 GB disk so Cromwell does not call `size()` on `CallMt` / `CallShiftedMt` / `FilterContamination` during large Terra batches)
 
 `miniwdl check` uses that same tree. `gcp` is how the Introme GPU tasks pass `gpuCount`, `gpuType`, and `nvidiaDriverVersion` to Cromwell. miniwdl warns that it does not know the `gcp` key. That warning is expected and does not fail the check. The object is empty unless `use_gpu` is true, because Cromwell rejects `gpuCount: 0` while creating the job and never starts a VM.
 
