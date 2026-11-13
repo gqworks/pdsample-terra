@@ -141,7 +141,7 @@ task DataPreprocessing {
     Int memory_gb = 8
   }
   String gtf_prefix = if basename(gtf) != basename(gtf, ".gtf.gz") then basename(gtf, ".gtf.gz") else basename(gtf, ".gtf")
-  Int disk_gb = 200
+  Int disk_gb = 100
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -228,7 +228,7 @@ task QualityFilter {
     Int cpu = 4
     Int memory_gb = 4
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -293,7 +293,7 @@ task VariantInfo {
     Int cpu = 8
     Int memory_gb = 8
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -410,7 +410,7 @@ task SpliceAI {
     Int cpu = 16
     Int memory_gb = 16
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   Int boot_gb = if use_gpu then 50 else 30
   command <<<
     set -euo pipefail
@@ -480,7 +480,7 @@ task MMSplice {
     Int cpu = 16
     Int memory_gb = 16
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   Int boot_gb = if use_gpu then 50 else 30
   command <<<
     set -euo pipefail
@@ -540,7 +540,7 @@ task Pangolin {
     Int cpu = 16
     Int memory_gb = 16
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   Int boot_gb = if use_gpu then 50 else 30
   command <<<
     set -euo pipefail
@@ -594,7 +594,7 @@ task Spip {
     Int cpu = 1
     Int memory_gb = 4
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -634,7 +634,7 @@ task Spliceogen {
     Int cpu = 4
     Int memory_gb = 16
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -716,7 +716,7 @@ task IntromeFunctions {
     Int cpu = 4
     Int memory_gb = 8
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -812,7 +812,7 @@ task SplicingAnno {
     Int cpu = 8
     Int memory_gb = 8
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2
@@ -886,7 +886,7 @@ task EnsembleInfer {
     Int cpu = 8
     Int memory_gb = 16
   }
-  Int disk_gb = 200
+  Int disk_gb = 100
   command <<<
     set -euo pipefail
     echo "force_rerun_token=~{force_rerun_token}" >&2

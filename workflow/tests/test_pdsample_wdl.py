@@ -695,7 +695,7 @@ def test_runtime_disk_gb_is_integer_ceiled():
 def test_introme_tasks_use_fixed_disk_without_size():
     """SplicingAnno and siblings must not call size() for disk under batch load."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
-    assert text.count("Int disk_gb = 200") >= 10
+    assert text.count("Int disk_gb = 100") >= 10
     for line in text.splitlines():
         stripped = line.strip()
         if stripped.startswith("Int disk_gb ="):
