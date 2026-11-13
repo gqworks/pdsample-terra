@@ -685,5 +685,18 @@ def test_runtime_disk_gb_is_integer_ceiled():
         for line in text.splitlines():
             stripped = line.strip()
             if stripped.startswith("disk_gb =") or stripped.startswith("Int disk_gb ="):
-                assert "ceil(" in stripped, f"{path}: disk_gb must use ceil(): {stripped}"
                 assert stripped.startswith("Int disk_gb"), f"{path}: disk_gb must be Int: {stripped}"
+                # Fixed Int disks (no size()) are allowed to avoid Cromwell Future
+                # timeouts under Terra batch load. Dynamic disks must still ceil().
+                if "size(" in stripped:
+                    assert "ceil(" in stripped, f"{path}: size()-based disk_gb must use ceil(): {stripped}"
+
+
+def test_introme_tasks_use_fixed_disk_without_size():
+    """SplicingAnno and siblings must not call size() for disk under batch load."""
+    text = (ROOT / "workflow" / "wdl" / "tasks" / "IntromeTasks.wdl").read_text(encoding="utf-8")
+    assert text.count("Int disk_gb = 200") >= 10
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Int disk_gb ="):
+            assert "size(" not in stripped, stripped
