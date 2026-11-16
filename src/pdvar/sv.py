@@ -77,7 +77,25 @@ DEFAULT_DEPTH_ONLY_ARTIFACT = {
     "max_rd_gq": 5.0,
 }
 
+# Raw Manta (and similar PE/SR) priors lack FORMAT CN / depth genotyping.
+# Multi-Mb PASS DELs then exon-overlap into false transcript_ablation solves.
+DEFAULT_PESR_CALLER_QC = {
+    "enabled": True,
+    # Absolute span cap for DEL/DUP when CN is absent (|SVLEN| or END-POS).
+    "max_span_bp": 2_000_000,
+    # Drop INFO/IMPRECISE DEL/DUP when CN is absent.
+    "drop_imprecise": True,
+    # Above this span, require Manta-style SR alt support (FORMAT SR = ref,alt).
+    "large_event_min_span_bp": 50_000,
+    "large_event_require_sr": True,
+    # When JUNCTION_QUAL is present, drop below this floor (covers JUNCTION_QUAL=1 junk).
+    "min_junction_qual": 20.0,
+    # Homozygous DEL/DUP without CN above this span are almost never real in adults.
+    "max_hom_span_bp": 50_000,
+}
+
 _PESR_EVIDENCE = frozenset({"PE", "SR"})
+_SPAN_FILTER_TYPES = frozenset({"DEL", "DUP"})
 
 
 def _as_float(value: object) -> float | None:
@@ -161,6 +179,99 @@ def depth_only_artifact_config(sv_cfg: dict | None) -> dict:
         "enabled": bool(cfg.get("drop_depth_only_artifacts", DEFAULT_DEPTH_ONLY_ARTIFACT["enabled"])),
         "max_rd_gq": float(cfg.get("depth_only_artifact_max_rd_gq", DEFAULT_DEPTH_ONLY_ARTIFACT["max_rd_gq"])),
     }
+
+
+def pesr_caller_qc_config(sv_cfg: dict | None) -> dict:
+    """Resolve raw PE/SR-caller (Manta) QC knobs from ``config.sv``."""
+    cfg = sv_cfg or {}
+    defaults = DEFAULT_PESR_CALLER_QC
+    min_jq = cfg.get("min_junction_qual", defaults["min_junction_qual"])
+    return {
+        "enabled": bool(cfg.get("pesr_caller_qc", defaults["enabled"])),
+        "max_span_bp": int(cfg.get("max_span_bp", defaults["max_span_bp"])),
+        "drop_imprecise": bool(cfg.get("drop_imprecise", defaults["drop_imprecise"])),
+        "large_event_min_span_bp": int(
+            cfg.get("large_event_min_span_bp", defaults["large_event_min_span_bp"])
+        ),
+        "large_event_require_sr": bool(
+            cfg.get("large_event_require_sr", defaults["large_event_require_sr"])
+        ),
+        "min_junction_qual": None if min_jq is None else float(min_jq),
+        "max_hom_span_bp": int(cfg.get("max_hom_span_bp", defaults["max_hom_span_bp"])),
+    }
+
+
+def event_span_bp(info: dict, pos: int, end: int, svlen: int | None = None) -> int:
+    """Positive genomic span for size filters (|SVLEN| preferred, else END-POS)."""
+    length = svlen if svlen is not None else sv_length(info, pos, end)
+    if length is not None and length != 0:
+        return abs(int(length))
+    return abs(int(end) - int(pos))
+
+
+def manta_alt_count(fmt: dict, key: str = "SR") -> int | None:
+    """Manta FORMAT ``SR``/``PR`` are ``ref,alt`` counts; return the alt count."""
+    raw = fmt.get(key)
+    if raw is None or raw is True or raw == "." or raw == "":
+        return None
+    parts = str(raw).split(",")
+    if len(parts) < 2:
+        return None
+    try:
+        return int(float(parts[1]))
+    except ValueError:
+        return None
+
+
+def lacks_depth_cn(fmt: dict) -> bool:
+    """True when FORMAT lacks ``CN`` (raw Manta-like; GATK-SV genotypes carry CN)."""
+    return _as_int(fmt.get("CN")) is None
+
+
+def is_pesr_caller_artifact(
+    info: dict,
+    fmt: dict,
+    *,
+    svtype: str,
+    span_bp: int,
+    zygosity: str | None,
+    max_span_bp: int = 2_000_000,
+    drop_imprecise: bool = True,
+    large_event_min_span_bp: int = 50_000,
+    large_event_require_sr: bool = True,
+    min_junction_qual: float | None = 20.0,
+    max_hom_span_bp: int = 50_000,
+) -> bool:
+    """True for raw PE/SR-caller DEL/DUP calls that should not enter triage.
+
+    Applied only when FORMAT ``CN`` is absent. GATK-SV records keep depth CN and
+    skip this path. Rules (any match drops):
+
+    - absolute span above ``max_span_bp``
+    - ``INFO/IMPRECISE`` when ``drop_imprecise``
+    - ``JUNCTION_QUAL`` present and below ``min_junction_qual``
+    - span above ``large_event_min_span_bp`` without SR alt support
+    - homozygous (or hemizygous) span above ``max_hom_span_bp``
+    """
+    if not lacks_depth_cn(fmt):
+        return False
+    if svtype not in _SPAN_FILTER_TYPES:
+        return False
+    if span_bp > max_span_bp:
+        return True
+    if drop_imprecise and info.get("IMPRECISE") is True:
+        return True
+    if min_junction_qual is not None:
+        jq = _as_float(info.get("JUNCTION_QUAL"))
+        if jq is not None and jq < min_junction_qual:
+            return True
+    if large_event_require_sr and span_bp > large_event_min_span_bp:
+        sr_alt = manta_alt_count(fmt, "SR")
+        if sr_alt is None or sr_alt < 1:
+            return True
+    if zygosity in {"hom", "hemi"} and span_bp > max_hom_span_bp:
+        return True
+    return False
 
 
 def is_depth_only_artifact(
@@ -409,6 +520,7 @@ def ingest_sv(
     exclude = set(exclude_filters if exclude_filters is not None else DEFAULT_EXCLUDE_FILTERS)
     rules = dosage_rules if dosage_rules is not None else DEFAULT_DOSAGE_RULES
     artifact_cfg = depth_only_artifact_config(depth_artifact)
+    pesr_cfg = pesr_caller_qc_config(depth_artifact)
     panel_genes = set(apply_gene_aliases(panel["gene"], aliases))
     gene_ids = {}
     if "gene_id" in panel.columns:
@@ -469,6 +581,20 @@ def ingest_sv(
                 info,
                 fmt,
                 max_rd_gq=artifact_cfg["max_rd_gq"],
+            ):
+                continue
+            if pesr_cfg["enabled"] and is_pesr_caller_artifact(
+                info,
+                fmt,
+                svtype=svtype,
+                span_bp=event_span_bp(info, record["pos"], end, svlen),
+                zygosity=zyg,
+                max_span_bp=pesr_cfg["max_span_bp"],
+                drop_imprecise=pesr_cfg["drop_imprecise"],
+                large_event_min_span_bp=pesr_cfg["large_event_min_span_bp"],
+                large_event_require_sr=pesr_cfg["large_event_require_sr"],
+                min_junction_qual=pesr_cfg["min_junction_qual"],
+                max_hom_span_bp=pesr_cfg["max_hom_span_bp"],
             ):
                 continue
             algorithms = str(info.get("ALGORITHMS") or "") if info.get("ALGORITHMS") not in {True, None} else ""

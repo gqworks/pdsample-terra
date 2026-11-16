@@ -192,6 +192,16 @@ sv:
   # Drop when ALL of: ALGORITHMS=depth only, FORMAT EV has no PE/SR, RD_GQ or OGQ <= max.
   drop_depth_only_artifacts: true
   depth_only_artifact_max_rd_gq: 5
+  # Raw Manta (sv_prior_vcf) lacks FORMAT CN. Multi-Mb PASS DELs then exon-overlap
+  # into false transcript_ablation solves. Applied only when CN is absent so
+  # GATK-SV depth-genotyped records are unchanged. Set pesr_caller_qc: false to disable.
+  pesr_caller_qc: true
+  max_span_bp: 2000000
+  drop_imprecise: true
+  large_event_min_span_bp: 50000
+  large_event_require_sr: true
+  min_junction_qual: 20
+  max_hom_span_bp: 50000
   # Mechanism labels. LoF SVs use null_variant + sv_dosage_lof; SNCA copy-gain reuses null_variant as sv_dosage_gain.
   dosage_rules:
     - gene: SNCA
