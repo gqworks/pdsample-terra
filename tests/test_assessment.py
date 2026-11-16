@@ -30,6 +30,122 @@ def test_depth_only_artifact_helpers():
     assert sv.is_depth_only_artifact(info, {"EV": "RD", "OGQ": "2"})  # OGQ-only weak
 
 
+def test_pesr_caller_artifact_helpers():
+    """Raw Manta-like DELs without CN are dropped; GATK-SV CN records are kept."""
+    manta = {"GT": "0/1", "GQ": "144", "PR": "14,4", "SR": "14,9"}
+    assert sv.lacks_depth_cn(manta)
+    assert not sv.lacks_depth_cn({"GT": "0/1", "CN": "1", "ECN": "2"})
+    assert sv.manta_alt_count(manta, "SR") == 9
+    assert sv.manta_alt_count({"SR": "3,0"}, "SR") == 0
+    assert sv.manta_alt_count({"PR": "14,5"}, "SR") is None
+    assert sv.event_span_bp({"SVLEN": "-97643468"}, 20604914, 118248382) == 97643468
+    # 97 Mb spanning DEL
+    assert sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL"}, manta, svtype="DEL", span_bp=97_643_468, zygosity="het"
+    )
+    # IMPRECISE + low JUNCTION_QUAL
+    assert sv.is_pesr_caller_artifact(
+        {"IMPRECISE": True, "JUNCTION_QUAL": "1"},
+        {"GT": "0/1", "PR": "14,5"},
+        svtype="DEL",
+        span_bp=22_887_154,
+        zygosity="het",
+    )
+    # Large DEL without SR
+    assert sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL"},
+        {"GT": "0/1", "PR": "14,5"},
+        svtype="DEL",
+        span_bp=100_000,
+        zygosity="het",
+    )
+    # Homozygous multi-kb without CN
+    assert sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL"},
+        {"GT": "1/1", "SR": "0,6", "PR": "0,3"},
+        svtype="DEL",
+        span_bp=100_000,
+        zygosity="hom",
+    )
+    # Small precise DEL with SR — kept
+    assert not sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL", "CIPOS": "0,16"},
+        {"GT": "0/1", "SR": "0,6", "PR": "0,3"},
+        svtype="DEL",
+        span_bp=800,
+        zygosity="het",
+    )
+    # GATK-SV with CN skips PE/SR-caller QC even for multi-Mb span
+    assert not sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL"},
+        {"GT": "0/1", "CN": "1", "ECN": "2"},
+        svtype="DEL",
+        span_bp=5_000_000,
+        zygosity="het",
+    )
+
+
+def test_sv_drops_raw_manta_spanning_dels(tmp_path):
+    """PASS Manta multi-Mb DELs without CN must not become transcript_ablation solves."""
+    genes = tmp_path / "genes.bed"
+    exons = tmp_path / "exons.bed"
+    genes.write_text(
+        "chr10\t10000000\t120000000\tENSG\tTWNK\n"
+        "chr6\t158127000\t158129000\tENSG\tSERAC1\n"
+        "chr6\t900\t4000\tENSG\tPRKN\n",
+        encoding="utf-8",
+    )
+    exons.write_text(
+        "chr10\t102839000\t102840000\tENSG\tTWNK\n"
+        "chr6\t158127400\t158127800\tENSG\tSERAC1\n"
+        "chr6\t1000\t1200\tENSG\tPRKN\n",
+        encoding="utf-8",
+    )
+    vcf = tmp_path / "manta.sv.vcf"
+    vcf.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                "##INFO=<ID=END,Number=1,Type=Integer,Description=End>",
+                "##INFO=<ID=SVTYPE,Number=1,Type=String,Description=Type>",
+                "##INFO=<ID=SVLEN,Number=1,Type=Integer,Description=Len>",
+                "##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description=Imprecise>",
+                "##INFO=<ID=JUNCTION_QUAL,Number=1,Type=Integer,Description=JQ>",
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=GQ>",
+                "##FORMAT=<ID=PR,Number=.,Type=Integer,Description=PR>",
+                "##FORMAT=<ID=SR,Number=.,Type=Integer,Description=SR>",
+                "##FORMAT=<ID=CN,Number=1,Type=Integer,Description=CN>",
+                "##FORMAT=<ID=ECN,Number=1,Type=Integer,Description=ECN>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_A",
+                # APGS-like 97 Mb spanning DEL — drop
+                "chr10\t20604914\thuge\tG\t<DEL>\t144\tPASS\tEND=118248382;SVTYPE=DEL;SVLEN=-97643468\tGT:GQ:PR:SR\t0/1:144:14,4:14,9",
+                # IMPRECISE large DEL, JUNCTION_QUAL=1 — drop
+                "chr10\t50000000\timprecise\tN\t<DEL>\t999\tPASS\tEND=80000000;SVTYPE=DEL;SVLEN=-30000000;IMPRECISE;JUNCTION_QUAL=1\tGT:GQ:PR\t0/1:450:14,5",
+                # Hom 15 Mb — drop
+                "chr10\t40000000\thom_huge\tN\t<DEL>\t940\tPASS\tEND=55000000;SVTYPE=DEL;SVLEN=-15000000\tGT:GQ:PR:SR\t1/1:29:0,3:3,23",
+                # Small SERAC1-like 800 bp with SR — keep
+                "chr6\t158127234\tsmall\tT\t<DEL>\t316\tPASS\tEND=158128034;SVTYPE=DEL;SVLEN=-800\tGT:GQ:PR:SR\t0/1:24:0,3:0,6",
+                # GATK-SV-like with CN, multi-Mb — keep (CN path skips PE/SR QC)
+                "chr6\t1000\tgatk_cn\tN\t<DEL>\t.\tPASS\tEND=3001000;SVTYPE=DEL;SVLEN=-3000000\tGT:CN:ECN\t0/1:1:2",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    panel = pd.DataFrame({"gene": ["TWNK", "SERAC1", "PRKN"], "gene_id": ["1", "2", "3"]})
+    table, _ = sv.ingest_sv(vcf, genes, exons, panel, snv_samples=["SAMPLE_A"], auto_index=False)
+    ids = set(table["sv_id"].astype(str))
+    assert "huge" not in ids
+    assert "imprecise" not in ids
+    assert "hom_huge" not in ids
+    assert "small" in ids
+    assert "gatk_cn" in ids
+    small = table[table["sv_id"] == "small"].iloc[0]
+    assert small["gene"] == "SERAC1"
+    assert small["consequence"] == "transcript_ablation"
+
+
 def test_sv_dosage_and_not_assessed(tmp_path):
     genes, exons = _beds(tmp_path)
     vcf = tmp_path / "sv.vcf"
