@@ -180,6 +180,42 @@ def test_native_gauchian_json_other_variants(tmp_path, cfg):
     assert status["gauchian"] == "GBA1 carrier"
 
 
+def test_gauchian_gbap1_like_needs_browser_path(tmp_path, cfg):
+    """Terra pip-install has no repo resources; explicit browser TSV is required."""
+    from pdvar.config import PROJECT_ROOT
+
+    browser = PROJECT_ROOT / "resources" / "gba1" / "gba1_pd_browser.tsv"
+    path = tmp_path / "APGS.gauchian.json"
+    path.write_text(
+        json.dumps(
+            {
+                "APGS_001143": {
+                    "deletion_CN": 2,
+                    "GBAP1_like_variant_exon9_11": "L483P/",
+                    "other_variants": "",
+                    "haplotypes": {"is_carrier": True, "variants_allele1": ["L483P"]},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    empty_browser = tmp_path / "gba1_pd_browser.tsv"
+    empty_browser.write_text("cdna\tprotein\tpd_class\n", encoding="utf-8")
+    without, _, _ = callsets.parse_gauchian(
+        path,
+        default_sample="APGS_001143",
+        gba1_pd_browser=empty_browser,
+    )
+    assert without.iloc[0]["consequence"] == "structural_variant"
+    assert without.iloc[0]["dosage_event"] == "recombinant"
+    with_table, _, _ = callsets.parse_gauchian(
+        path,
+        default_sample="APGS_001143",
+        gba1_pd_browser=browser,
+    )
+    assert set(with_table["hgvsc"]) == {"c.1448T>C"}
+
+
 def test_gauchian_gbap1_like_protein_resolves_to_cdna(tmp_path, cfg):
     """GBAP1_like tokens such as L483P/ must become catalog SNV rows, not unscored SVs."""
     path = tmp_path / "MONOPDAUS.gauchian.json"

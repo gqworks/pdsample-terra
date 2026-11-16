@@ -6,6 +6,7 @@ annotation and a score bump on ``hit_source=gauchian`` alleles only.
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -95,6 +96,11 @@ def resolve_gauchian_protein_token(token: str, browser: pd.DataFrame) -> tuple[s
 def default_browser_path(cfg: dict | None = None) -> Path | None:
     """Resolve the shipped browser TSV from config or the repo default."""
     cfg = cfg or {}
+    env = (os.environ.get("GBA1_PD_BROWSER") or "").strip()
+    if env:
+        path = Path(env)
+        if path.is_file():
+            return path
     configured = (
         (cfg.get("inputs") or {}).get("gba1_pd_browser")
         or (cfg.get("paths") or {}).get("gba1_pd_browser")

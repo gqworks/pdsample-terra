@@ -191,12 +191,14 @@ def assess_sample(
     sv_status = str(sample.get("sv_status") or "called")
     notes["gatk_sv"] = sv_status
 
+    gba1_browser = _exists(sample.get("gba1_pd_browser")) or gba1_pd.default_browser_path(cfg)
     callset_table, callset_assessment = callsets.ingest_sample_callsets(
         sample_id,
         expansionhunter=_exists(sample.get("expansionhunter_vcf")),
         gauchian=_exists(sample.get("gauchian_json")),
         mtdna=_exists(sample.get("mtdna_vcf")),
         cfg=cfg,
+        gba1_pd_browser=gba1_browser,
     )
     frames.append(callset_table)
     for module, label in (
@@ -251,8 +253,7 @@ def assess_sample(
             scored = scoring.score_variants(scored, cfg["scoring"])
             scored = sv.apply_dosage_evidence(scored, cfg["scoring"])
             scored = mtdna.apply_mtdna_evidence(scored, cfg["scoring"])
-            gba1_path = _exists(sample.get("gba1_pd_browser")) or gba1_pd.default_browser_path(cfg)
-            scored = gba1_pd.annotate_and_score(scored, cfg, browser_path=gba1_path)
+            scored = gba1_pd.annotate_and_score(scored, cfg, browser_path=gba1_browser)
             if not introme_variants.empty:
                 scored = splicing.merge_introme(scored, introme_variants)
             scored = splicing.apply_introme_evidence(scored, cfg["splicing"], cfg["scoring"])
