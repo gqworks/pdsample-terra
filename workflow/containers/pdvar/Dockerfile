@@ -17,4 +17,5 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 COPY config ./config
 COPY resources/panel ./resources/panel
+COPY resources/gba1 ./resources/gba1
 RUN pip install --no-cache-dir .

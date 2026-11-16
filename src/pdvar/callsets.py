@@ -349,7 +349,14 @@ def drop_redundant_gauchian_snvs(df: pd.DataFrame) -> pd.DataFrame:
     return df.loc[~drop].reset_index(drop=True)
 
 
-def parse_gauchian(path: str | Path, sample_prefix: str | None = None, default_sample: str | None = None) -> tuple[pd.DataFrame, set[str], set[str]]:
+def parse_gauchian(
+    path: str | Path,
+    sample_prefix: str | None = None,
+    default_sample: str | None = None,
+    *,
+    gba1_pd_browser: str | Path | None = None,
+    cfg: dict | None = None,
+) -> tuple[pd.DataFrame, set[str], set[str]]:
     """Map Gauchian CN loss, recombinants, and catalog ``other_variants`` into GBA1 rows.
 
     Copy number 0 / explicit deletion becomes homozygous ``transcript_ablation``.
@@ -384,7 +391,10 @@ def parse_gauchian(path: str | Path, sample_prefix: str | None = None, default_s
     raw_counts_col = _column(raw, ["variant_raw_count", "variant_raw_counts"])
     from .gba1_pd import default_browser_path, load_browser, resolve_gauchian_protein_token
 
-    browser = load_browser(default_browser_path())
+    browser_path = gba1_pd_browser
+    if browser_path is None:
+        browser_path = default_browser_path(cfg)
+    browser = load_browser(browser_path)
     rows = []
     seen: set[str] = set()
     carriers: set[str] = set()
@@ -421,9 +431,10 @@ def parse_gauchian(path: str | Path, sample_prefix: str | None = None, default_s
             if key and key not in seen_cdna:
                 seen_cdna.add(key)
                 resolved_protein.append((hgvsc, hgvsp))
-        structural = explicit_deletion or copy_loss or (bool(rec_text) and not protein_tokens) or (
-            path_flag and not protein_tokens
-        )
+        unresolved_protein = bool(protein_tokens) and not resolved_protein
+        structural = explicit_deletion or copy_loss or (
+            bool(rec_text) and (not protein_tokens or unresolved_protein)
+        ) or (path_flag and not protein_tokens and not resolved_protein)
         if not structural and not parsed_other and not resolved_protein:
             continue
         carriers.add(sample)
@@ -639,6 +650,7 @@ def ingest_sample_callsets(
     gauchian: Path | None = None,
     mtdna: Path | None = None,
     cfg: dict | None = None,
+    gba1_pd_browser: str | Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Ingest the three per-sample callsets. A missing file stays not assessed."""
     cfg = cfg or {}
@@ -665,6 +677,20 @@ def ingest_sample_callsets(
         )
 
     add("expansionhunter", expansionhunter, lambda path: parse_expansionhunter(path, cfg))
-    add("gauchian", gauchian, lambda path: parse_gauchian(path, default_sample=sample_id))
+    browser = gba1_pd_browser
+    if browser is None:
+        from .gba1_pd import default_browser_path as _gba1_default
+
+        browser = _gba1_default(cfg)
+    add(
+        "gauchian",
+        gauchian,
+        lambda path: parse_gauchian(
+            path,
+            default_sample=sample_id,
+            gba1_pd_browser=browser,
+            cfg=cfg,
+        ),
+    )
     add("mtdna", mtdna, lambda path: parse_mtdna(path, cfg=cfg))
     return _concat(frames), pd.DataFrame(assessments)
