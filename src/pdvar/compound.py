@@ -283,11 +283,20 @@ def _empty_followup() -> pd.DataFrame:
 
 
 def refine(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Update AR statuses for hemizygosity and SV second hits, and build the follow-up list."""
+    """Update AR statuses for hemizygosity and SV second hits, and tag follow-up genes.
+
+    Follow-up genes (single-het AR or review_conflict) are annotated on every
+    allele in that sample×gene via ``followup_reason`` so Assess can force-keep
+    them in ``candidates.tsv`` instead of writing a separate followup file.
+    """
     if df.empty or "moi" not in df.columns or "inheritance_status" not in df.columns:
-        return df.copy(), _empty_followup()
+        out = df.copy()
+        if "followup_reason" not in out.columns:
+            out["followup_reason"] = ""
+        return out, _empty_followup()
 
     df = df.copy()
+    df["followup_reason"] = ""
     ar = df["moi"].astype(str) == "AR"
     for (_, _), grp in df[ar].groupby(["sample_id", "gene"], sort=False):
         idx = list(grp.index)
@@ -307,6 +316,7 @@ def refine(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
             if "review_conflict" in statuses
             else SINGLE_HET_REASON
         )
+        df.loc[list(grp.index), "followup_reason"] = reason
         follow_rows.append(
             {
                 "sample_id": sample,

@@ -129,6 +129,65 @@ def test_plp_and_lof_sv_force_kept_when_buried_by_intron_flood():
     assert "dup" in ids
 
 
+def test_followup_single_het_force_kept_after_mendelian_solves():
+    """AR single-het follow-up alleles stay in candidates.tsv below solved hits."""
+    reason = "single heterozygous hit in recessive gene, second allele not found"
+    rows = [
+        {
+            "sample_id": "S1",
+            "gene": "PINK1",
+            "variant_id": "solved_hom",
+            "consequence": "stop_gained",
+            "clinvar_class": "P/LP",
+            "inheritance_status": "AR_hom",
+            "hit_source": "small_variant",
+            "dosage_mechanism": "other",
+            "scored_dosage": False,
+            "followup_reason": "",
+            "evidence_score": 20,
+            "tier": 1,
+        },
+        {
+            "sample_id": "S1",
+            "gene": "PRKN",
+            "variant_id": "single_het",
+            "consequence": "missense_variant",
+            "clinvar_class": "VUS",
+            "inheritance_status": "AR_single_het",
+            "hit_source": "small_variant",
+            "dosage_mechanism": "other",
+            "scored_dosage": False,
+            "followup_reason": reason,
+            "evidence_score": 5,
+            "tier": 3,
+        },
+    ]
+    for i in range(25):
+        rows.append(
+            {
+                "sample_id": "S1",
+                "gene": f"GENE{i}",
+                "variant_id": f"intron{i}",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "inheritance_status": "AR_hom",
+                "hit_source": "small_variant",
+                "dosage_mechanism": "other",
+                "scored_dosage": False,
+                "followup_reason": "",
+                "evidence_score": 7,
+                "tier": 2,
+            }
+        )
+    top = patient_candidates(pd.DataFrame(rows), max_per_patient=20)
+    ids = list(top["variant_id"])
+    assert "solved_hom" in ids
+    assert "single_het" in ids
+    assert ids.index("solved_hom") < ids.index("single_het")
+    follow = top[top["variant_id"] == "single_het"].iloc[0]
+    assert follow["followup_reason"] == reason
+
+
 def test_str_expanded_survives_intronic_ar_flood():
     """ATXN8OS-style expansion must stay in the shortlist vs intron AR priority-0 noise."""
     rows = [

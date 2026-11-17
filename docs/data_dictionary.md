@@ -4,15 +4,13 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 
 ## Files
 
-Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `liability.tsv`, `followup.tsv`, `candidates.tsv`.
+Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `candidates.tsv`.
 
 | File | Contents |
 | --- | --- |
-| `candidates.tsv` | Ranked variants for the Terra row |
-| `report.html` | Per-sample triage report. The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
+| `candidates.tsv` | Ranked variants for the Terra row. AR single-het / review-conflict follow-up alleles are force-kept (after Mendelian solves) and carry `followup_reason` |
+| `report.html` | Per-sample triage report. Classification / explained-liability narrative is unchanged. The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module status |
-| `liability.tsv` | `solved`, `partially_explained`, or `unexplained`, plus a null explained-liability until penetrance is cited |
-| `followup.tsv` | Recessive genes that still have a single heterozygous hit |
 
 ## Candidate columns
 
@@ -27,6 +25,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `consequence`, `zygosity`, `genotype` | VEP consequence and the carried genotype. Male homozygous X small variants are hemizygous |
 | `tier`, `evidence_score`, `evidence_reasons` | Point triage. Tier 1 is the highest score band |
 | `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `AD_gof_intronic` (weak intron in GoF/DN AD gene), `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, and the other statuses in `src/pdvar/report.py` |
+| `followup_reason` | Non-empty for alleles in an AR gene that still has only a single heterozygous hit (or a review_conflict). Used to force-keep those rows for same-gene second-hit review |
 | `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `mtdna`, or `sv` |
 | `sv_panel_af` | True GATK-SV reference-panel AF when available (hard-filtered like gnomAD); not the joint-callset INFO/AF |
 | `cohort_af` | In-callset SV allele frequency from INFO/AF or CN_NONREF_FREQ (annotation only; not a hard filter) |

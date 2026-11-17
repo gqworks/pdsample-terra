@@ -214,8 +214,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert 'Array[File] candidates = [' in tasks
     assert '"out/report.html"' in tasks
     assert '"out/qc_summary.json"' in tasks
-    assert '"out/liability.tsv"' in tasks
-    assert '"out/followup.tsv"' in tasks
+    assert '"out/liability.tsv"' not in tasks
+    assert '"out/followup.tsv"' not in tasks
     assert '"out/candidates.tsv"' in tasks
     assert "File sample_json" not in tasks
     assert "File report_md" not in tasks
