@@ -1,10 +1,1347 @@
 {
-  "source": "Ensembl REST lookup/id",
+  "source": "gencode.v44.annotation.gtf.gz",
+  "source_url": "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz",
   "assembly": "GRCh38",
   "n_genes": 133,
-  "flank_bp": 5000,
-  "coordinate_system": "BED 0-based half-open; Ensembl start/end are 1-based inclusive",
-  "contig_naming": "Ensembl names prefixed with chr; MT -> chrM (Broad GRCh38)",
-  "content": "gene body plus flank, overlapping genes merged",
-  "queried_on": "2026-10-08"
+  "calling_flank_bp": 5000,
+  "sv_flank_bp": 5000,
+  "exon_pad_bp": 100,
+  "coordinate_system": "BED 0-based half-open; GTF start/end are 1-based inclusive",
+  "contig_naming": "GTF names normalized to chr*; MT -> chrM (Broad GRCh38)",
+  "gene_span_policy": "union of exons on GENCODE-primary/Ensembl_canonical protein-coding transcripts; fallback primary, then protein-coding, then all",
+  "exon_policy": "unique exons from the same transcript set as gene_span_policy; never label foreign overlapping genes' exons",
+  "content": "gene body plus flank; exons padded; overlapping genes not merged",
+  "queried_on": "2026-11-17",
+  "genes": [
+    {
+      "gene_id": "ENSG00000160710",
+      "symbol": "ADAR",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        154582057,
+        154608186
+      ],
+      "n_exons": 15
+    },
+    {
+      "gene_id": "ENSG00000141385",
+      "symbol": "AFG3L2",
+      "chrom": "chr18",
+      "panel_body_1based": [
+        12328944,
+        12377227
+      ],
+      "n_exons": 17
+    },
+    {
+      "gene_id": "ENSG00000162551",
+      "symbol": "ALPL",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        21509423,
+        21578410
+      ],
+      "n_exons": 12
+    },
+    {
+      "gene_id": "ENSG00000214274",
+      "symbol": "ANG",
+      "chrom": "chr14",
+      "panel_body_1based": [
+        20688764,
+        20694183
+      ],
+      "n_exons": 2
+    },
+    {
+      "gene_id": "ENSG00000134343",
+      "symbol": "ANO3",
+      "chrom": "chr11",
+      "panel_body_1based": [
+        26332130,
+        26663289
+      ],
+      "n_exons": 27
+    },
+    {
+      "gene_id": "ENSG00000148120",
+      "symbol": "AOPEP",
+      "chrom": "chr9",
+      "panel_body_1based": [
+        94726699,
+        95087159
+      ],
+      "n_exons": 17
+    },
+    {
+      "gene_id": "ENSG00000142192",
+      "symbol": "APP",
+      "chrom": "chr21",
+      "panel_body_1based": [
+        25880550,
+        26170770
+      ],
+      "n_exons": 18
+    },
+    {
+      "gene_id": "ENSG00000100299",
+      "symbol": "ARSA",
+      "chrom": "chr22",
+      "panel_body_1based": [
+        50622754,
+        50628152
+      ],
+      "n_exons": 8
+    },
+    {
+      "gene_id": "ENSG00000159363",
+      "symbol": "ATP13A2",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        16985958,
+        17011928
+      ],
+      "n_exons": 29
+    },
+    {
+      "gene_id": "ENSG00000105409",
+      "symbol": "ATP1A3",
+      "chrom": "chr19",
+      "panel_body_1based": [
+        41966582,
+        41994230
+      ],
+      "n_exons": 23
+    },
+    {
+      "gene_id": "ENSG00000182220",
+      "symbol": "ATP6AP2",
+      "chrom": "chrX",
+      "panel_body_1based": [
+        40580970,
+        40606848
+      ],
+      "n_exons": 9
+    },
+    {
+      "gene_id": "ENSG00000123191",
+      "symbol": "ATP7B",
+      "chrom": "chr13",
+      "panel_body_1based": [
+        51932669,
+        52011450
+      ],
+      "n_exons": 21
+    },
+    {
+      "gene_id": "ENSG00000131943",
+      "symbol": "C19orf12",
+      "chrom": "chr19",
+      "panel_body_1based": [
+        29698937,
+        29715261
+      ],
+      "n_exons": 3
+    },
+    {
+      "gene_id": "ENSG00000250479",
+      "symbol": "CHCHD10",
+      "chrom": "chr22",
+      "panel_body_1based": [
+        23765834,
+        23767972
+      ],
+      "n_exons": 4
+    },
+    {
+      "gene_id": "ENSG00000106153",
+      "symbol": "CHCHD2",
+      "chrom": "chr7",
+      "panel_body_1based": [
+        56101573,
+        56106476
+      ],
+      "n_exons": 4
+    },
+    {
+      "gene_id": "ENSG00000188603",
+      "symbol": "CLN3",
+      "chrom": "chr16",
+      "panel_body_1based": [
+        28477279,
+        28492074
+      ],
+      "n_exons": 16
+    },
+    {
+      "gene_id": "ENSG00000068120",
+      "symbol": "COASY",
+      "chrom": "chr17",
+      "panel_body_1based": [
+        42562148,
+        42566277
+      ],
+      "n_exons": 9
+    },
+    {
+      "gene_id": "ENSG00000047457",
+      "symbol": "CP",
+      "chrom": "chr3",
+      "panel_body_1based": [
+        149172497,
+        149221829
+      ],
+      "n_exons": 19
+    },
+    {
+      "gene_id": "ENSG00000182578",
+      "symbol": "CSF1R",
+      "chrom": "chr5",
+      "panel_body_1based": [
+        150053295,
+        150086554
+      ],
+      "n_exons": 21
+    },
+    {
+      "gene_id": "ENSG00000135929",
+      "symbol": "CYP27A1",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        218782147,
+        218815293
+      ],
+      "n_exons": 9
+    },
+    {
+      "gene_id": "ENSG00000164535",
+      "symbol": "DAGLB",
+      "chrom": "chr7",
+      "panel_body_1based": [
+        6409129,
+        6447954
+      ],
+      "n_exons": 15
+    },
+    {
+      "gene_id": "ENSG00000115827",
+      "symbol": "DCAF17",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        171434226,
+        171485052
+      ],
+      "n_exons": 14
+    },
+    {
+      "gene_id": "ENSG00000204843",
+      "symbol": "DCTN1",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        74361155,
+        74380311
+      ],
+      "n_exons": 32
+    },
+    {
+      "gene_id": "ENSG00000132437",
+      "symbol": "DDC",
+      "chrom": "chr7",
+      "panel_body_1based": [
+        50458442,
+        50565405
+      ],
+      "n_exons": 15
+    },
+    {
+      "gene_id": "ENSG00000117682",
+      "symbol": "DHDDS",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        26432321,
+        26471306
+      ],
+      "n_exons": 9
+    },
+    {
+      "gene_id": "ENSG00000108176",
+      "symbol": "DNAJC12",
+      "chrom": "chr10",
+      "panel_body_1based": [
+        67796669,
+        67838188
+      ],
+      "n_exons": 5
+    },
+    {
+      "gene_id": "ENSG00000138246",
+      "symbol": "DNAJC13",
+      "chrom": "chr3",
+      "panel_body_1based": [
+        132417502,
+        132539032
+      ],
+      "n_exons": 56
+    },
+    {
+      "gene_id": "ENSG00000101152",
+      "symbol": "DNAJC5",
+      "chrom": "chr20",
+      "panel_body_1based": [
+        63895126,
+        63936011
+      ],
+      "n_exons": 5
+    },
+    {
+      "gene_id": "ENSG00000116675",
+      "symbol": "DNAJC6",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        65309543,
+        65415871
+      ],
+      "n_exons": 19
+    },
+    {
+      "gene_id": "ENSG00000055332",
+      "symbol": "EIF2AK2",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        37099210,
+        37156980
+      ],
+      "n_exons": 17
+    },
+    {
+      "gene_id": "ENSG00000114867",
+      "symbol": "EIF4G1",
+      "chrom": "chr3",
+      "panel_body_1based": [
+        184314606,
+        184335353
+      ],
+      "n_exons": 33
+    },
+    {
+      "gene_id": "ENSG00000112425",
+      "symbol": "EPM2A",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        145625305,
+        145735520
+      ],
+      "n_exons": 4
+    },
+    {
+      "gene_id": "ENSG00000103089",
+      "symbol": "FA2H",
+      "chrom": "chr16",
+      "panel_body_1based": [
+        74712969,
+        74774820
+      ],
+      "n_exons": 7
+    },
+    {
+      "gene_id": "ENSG00000100225",
+      "symbol": "FBXO7",
+      "chrom": "chr22",
+      "panel_body_1based": [
+        32474811,
+        32498829
+      ],
+      "n_exons": 9
+    },
+    {
+      "gene_id": "ENSG00000112367",
+      "symbol": "FIG4",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        109691296,
+        109825426
+      ],
+      "n_exons": 23
+    },
+    {
+      "gene_id": "ENSG00000162769",
+      "symbol": "FLVCR1",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        212858275,
+        212899363
+      ],
+      "n_exons": 10
+    },
+    {
+      "gene_id": "ENSG00000176165",
+      "symbol": "FOXG1",
+      "chrom": "chr14",
+      "panel_body_1based": [
+        28766787,
+        28770277
+      ],
+      "n_exons": 1
+    },
+    {
+      "gene_id": "ENSG00000260230",
+      "symbol": "FRRS1L",
+      "chrom": "chr9",
+      "panel_body_1based": [
+        109130293,
+        109167249
+      ],
+      "n_exons": 5
+    },
+    {
+      "gene_id": "ENSG00000087086",
+      "symbol": "FTL",
+      "chrom": "chr19",
+      "panel_body_1based": [
+        48965309,
+        48966879
+      ],
+      "n_exons": 4
+    },
+    {
+      "gene_id": "ENSG00000089280",
+      "symbol": "FUS",
+      "chrom": "chr16",
+      "panel_body_1based": [
+        31180139,
+        31191605
+      ],
+      "n_exons": 15
+    },
+    {
+      "gene_id": "ENSG00000177628",
+      "symbol": "GBA1",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        155234452,
+        155241249
+      ],
+      "n_exons": 11
+    },
+    {
+      "gene_id": "ENSG00000131979",
+      "symbol": "GCH1",
+      "chrom": "chr14",
+      "panel_body_1based": [
+        54842017,
+        54902826
+      ],
+      "n_exons": 6
+    },
+    {
+      "gene_id": "ENSG00000204120",
+      "symbol": "GIGYF2",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        232697331,
+        232860605
+      ],
+      "n_exons": 29
+    },
+    {
+      "gene_id": "ENSG00000170266",
+      "symbol": "GLB1",
+      "chrom": "chr3",
+      "panel_body_1based": [
+        32996617,
+        33097146
+      ],
+      "n_exons": 16
+    },
+    {
+      "gene_id": "ENSG00000030582",
+      "symbol": "GRN",
+      "chrom": "chr17",
+      "panel_body_1based": [
+        44345302,
+        44353106
+      ],
+      "n_exons": 13
+    },
+    {
+      "gene_id": "ENSG00000213614",
+      "symbol": "HEXA",
+      "chrom": "chr15",
+      "panel_body_1based": [
+        72340924,
+        72376014
+      ],
+      "n_exons": 14
+    },
+    {
+      "gene_id": "ENSG00000010818",
+      "symbol": "HIVEP2",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        142751469,
+        142945176
+      ],
+      "n_exons": 10
+    },
+    {
+      "gene_id": "ENSG00000154721",
+      "symbol": "JAM2",
+      "chrom": "chr21",
+      "panel_body_1based": [
+        25639258,
+        25717562
+      ],
+      "n_exons": 10
+    },
+    {
+      "gene_id": "ENSG00000155980",
+      "symbol": "KIF5A",
+      "chrom": "chr12",
+      "panel_body_1based": [
+        57550044,
+        57586633
+      ],
+      "n_exons": 29
+    },
+    {
+      "gene_id": "ENSG00000272333",
+      "symbol": "KMT2B",
+      "chrom": "chr19",
+      "panel_body_1based": [
+        35718003,
+        35738878
+      ],
+      "n_exons": 37
+    },
+    {
+      "gene_id": "ENSG00000188906",
+      "symbol": "LRRK2",
+      "chrom": "chr12",
+      "panel_body_1based": [
+        40224997,
+        40369285
+      ],
+      "n_exons": 51
+    },
+    {
+      "gene_id": "ENSG00000143669",
+      "symbol": "LYST",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        235661041,
+        235866906
+      ],
+      "n_exons": 53
+    },
+    {
+      "gene_id": "ENSG00000186868",
+      "symbol": "MAPT",
+      "chrom": "chr17",
+      "panel_body_1based": [
+        45894554,
+        46028334
+      ],
+      "n_exons": 13
+    },
+    {
+      "gene_id": "ENSG00000169057",
+      "symbol": "MECP2",
+      "chrom": "chrX",
+      "panel_body_1based": [
+        154021573,
+        154097717
+      ],
+      "n_exons": 3
+    },
+    {
+      "gene_id": "ENSG00000164976",
+      "symbol": "MYORG",
+      "chrom": "chr9",
+      "panel_body_1based": [
+        34366666,
+        34376898
+      ],
+      "n_exons": 2
+    },
+    {
+      "gene_id": "ENSG00000164134",
+      "symbol": "NAA15",
+      "chrom": "chr4",
+      "panel_body_1based": [
+        139301505,
+        139391384
+      ],
+      "n_exons": 20
+    },
+    {
+      "gene_id": "ENSG00000187566",
+      "symbol": "NHLRC1",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        18120440,
+        18122677
+      ],
+      "n_exons": 1
+    },
+    {
+      "gene_id": "ENSG00000141458",
+      "symbol": "NPC1",
+      "chrom": "chr18",
+      "panel_body_1based": [
+        23531442,
+        23586506
+      ],
+      "n_exons": 25
+    },
+    {
+      "gene_id": "ENSG00000119655",
+      "symbol": "NPC2",
+      "chrom": "chr14",
+      "panel_body_1based": [
+        74479940,
+        74493305
+      ],
+      "n_exons": 5
+    },
+    {
+      "gene_id": "ENSG00000153234",
+      "symbol": "NR4A2",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        156324437,
+        156332721
+      ],
+      "n_exons": 8
+    },
+    {
+      "gene_id": "ENSG00000153989",
+      "symbol": "NUS1",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        117675469,
+        117710727
+      ],
+      "n_exons": 5
+    },
+    {
+      "gene_id": "ENSG00000198836",
+      "symbol": "OPA1",
+      "chrom": "chr3",
+      "panel_body_1based": [
+        193593208,
+        193697811
+      ],
+      "n_exons": 31
+    },
+    {
+      "gene_id": "ENSG00000125741",
+      "symbol": "OPA3",
+      "chrom": "chr19",
+      "panel_body_1based": [
+        45546281,
+        45584802
+      ],
+      "n_exons": 2
+    },
+    {
+      "gene_id": "ENSG00000125779",
+      "symbol": "PANK2",
+      "chrom": "chr20",
+      "panel_body_1based": [
+        3889387,
+        3929887
+      ],
+      "n_exons": 7
+    },
+    {
+      "gene_id": "ENSG00000116288",
+      "symbol": "PARK7",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        7961711,
+        7985505
+      ],
+      "n_exons": 7
+    },
+    {
+      "gene_id": "ENSG00000113231",
+      "symbol": "PDE8B",
+      "chrom": "chr5",
+      "panel_body_1based": [
+        77210680,
+        77428256
+      ],
+      "n_exons": 22
+    },
+    {
+      "gene_id": "ENSG00000100311",
+      "symbol": "PDGFB",
+      "chrom": "chr22",
+      "panel_body_1based": [
+        39223359,
+        39244982
+      ],
+      "n_exons": 7
+    },
+    {
+      "gene_id": "ENSG00000113721",
+      "symbol": "PDGFRB",
+      "chrom": "chr5",
+      "panel_body_1based": [
+        150113839,
+        150155845
+      ],
+      "n_exons": 23
+    },
+    {
+      "gene_id": "ENSG00000102144",
+      "symbol": "PGK1",
+      "chrom": "chrX",
+      "panel_body_1based": [
+        78104248,
+        78129295
+      ],
+      "n_exons": 11
+    },
+    {
+      "gene_id": "ENSG00000158828",
+      "symbol": "PINK1",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        20633458,
+        20651511
+      ],
+      "n_exons": 8
+    },
+    {
+      "gene_id": "ENSG00000184381",
+      "symbol": "PLA2G6",
+      "chrom": "chr22",
+      "panel_body_1based": [
+        38111495,
+        38181830
+      ],
+      "n_exons": 17
+    },
+    {
+      "gene_id": "ENSG00000032444",
+      "symbol": "PNPLA6",
+      "chrom": "chr19",
+      "panel_body_1based": [
+        7535717,
+        7561764
+      ],
+      "n_exons": 32
+    },
+    {
+      "gene_id": "ENSG00000128567",
+      "symbol": "PODXL",
+      "chrom": "chr7",
+      "panel_body_1based": [
+        131500271,
+        131556628
+      ],
+      "n_exons": 9
+    },
+    {
+      "gene_id": "ENSG00000140521",
+      "symbol": "POLG",
+      "chrom": "chr15",
+      "panel_body_1based": [
+        89316320,
+        89334824
+      ],
+      "n_exons": 23
+    },
+    {
+      "gene_id": "ENSG00000148606",
+      "symbol": "POLR3A",
+      "chrom": "chr10",
+      "panel_body_1based": [
+        77975149,
+        78029515
+      ],
+      "n_exons": 31
+    },
+    {
+      "gene_id": "ENSG00000112640",
+      "symbol": "PPP2R5D",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        42984570,
+        43012342
+      ],
+      "n_exons": 16
+    },
+    {
+      "gene_id": "ENSG00000126583",
+      "symbol": "PRKCG",
+      "chrom": "chr19",
+      "panel_body_1based": [
+        53882197,
+        53907652
+      ],
+      "n_exons": 18
+    },
+    {
+      "gene_id": "ENSG00000185345",
+      "symbol": "PRKN",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        161347417,
+        162727766
+      ],
+      "n_exons": 12
+    },
+    {
+      "gene_id": "ENSG00000180228",
+      "symbol": "PRKRA",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        178431414,
+        178451175
+      ],
+      "n_exons": 8
+    },
+    {
+      "gene_id": "ENSG00000171867",
+      "symbol": "PRNP",
+      "chrom": "chr20",
+      "panel_body_1based": [
+        4686456,
+        4701588
+      ],
+      "n_exons": 2
+    },
+    {
+      "gene_id": "ENSG00000197746",
+      "symbol": "PSAP",
+      "chrom": "chr10",
+      "panel_body_1based": [
+        71816298,
+        71851251
+      ],
+      "n_exons": 14
+    },
+    {
+      "gene_id": "ENSG00000080815",
+      "symbol": "PSEN1",
+      "chrom": "chr14",
+      "panel_body_1based": [
+        73136507,
+        73223691
+      ],
+      "n_exons": 12
+    },
+    {
+      "gene_id": "ENSG00000143801",
+      "symbol": "PSEN2",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        226870616,
+        226896098
+      ],
+      "n_exons": 13
+    },
+    {
+      "gene_id": "ENSG00000125818",
+      "symbol": "PSMF1",
+      "chrom": "chr20",
+      "panel_body_1based": [
+        1118602,
+        1172246
+      ],
+      "n_exons": 7
+    },
+    {
+      "gene_id": "ENSG00000119383",
+      "symbol": "PTPA",
+      "chrom": "chr9",
+      "panel_body_1based": [
+        129111415,
+        129148946
+      ],
+      "n_exons": 10
+    },
+    {
+      "gene_id": "ENSG00000184924",
+      "symbol": "PTRHD1",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        24789728,
+        24793391
+      ],
+      "n_exons": 2
+    },
+    {
+      "gene_id": "ENSG00000150787",
+      "symbol": "PTS",
+      "chrom": "chr11",
+      "panel_body_1based": [
+        112226428,
+        112233973
+      ],
+      "n_exons": 6
+    },
+    {
+      "gene_id": "ENSG00000151552",
+      "symbol": "QDPR",
+      "chrom": "chr4",
+      "panel_body_1based": [
+        17486395,
+        17512090
+      ],
+      "n_exons": 7
+    },
+    {
+      "gene_id": "ENSG00000118508",
+      "symbol": "RAB32",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        146543833,
+        146554953
+      ],
+      "n_exons": 3
+    },
+    {
+      "gene_id": "ENSG00000155961",
+      "symbol": "RAB39B",
+      "chrom": "chrX",
+      "panel_body_1based": [
+        155258235,
+        155264491
+      ],
+      "n_exons": 2
+    },
+    {
+      "gene_id": "ENSG00000166405",
+      "symbol": "RIC3",
+      "chrom": "chr11",
+      "panel_body_1based": [
+        8106056,
+        8169025
+      ],
+      "n_exons": 6
+    },
+    {
+      "gene_id": "ENSG00000144285",
+      "symbol": "SCN1A",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        165985813,
+        166128020
+      ],
+      "n_exons": 29
+    },
+    {
+      "gene_id": "ENSG00000116171",
+      "symbol": "SCP2",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        52927276,
+        53051698
+      ],
+      "n_exons": 16
+    },
+    {
+      "gene_id": "ENSG00000122335",
+      "symbol": "SERAC1",
+      "chrom": "chr6",
+      "panel_body_1based": [
+        158109519,
+        158168262
+      ],
+      "n_exons": 17
+    },
+    {
+      "gene_id": "ENSG00000165646",
+      "symbol": "SLC18A2",
+      "chrom": "chr10",
+      "panel_body_1based": [
+        117241114,
+        117279430
+      ],
+      "n_exons": 16
+    },
+    {
+      "gene_id": "ENSG00000135917",
+      "symbol": "SLC19A3",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        227683763,
+        227718028
+      ],
+      "n_exons": 6
+    },
+    {
+      "gene_id": "ENSG00000168575",
+      "symbol": "SLC20A2",
+      "chrom": "chr8",
+      "panel_body_1based": [
+        42416475,
+        42501231
+      ],
+      "n_exons": 11
+    },
+    {
+      "gene_id": "ENSG00000151729",
+      "symbol": "SLC25A4",
+      "chrom": "chr4",
+      "panel_body_1based": [
+        185143266,
+        185150382
+      ],
+      "n_exons": 4
+    },
+    {
+      "gene_id": "ENSG00000164209",
+      "symbol": "SLC25A46",
+      "chrom": "chr5",
+      "panel_body_1based": [
+        110739007,
+        110765157
+      ],
+      "n_exons": 8
+    },
+    {
+      "gene_id": "ENSG00000196660",
+      "symbol": "SLC30A10",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        219910445,
+        219928557
+      ],
+      "n_exons": 4
+    },
+    {
+      "gene_id": "ENSG00000104635",
+      "symbol": "SLC39A14",
+      "chrom": "chr8",
+      "panel_body_1based": [
+        22367278,
+        22422736
+      ],
+      "n_exons": 9
+    },
+    {
+      "gene_id": "ENSG00000142319",
+      "symbol": "SLC6A3",
+      "chrom": "chr5",
+      "panel_body_1based": [
+        1392794,
+        1445440
+      ],
+      "n_exons": 15
+    },
+    {
+      "gene_id": "ENSG00000198689",
+      "symbol": "SLC9A6",
+      "chrom": "chrX",
+      "panel_body_1based": [
+        135985435,
+        136047269
+      ],
+      "n_exons": 18
+    },
+    {
+      "gene_id": "ENSG00000166311",
+      "symbol": "SMPD1",
+      "chrom": "chr11",
+      "panel_body_1based": [
+        6390474,
+        6394996
+      ],
+      "n_exons": 6
+    },
+    {
+      "gene_id": "ENSG00000145335",
+      "symbol": "SNCA",
+      "chrom": "chr4",
+      "panel_body_1based": [
+        89724099,
+        89837161
+      ],
+      "n_exons": 6
+    },
+    {
+      "gene_id": "ENSG00000110693",
+      "symbol": "SOX6",
+      "chrom": "chr11",
+      "panel_body_1based": [
+        15966449,
+        16356546
+      ],
+      "n_exons": 16
+    },
+    {
+      "gene_id": "ENSG00000104133",
+      "symbol": "SPG11",
+      "chrom": "chr15",
+      "panel_body_1based": [
+        44562696,
+        44663662
+      ],
+      "n_exons": 40
+    },
+    {
+      "gene_id": "ENSG00000197912",
+      "symbol": "SPG7",
+      "chrom": "chr16",
+      "panel_body_1based": [
+        89508403,
+        89557766
+      ],
+      "n_exons": 17
+    },
+    {
+      "gene_id": "ENSG00000116096",
+      "symbol": "SPR",
+      "chrom": "chr2",
+      "panel_body_1based": [
+        72887408,
+        72892158
+      ],
+      "n_exons": 3
+    },
+    {
+      "gene_id": "ENSG00000161011",
+      "symbol": "SQSTM1",
+      "chrom": "chr5",
+      "panel_body_1based": [
+        179820905,
+        179838078
+      ],
+      "n_exons": 8
+    },
+    {
+      "gene_id": "ENSG00000103266",
+      "symbol": "STUB1",
+      "chrom": "chr16",
+      "panel_body_1based": [
+        680410,
+        682801
+      ],
+      "n_exons": 7
+    },
+    {
+      "gene_id": "ENSG00000136854",
+      "symbol": "STXBP1",
+      "chrom": "chr9",
+      "panel_body_1based": [
+        127612277,
+        127692699
+      ],
+      "n_exons": 19
+    },
+    {
+      "gene_id": "ENSG00000159082",
+      "symbol": "SYNJ1",
+      "chrom": "chr21",
+      "panel_body_1based": [
+        32628763,
+        32728013
+      ],
+      "n_exons": 33
+    },
+    {
+      "gene_id": "ENSG00000162065",
+      "symbol": "TBC1D24",
+      "chrom": "chr16",
+      "panel_body_1based": [
+        2475127,
+        2505730
+      ],
+      "n_exons": 8
+    },
+    {
+      "gene_id": "ENSG00000183735",
+      "symbol": "TBK1",
+      "chrom": "chr12",
+      "panel_body_1based": [
+        64452120,
+        64502114
+      ],
+      "n_exons": 21
+    },
+    {
+      "gene_id": "ENSG00000180176",
+      "symbol": "TH",
+      "chrom": "chr11",
+      "panel_body_1based": [
+        2163929,
+        2171815
+      ],
+      "n_exons": 13
+    },
+    {
+      "gene_id": "ENSG00000127419",
+      "symbol": "TMEM175",
+      "chrom": "chr4",
+      "panel_body_1based": [
+        932460,
+        958656
+      ],
+      "n_exons": 11
+    },
+    {
+      "gene_id": "ENSG00000089063",
+      "symbol": "TMEM230",
+      "chrom": "chr20",
+      "panel_body_1based": [
+        5099850,
+        5113076
+      ],
+      "n_exons": 5
+    },
+    {
+      "gene_id": "ENSG00000166340",
+      "symbol": "TPP1",
+      "chrom": "chr11",
+      "panel_body_1based": [
+        6612768,
+        6619422
+      ],
+      "n_exons": 13
+    },
+    {
+      "gene_id": "ENSG00000104833",
+      "symbol": "TUBB4A",
+      "chrom": "chr19",
+      "panel_body_1based": [
+        6494319,
+        6502309
+      ],
+      "n_exons": 4
+    },
+    {
+      "gene_id": "ENSG00000107815",
+      "symbol": "TWNK",
+      "chrom": "chr10",
+      "panel_body_1based": [
+        100987543,
+        100994403
+      ],
+      "n_exons": 5
+    },
+    {
+      "gene_id": "ENSG00000108312",
+      "symbol": "UBTF",
+      "chrom": "chr17",
+      "panel_body_1based": [
+        44205040,
+        44219675
+      ],
+      "n_exons": 21
+    },
+    {
+      "gene_id": "ENSG00000010256",
+      "symbol": "UQCRC1",
+      "chrom": "chr3",
+      "panel_body_1based": [
+        48599002,
+        48609646
+      ],
+      "n_exons": 13
+    },
+    {
+      "gene_id": "ENSG00000103043",
+      "symbol": "VAC14",
+      "chrom": "chr16",
+      "panel_body_1based": [
+        70687439,
+        70801158
+      ],
+      "n_exons": 19
+    },
+    {
+      "gene_id": "ENSG00000165280",
+      "symbol": "VCP",
+      "chrom": "chr9",
+      "panel_body_1based": [
+        35056064,
+        35072625
+      ],
+      "n_exons": 17
+    },
+    {
+      "gene_id": "ENSG00000197969",
+      "symbol": "VPS13A",
+      "chrom": "chr9",
+      "panel_body_1based": [
+        77177534,
+        77421537
+      ],
+      "n_exons": 72
+    },
+    {
+      "gene_id": "ENSG00000129003",
+      "symbol": "VPS13C",
+      "chrom": "chr15",
+      "panel_body_1based": [
+        61852389,
+        62060447
+      ],
+      "n_exons": 85
+    },
+    {
+      "gene_id": "ENSG00000069329",
+      "symbol": "VPS35",
+      "chrom": "chr16",
+      "panel_body_1based": [
+        46656132,
+        46689178
+      ],
+      "n_exons": 17
+    },
+    {
+      "gene_id": "ENSG00000116874",
+      "symbol": "WARS2",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        119031216,
+        119140653
+      ],
+      "n_exons": 6
+    },
+    {
+      "gene_id": "ENSG00000106299",
+      "symbol": "WASL",
+      "chrom": "chr7",
+      "panel_body_1based": [
+        123681943,
+        123749003
+      ],
+      "n_exons": 11
+    },
+    {
+      "gene_id": "ENSG00000196998",
+      "symbol": "WDR45",
+      "chrom": "chrX",
+      "panel_body_1based": [
+        49074442,
+        49079887
+      ],
+      "n_exons": 11
+    },
+    {
+      "gene_id": "ENSG00000143324",
+      "symbol": "XPR1",
+      "chrom": "chr1",
+      "panel_body_1based": [
+        180632022,
+        180890279
+      ],
+      "n_exons": 15
+    },
+    {
+      "gene_id": "ENSG00000072121",
+      "symbol": "ZFYVE26",
+      "chrom": "chr14",
+      "panel_body_1based": [
+        67746522,
+        67816590
+      ],
+      "n_exons": 42
+    }
+  ]
 }
