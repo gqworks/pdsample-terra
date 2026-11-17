@@ -85,7 +85,7 @@ Single-sample hard filters are used because VQSR fits tranches on a cohort and t
 
 | Output | File |
 | --- | --- |
-| `candidates` | Array of Assess files: `report.html`, `qc_summary.json`, `liability.tsv`, `followup.tsv`, `candidates.tsv` |
+| `candidates` | Array of Assess files: `report.html`, `qc_summary.json`, `candidates.tsv` |
 | `vep_vcf` | `{sample_id}.vep.vcf.gz` — VEP VCF after the gnomAD INFO lift |
 | `sv_vcf` / `sv_vcf_index` | `{sample_id}.sv.vcf.gz` — GATK-SV call, joint subset, or reused `sv_prior_vcf` (written back for the next run) |
 | `coverage_counts`, `manta_vcf`, `manta_index`, `pesr_disc`, `pesr_disc_index`, `pesr_sd`, `pesr_sd_index`, `pesr_split`, `pesr_split_index`, `scramble_vcf`, `scramble_index`, `scramble_clusters`, `scramble_table`, `wham_vcf`, `wham_index` | GatherSampleEvidence intermediates (`File?`). Set when `GatkSvSingle` runs; unset on the joint-SV path. Reuse as `sv_case_*` inputs on later runs. |

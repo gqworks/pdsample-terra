@@ -187,13 +187,9 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert "mitomap_pathogenic" in str(mito["evidence_reasons"])
     assert "RFC1" not in set(candidates["gene"].astype(str))
 
-    liability = pd.read_csv(written["liability_tsv"], sep="\t")
-    row = liability.iloc[0]
-    assert row["classification"] == "solved"
-    assert row["solved_genes"] == "PINK1"
-    assert "GBA1" in str(row["partial_genes"])
-    assert "MT-ND4" in str(row["partial_genes"])
-    assert pd.isna(row["explained_liability"])
+    assert "liability_tsv" not in written
+    assert "followup_tsv" not in written
+    assert "followup_reason" in candidates.columns
 
     qc = json.loads(written["qc_json"].read_text(encoding="utf-8"))
     assert qc["modules"]["avi"] == "not_assessed"
@@ -205,6 +201,8 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert callsets["expansionhunter"] == "STR carrier"
     report = written["report_md"].read_text(encoding="utf-8")
     assert "SYNTHETIC_SAMPLE" in report
+    assert "Classification: **solved**." in report
+    assert "Explained liability:" in report
     assert "## Phenotype concordance" in report
     assert "Age at onset: 55." in report
     assert "GBA1" in report.split("## Phenotype concordance", 1)[1].split("## Ranked candidates", 1)[0]
@@ -212,7 +210,6 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert qc["phenotype"]["age_onset"] == 55
     assert qc["phenotype"]["ethnicity"] == "Ashkenazi Jewish"
     assert written["report_html"].read_text(encoding="utf-8").startswith("<!DOCTYPE html>")
-    assert written["followup_tsv"].exists()
 
 
 def test_assess_requires_sv_vcf(tmp_path):

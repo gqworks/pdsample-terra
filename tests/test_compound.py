@@ -100,8 +100,9 @@ def test_hemizygous_overlap_and_homozygous_conflict():
 def test_single_het_followup_string():
     df = _pair().iloc[:1].copy()
     df["inheritance_status"] = "AR_single_het"
-    _out, follow = refine(df)
+    out, follow = refine(df)
     assert follow.iloc[0]["reason"] == SINGLE_HET_REASON
+    assert set(out["followup_reason"]) == {SINGLE_HET_REASON}
 
 
 def test_prkn_dup_pairs_with_pathogenic_missense_over_intronic_introme():

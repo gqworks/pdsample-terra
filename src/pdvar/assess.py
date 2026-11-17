@@ -241,14 +241,11 @@ def assess_sample(
     gtf_path = _exists(sample.get("gtf"))
     notes["splice_heuristics"] = "called" if fasta_path and fai_path and gtf_path else "not_assessed"
 
-    follow = pd.DataFrame()
     if variants.empty:
         scored = variants
     else:
         scored = filters.apply_filters(variants, panel, cfg["filters"])
-        if scored.empty:
-            follow = pd.DataFrame()
-        else:
+        if not scored.empty:
             scored = merge_avi(scored, avi_table)
             scored = scoring.score_variants(scored, cfg["scoring"])
             scored = sv.apply_dosage_evidence(scored, cfg["scoring"])
@@ -264,7 +261,7 @@ def assess_sample(
             scored = _annotate_splice_heuristics(scored, notes, fasta_path, fai_path, gtf_path, panel, cfg)
             scored = inheritance.annotate_moi(scored, panel)
             scored = inheritance.evaluate_inheritance(scored, cfg["inheritance"])
-            scored, follow = compound.refine(scored)
+            scored, _follow = compound.refine(scored)
             scored = _integrate_special_calls(scored, cfg)
             pheno = _phenotype_frame(sample_id, sex, _phenotype_payload(sample))
             scored = phenotype.phenotype_concordance(scored, pheno, cfg.get("gene_phenotypes") or {}, cfg["phenotype"])
@@ -312,7 +309,7 @@ def assess_sample(
         qc["callsets"] = callset_assessment.to_dict(orient="records")
     if not sv_assessment.empty:
         qc["sv"] = sv_assessment.to_dict(orient="records")
-    return report.write_sample_outputs(candidates, classes, qc, follow, outdir, sample_id)
+    return report.write_sample_outputs(candidates, classes, qc, outdir, sample_id)
 
 
 def load_sample_json(path: str | Path) -> dict:

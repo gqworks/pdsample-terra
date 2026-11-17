@@ -1203,8 +1203,6 @@ PY
     Array[File] candidates = [
       "out/report.html",
       "out/qc_summary.json",
-      "out/liability.tsv",
-      "out/followup.tsv",
       "out/candidates.tsv"
     ]
   }

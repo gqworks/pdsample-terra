@@ -35,9 +35,11 @@ STATUS_PRIORITY = {
     "not_qualifying": 9,
 }
 
+FOLLOWUP_STATUSES = frozenset({"AR_single_het", "review_conflict"})
+
 CURATION_COLUMNS = [
     "sample_id", "family_id", "gene", "moi", "mechanism", "mechanism_notes", "panel_confidence", "risk_allele_exception", "variant_id", "hgvsc", "hgvsp", "consequence",
-    "zygosity", "tier", "evidence_score", "evidence_reasons", "inheritance_status", "hit_source",
+    "zygosity", "tier", "evidence_score", "evidence_reasons", "inheritance_status", "followup_reason", "hit_source",
     "gba1_pd_class", "gba1_gd_acmg", "gba1_pd_variant_name", "gba1_pd_matched_cdna",
     "introme_class", "introme_score", "introme_cohort_af", "introme_n_carriers", "introme_gene_region",
     "splice_rule", "splice_subgroup", "splice_sav_pct", "splice_heuristic_n",
@@ -149,9 +151,11 @@ def rank_candidates(df: pd.DataFrame) -> pd.DataFrame:
 def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     """Rows that must not be crowded out of the per-sample shortlist.
 
-    ClinVar P/LP coding alleles, Gauchian GBA1 calls, risk statuses, and scored
-    LoF SVs are the findings a rereview must see even when Introme fills the
-    top-N with intron AR labels.
+    ClinVar P/LP coding alleles, Gauchian GBA1 calls, risk statuses, scored
+    LoF SVs, and AR follow-up genes (single-het / review_conflict) are the
+    findings a rereview must see even when Introme fills the top-N with intron
+    AR labels. Follow-up alleles sort after Mendelian solves via
+    ``STATUS_PRIORITY``.
     """
     status = df["inheritance_status"].fillna("").astype(str) if "inheritance_status" in df.columns else pd.Series("", index=df.index)
     clin = df["clinvar_class"].fillna("").astype(str) if "clinvar_class" in df.columns else pd.Series("", index=df.index)
@@ -164,6 +168,11 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     scored = (
         df["scored_dosage"].fillna(False).astype(bool)
         if "scored_dosage" in df.columns
+        else pd.Series(False, index=df.index)
+    )
+    follow = (
+        df["followup_reason"].fillna("").astype(str).str.strip().ne("")
+        if "followup_reason" in df.columns
         else pd.Series(False, index=df.index)
     )
     force_status = status.isin(
@@ -179,6 +188,9 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
             # High-evidence mtDNA only — common mtdna_variant haplogroup rows
             # must stay under the top-N cap (Bugbot #58).
             "mtdna_pathogenic_candidate",
+            # Single-het AR / review_conflict: keep for same-gene second-hit review
+            # without a separate followup.tsv.
+            *FOLLOWUP_STATUSES,
         }
     )
     # Introme / intron-only AD_candidate noise is ranked at priority 1 and must
@@ -188,7 +200,7 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     plp = clin.eq("P/LP")
     gauchian = hit.eq("gauchian")
     lof_sv = hit.eq("sv") & (mech.eq("lof") | scored)
-    return force_status | plp | gauchian | lof_sv
+    return force_status | plp | gauchian | lof_sv | follow
 
 
 def order_candidate_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -515,11 +527,15 @@ def write_sample_outputs(
     candidates: pd.DataFrame,
     liability: pd.DataFrame,
     qc: dict,
-    followup: pd.DataFrame,
     outdir: Path,
     sample_id: str,
 ) -> dict[str, Path]:
-    """Write the files the Assess task returns to the Terra row."""
+    """Write the files the Assess task returns to the Terra row.
+
+    Liability classification still feeds the report narrative. Follow-up AR
+    alleles live in ``candidates.tsv`` (``followup_reason`` + force-keep), not
+    separate TSVs.
+    """
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     candidates = order_candidate_columns(candidates if candidates is not None else pd.DataFrame())
@@ -528,18 +544,8 @@ def write_sample_outputs(
         "report_md": outdir / "report.md",
         "report_html": outdir / "report.html",
         "qc_json": outdir / "qc_summary.json",
-        "liability_tsv": outdir / "liability.tsv",
-        "followup_tsv": outdir / "followup.tsv",
     }
     candidates.to_csv(paths["candidates_tsv"], sep="\t", index=False)
-    if liability is None or liability.empty:
-        pd.DataFrame(columns=["sample_id", "classification"]).to_csv(paths["liability_tsv"], sep="\t", index=False)
-    else:
-        liability.to_csv(paths["liability_tsv"], sep="\t", index=False)
-    if followup is None or followup.empty:
-        pd.DataFrame(columns=["sample_id", "gene", "reason"]).to_csv(paths["followup_tsv"], sep="\t", index=False)
-    else:
-        followup.to_csv(paths["followup_tsv"], sep="\t", index=False)
     markdown = render_markdown(sample_id, candidates, liability, qc)
     paths["report_md"].write_text(markdown, encoding="utf-8")
     paths["report_html"].write_text(render_html(markdown, candidates), encoding="utf-8")
