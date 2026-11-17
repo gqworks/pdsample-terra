@@ -27,8 +27,10 @@ flowchart TD
   gba --> assess
   mitoAnn --> assess
   gatksv --> assess
-  assess --> row[Candidates, report, QC, callsets]
+  assess --> row[report.html, qc_summary.json, candidates.tsv]
 ```
+
+Assess turns those callsets into a ranked shortlist. The steps below are the prioritisation protocol; calling and annotation details stay in [What each stage does](#what-each-stage-does) and [`docs/methods.md`](docs/methods.md).
 
 ## Dockstore
 
@@ -75,7 +77,107 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and missense/splice gnomAD v4.1 joint AF fallback (cache-native VEP SIFT/PolyPhen off by default). Optional panel-sliced **gnomAD v4.1 joint** sites (`gnomad_af_vcf`) annotate complete panel AF including intron/UTR; rebuild with `workflow/scripts/build_panel_gnomad_af.sh` when the panel BED changes. Optional genome-wide CADD/REVEL plugins remain as a fallback. `AnnotateGnomadAf` + `LiftGnomadInfo` expose `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`.
 10. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
 11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
-12. **Assess.** `pdvar` ranks candidates and writes the Terra outputs. When `phenotype_report` is set, the GP2-style report is compared with `config/gene_phenotypes.yaml`. `clinical_match` on a risk variant records whether that gene's onset range, key clinical features, or enriched ancestry fit the patient. The match is a triage note. It does not add evidence points. A higher `phenotype_score` breaks ties after tier and AlphaGenome Phred. Profiles cover every gene in `resources/panel/monopdaus-gene-inheritance.csv` (sources and confidence in `config/gene_phenotypes.SOURCES.md`). They are a starter literature synthesis and need expert clinical review. Low-evidence candidates and the risk genes PSAP and TMEM175 have minimal profiles with no onset range, so they are usually `uninformative`. A gene outside the panel is `no_profile`.
+12. **Assess.** `pdvar` filters, scores, assigns inheritance, ranks, and writes the Terra outputs. See [Variant prioritisation](#variant-prioritisation).
+
+## Variant prioritisation
+
+`pdvar` (the Assess task) builds one per-sample shortlist. **Point totals are a triage rank, not an ACMG/AMP classification.** Phase is unknown for compound hets. Panel inheritance labels and phenotype profiles are starter literature synthesis pending expert review.
+
+```mermaid
+flowchart LR
+  callsets[Callsets] --> filter[Panel and QC filters]
+  filter --> points[Evidence points and tier]
+  points --> moi[Inheritance status]
+  moi --> refine[AR refine and followup_reason]
+  refine --> pheno[Phenotype concordance]
+  pheno --> rank[Rank and shortlist]
+  rank --> out[candidates.tsv plus report]
+```
+
+### 1. What enters Assess
+
+| Source | Role in prioritisation |
+| --- | --- |
+| VEP + dbNSFP / gnomAD | Small variants: consequence, ClinVar, CADD, REVEL, in-silico preds, AF |
+| AlphaGenome AVI | Optional SNV Phred bands (points + tie-break) |
+| Introme v2 | Splice score on panel alleles already in the callset |
+| GATK-SV | Dosage / LoF SVs on panel gene and exon BEDs |
+| ExpansionHunter | STR loci; `str_expanded` only with a cited pathogenic floor |
+| Gauchian | GBA1 CN / recombinants / catalog SNVs (+ GBA1-PD Browser class bump) |
+| MitochondriaPipeline + MitImpact | mtDNA alleles with heteroplasmy and MITOMAP gates |
+| Phenotype report | Concordance / tie-break only — no evidence points |
+
+### 2. Keep or drop
+
+Before scoring, `filters.apply_filters` keeps panel alleles (plus always-keep ClinVar P/LP and ExpansionHunter / Gauchian / mtDNA sources). Defaults:
+
+- gnomAD AF / popmax AF ≤ 0.01 (risk-exception genes relax to 0.05)
+- depth ≥ 10, GQ ≥ 20, allele balance ≥ 0.2 (with limited depth rescue)
+- consequence on the keep list (coding, splice/intron for Introme rescue, SV/STR/mtDNA terms)
+- off-panel alleles (including TTN truncations) are dropped
+
+### 3. Evidence points and tiers
+
+Additive points from `config/config.yaml` → `evidence_score` → `tier` (1 best … 4). Main point rules:
+
+| Rule | Default points | Typical trigger |
+| --- | --- | --- |
+| `clinvar_plp` | +10 | ClinVar pathogenic / likely pathogenic |
+| `clinvar_vus` / `clinvar_conflicting` | +3 | ClinVar VUS or conflicting |
+| `clinvar_blb` | −10 | ClinVar benign / likely benign |
+| `null_variant` | +8 | Stop, frameshift, canonical splice, start lost, transcript ablation |
+| `sv_dosage_lof` | +8 | Scored LoF SV (on top of null when applicable) |
+| `introme_high` | +4 | Introme class high (≥ 0.9) |
+| `cadd_high` / `revel_high` / `avi_high` | +3 each | CADD ≥ 25, REVEL ≥ 0.7, AVI Phred ≥ 30 |
+| `cadd_moderate` / `avi_moderate` | +1 each | CADD ≥ 20, AVI Phred ≥ 20 |
+| `absent_gnomad` | +2 | Missing / zero AF (mtDNA uses max AF_hom, AF_het) |
+| MitImpact / GBA1-PD | +1…8 | MITOMAP / APOGEE2 / MitoTIP / MLC; Gauchian PD class bumps |
+
+Tier cut-offs (first match wins): tier 1 ≥ 10, tier 2 ≥ 6, tier 3 ≥ 3, else tier 4. Extra modules (SV dosage, mtDNA, Introme, GBA1-PD) can add points after the base scorer.
+
+### 4. Inheritance status
+
+Panel MOI (`AD` / `AR` / `XL` / `RISK` / `UNKNOWN`) plus tier gates decide whether a row is a qualifying hit. ClinVar VUS also qualifies below the usual tier floor when `qualify_clinvar_vus` is on.
+
+| Status | Meaning |
+| --- | --- |
+| `AD_candidate`, `XL_hemi` | Qualifying Mendelian dominant / hemizygous hit |
+| `AR_hom`, `AR_comphet_candidate`, `AR_hemizygous`, `AR_second_hit_splice` | Recessive solve (comp-het phase unknown) |
+| `AR_single_het` | One AR hit — look for a missed second allele / CNV |
+| `risk_carrier`, `risk_biallelic` | Risk gene (e.g. GBA1); biallelic is stronger but still partial |
+| `mtdna_pathogenic_candidate` | High-evidence mtDNA; not a nuclear Mendelian solve |
+| `str_expanded` | Expansion at or above a cited pathogenic floor |
+| `AD_gof_intronic`, `AR_intronic_candidate` | Demoted intron / Introme support |
+| `not_qualifying` | Below MOI tier (or off-panel) — dropped from `candidates.tsv` |
+
+AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or ClinVar P/LP partners, demotes intron-only false solves, and tags incomplete AR genes with `followup_reason` so those alleles stay in `candidates.tsv` for second-hit review.
+
+### 5. Rank and shortlist
+
+`rank_candidates` sorts within each sample by:
+
+1. **Inheritance priority** — Mendelian solves, AD/XL, risk, and high-evidence mtDNA first (`status_priority` 0); STR expansions next; `AR_single_het` / `review_conflict` lower (3); demoted intron statuses lower still
+2. **ClinVar preference** — P/LP coding, then VUS coding, then other VUS
+3. **Coding over intron noise** — intron-only non-P/LP rows are penalised; intron-only `AD_candidate` is bumped out of the top priority band
+4. **Tier**, then **evidence_score**, then **AVI Phred**, then **phenotype_score**
+
+`patient_candidates` keeps the top `max_candidates_per_patient` (default 20) among qualifying rows, then **force-keeps** clinical must-sees that would otherwise fall off: Mendelian / risk / STR / high-evidence mtDNA statuses, ClinVar P/LP, Gauchian rows, scored LoF SVs, and any allele with `followup_reason`. Plain `mtdna_variant` haplogroup rows are never shortlisted.
+
+### 6. Phenotype and sample classification
+
+Phenotype concordance writes `clinical_match` and `phenotype_score` (onset range, feature keywords, enriched ancestry). **It does not add evidence points**; it only breaks ties after tier and AVI. Biomarker multipliers stay 1 until cited.
+
+The report header still classifies the sample from inheritance statuses:
+
+- **solved** — MOI-complete finding outside reduced-penetrance genes (default GBA1, LRRK2)
+- **partially_explained** — risk, reduced-penetrance, single-het AR, or high-evidence mtDNA
+- **unexplained** — none of those
+
+Numeric `explained_liability` stays null until cited penetrances are set in config. There is no separate liability / followup TSV; follow-up alleles live in `candidates.tsv`.
+
+### 7. How to read `candidates.tsv`
+
+Work top-down by `rank`. Same-gene partners for AR review share `gene` and often a non-empty `followup_reason`. Use `inheritance_status`, `evidence_reasons`, `tier`, ClinVar / AF / Introme / SV fields, then `clinical_match` as a triage note. Full column meanings: [`docs/data_dictionary.md`](docs/data_dictionary.md).
 
 ## Hard filters
 
@@ -123,8 +225,8 @@ pytest
 bash workflow/scripts/validate_wdl.sh
 ```
 
-## Scientific scope
+## Limits and staging
 
-The scorer keeps panel genes, ACMG-style point evidence (ClinVar P/LP, ClinVar VUS, predicted null alleles, CADD, REVEL, absent gnomAD, Introme splice), a second allele inside the same sample, SV/STR/GBA1/mtDNA rows (MitImpact MITOMAP/APOGEE2/MitoTIP points; high-evidence mtDNA is `mtdna_pathogenic_candidate` and partial liability only), phenotype concordance, and penetrance scaffolding. ClinVar VUS alleles also qualify for inheritance hits below the usual tier floor; ranking prefers P/LP, then coding VUS, then non-coding VUS. Point totals are a triage rank. They are not an ACMG/AMP classification. Phenotype concordance asks whether a candidate gene, including a risk variant, fits the patient's age at onset, symptoms, and ancestry. Penetrance and PRS coefficients stay null until a citation is set in `config/config.yaml`. STR pathogenic floors live under `str_loci` (STRchive-cited; see `workflow/assets/expansionhunter_catalog_sources.tsv`). Off-panel alleles, including TTN truncations, are dropped by the panel filter. Compound hets stay `AR_comphet_candidate`.
+Prioritisation is triage only (see [Variant prioritisation](#variant-prioritisation)). Penetrance and PRS stay null until cited in `config/config.yaml`. STR floors live under `str_loci` (STRchive-cited; `workflow/assets/expansionhunter_catalog_sources.tsv`). Inheritance labels and phenotype profiles need expert review before use beyond triage.
 
-Resources you still have to stage are listed in [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md) and [`docs/setup_checklist.md`](docs/setup_checklist.md). Tool versions and images are in [`workflow/README.md`](workflow/README.md).
+Resources to stage: [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md), [`docs/setup_checklist.md`](docs/setup_checklist.md). Tool versions: [`workflow/README.md`](workflow/README.md). Annotation methods: [`docs/methods.md`](docs/methods.md).
