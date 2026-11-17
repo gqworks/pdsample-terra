@@ -106,7 +106,7 @@ To run without a custom image, leave `pdvar_docker` at `python:3.11.11-slim-book
 
 ## Two panel BEDs
 
-`workflow/assets/monopdaus-genes.grch38.bed` is the calling and Introme interval list (gene spans). `resources/panel/monopdaus-genes.grch38.bed` and `monopdaus-exons.grch38.bed` are the overlap BEDs the SV scorer uses. Inheritance labels live in `resources/panel/monopdaus-gene-inheritance.csv` and are placeholders pending expert review. `GBA` is aliased to `GBA1`.
+`workflow/assets/monopdaus-genes.grch38.bed` is the calling and Introme interval list (gene spans). `resources/panel/monopdaus-genes.grch38.bed` and `monopdaus-exons.grch38.bed` are the overlap BEDs the SV scorer uses. Spans are the union of GENCODE-primary / MANE exons per panel ENSG (±5 kb flank; exons ±100 bp), rebuilt with `workflow/scripts/build_panel_beds.py` from GENCODE v44 — not every exon that merely overlaps an Ensembl gene interval (that mislabelled GPR4 exons as OPA3). Inheritance labels live in `resources/panel/monopdaus-gene-inheritance.csv` and are placeholders pending expert review. `GBA` is aliased to `GBA1`.
 
 ## Cost
 

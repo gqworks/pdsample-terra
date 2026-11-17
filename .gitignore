@@ -8,6 +8,8 @@ resources/gnomad/*.vcf.bgz
 resources/gnomad/*.vcf.bgz.tbi
 resources/gnomad/*.log
 resources/gnomad/_verify.sh
+# Local GENCODE cache used by workflow/scripts/build_panel_beds.py
+resources/gencode/*.gtf.gz
 data/interim/*
 data/processed/*
 results/*/*
