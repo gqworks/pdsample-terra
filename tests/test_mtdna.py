@@ -150,3 +150,36 @@ def test_generic_mtdna_variant_not_shortlisted():
     top = patient_candidates(df, max_per_patient=20)
     assert set(top["gene"]) == {"PINK1", "MT-ND4"}
     assert "mtdna_variant" not in set(top["inheritance_status"])
+
+
+def test_ranked_candidates_summary_includes_heteroplasmy_and_mitomap_clinical():
+    from pdvar.report import render_markdown
+
+    candidates = pd.DataFrame(
+        [
+            {
+                "rank": 1,
+                "gene": "MT-ND4",
+                "inheritance_status": "mtdna_pathogenic_candidate",
+                "variant_id": "M-11778-G-A",
+                "consequence": "mitochondrial_variant",
+                "zygosity": "het",
+                "heteroplasmy": 0.42,
+                "mitomap_clinical_info": "LHON / Progressive Dystonia",
+                "mitomap_status": "Cfrm-[P]",
+                "mitomap_gb_freq": "0.00012",
+                "tier": 1,
+                "evidence_score": 13,
+                "evidence_reasons": "mitomap_pathogenic;absent_gnomad",
+            }
+        ]
+    )
+    report = render_markdown("S1", candidates, pd.DataFrame(), {"modules": {}})
+    section = report.split("## Ranked candidates", 1)[1]
+    header = section.strip().splitlines()[0]
+    assert "heteroplasmy" in header
+    assert "mitomap_clinical_info" in header
+    assert "mitomap_status" not in header
+    assert "mitomap_gb_freq" not in header
+    assert "0.42" in section
+    assert "LHON / Progressive Dystonia" in section

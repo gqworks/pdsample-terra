@@ -51,7 +51,7 @@ CURATION_COLUMNS = [
     "variant_class", "dosage_mechanism",
     "svtype", "svlen", "biomarker_notes",
     "str_locus", "str_expanded", "heteroplasmy",
-    "mitomap_status", "mitomap_gb_freq", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
+    "mitomap_status", "mitomap_clinical_info", "mitomap_gb_freq", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
     "mlc_score", "mitimpact_hgvs", "gnomad_af_het",
 ]
 
@@ -348,7 +348,36 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
     if candidates is None or candidates.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        show = [column for column in ("rank", "gene", "inheritance_status", "variant_id", "hgvsc", "hgvsp", "svtype", "svlen", "consequence", "zygosity", "tier", "evidence_score", "splice_rule", "splice_subgroup", "splice_sav_pct", "splice_heuristic_n", "clinical_match", "phenotype_score", "avi_phred", "evidence_reasons") if column in candidates.columns]
+        # heteroplasmy / MITOMAP clinical disease text are blank on nuclear rows;
+        # they matter for mtdna_pathogenic_candidate shortlist hits.
+        show = [
+            column
+            for column in (
+                "rank",
+                "gene",
+                "inheritance_status",
+                "variant_id",
+                "hgvsc",
+                "hgvsp",
+                "svtype",
+                "svlen",
+                "consequence",
+                "zygosity",
+                "heteroplasmy",
+                "mitomap_clinical_info",
+                "tier",
+                "evidence_score",
+                "splice_rule",
+                "splice_subgroup",
+                "splice_sav_pct",
+                "splice_heuristic_n",
+                "clinical_match",
+                "phenotype_score",
+                "avi_phred",
+                "evidence_reasons",
+            )
+            if column in candidates.columns
+        ]
         lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)
