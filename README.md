@@ -1,6 +1,6 @@
 # Per-sample Parkinson's variant assessment
 
-One Terra sample row goes in as a BAM (+ `.bai`) or a CRAM (index optional). `EnsureBam` detects CRAM via magic bytes, converts it to BAM/BAI, then `PdSample` calls every required tool from that BAM, annotates the small-variant VCF, and writes a ranked candidate list for that person. A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow.
+One Terra sample row goes in as a BAM (+ `.bai`) or a CRAM (index optional). `EnsureBam` detects CRAM via magic bytes, converts it to BAM/BAI, then `PdSample` calls every required tool from that BAM, annotates the small-variant VCF, and writes a triage shortlist for that person (`report.html`, `qc_summary.json`, `candidates.tsv`). A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow.
 
 ```mermaid
 flowchart TD
@@ -30,7 +30,7 @@ flowchart TD
   assess --> row[report.html, qc_summary.json, candidates.tsv]
 ```
 
-Assess turns those callsets into a ranked shortlist. The steps below are the prioritisation protocol; calling and annotation details stay in [What each stage does](#what-each-stage-does) and [`docs/methods.md`](docs/methods.md).
+Assess turns those callsets into a ranked shortlist. How ranking works is in [Variant prioritisation](#variant-prioritisation). Calling and annotation stages are in [What each stage does](#what-each-stage-does) and [`docs/methods.md`](docs/methods.md).
 
 ## Dockstore
 
@@ -58,7 +58,7 @@ Terra GCP Batch only localizes `gs://` `File` inputs. Relative paths and `https:
 
 Add `phenotype_report` to the sample table even when a row leaves it blank. `workflow/terra/PdSample.terra_inputs.json` binds `this.phenotype_report`. The file is parsed into age at onset, levodopa, sampling age, diagnosis, and the comorbidity list for concordance. There are no separate sample-table columns for age at onset, symptoms, or ethnicity.
 
-Assess writes `clinical_match` on each candidate, including risk variants (`risk_carrier`, `risk_biallelic`, and genes flagged `risk_allele_exception`). Fields parsed from the phenotype file drive that match. Levodopa use is stored as a biomarker note on early-onset recessive genes. Comorbidities are printed on the report. They are not gene-profile keywords, so hypertension, constipation, hearing loss, and the other lines on the example sheet do not by themselves mark a risk variant as clinically matched. Genes with no profile stay `no_profile`. A blank phenotype leaves `clinical_match` as `not_assessed`.
+Assess writes `clinical_match` and `phenotype_score` on each candidate (including risk variants). Concordance is a triage note and a late rank tie-break — it does **not** add evidence points (see [Phenotype and sample classification](#6-phenotype-and-sample-classification)). Levodopa use is a biomarker note on early-onset recessive genes. Comorbidities are printed on the report and are not gene-profile keywords. Genes with no profile stay `no_profile`; a blank phenotype leaves `clinical_match` as `not_assessed`.
 
 A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shared reference inputs stay in the method config.
 
@@ -73,11 +73,11 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 5. **Structural variants.** Precedence: (1) sample `sv_prior_vcf` / `sv_prior_vcf_index` (Terra: `this.sv_vcf` / `this.sv_vcf_index`) reuses a previous callset and skips calling (`sv_status` `prior`); (2) else workspace `sv_joint_vcf` / optional `sv_joint_vcf_index` — when `sample_id` is in the header, subset and skip GATK-SV (`sv_status` `joint`); when absent, fall back to calling; (3) else `GATKSVPipelineSingleSample` v1.1.1 (`sv_status` `called`), reusing any non-empty `sv_case_*` evidence and calling the rest. Blank Terra prior/joint/case cells are ignored. Reference-panel inputs stay required for the single-sample path. A missing SV VCF is an error in `pdvar`.
 6. **STRs.** ExpansionHunter 5.0.0 with the vendored 19-locus catalog `workflow/assets/expansionhunter_pd.hg38.json`.
 7. **GBA1.** Gauchian 1.0.2.
-8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0, then optional MitImpact 4 CSV annotation (`mtdna_mitimpact`) for ClinVar / MITOMAP / gnomAD mtDNA AF / APOGEE2 / MitoTIP.
+8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0, then optional MitImpact 4 CSV annotation (`mtdna_mitimpact`) for ClinVar / MITOMAP / gnomAD mtDNA AF / APOGEE2 / MitoTIP / MLC. Ingest keeps alleles with heteroplasmy ≥ 1% and a MITOMAP GenBank frequency entry. High-evidence rows become `mtdna_pathogenic_candidate` in Assess; other carried alleles stay `mtdna_variant` and are not shortlisted.
 9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and missense/splice gnomAD v4.1 joint AF fallback (cache-native VEP SIFT/PolyPhen off by default). Optional panel-sliced **gnomAD v4.1 joint** sites (`gnomad_af_vcf`) annotate complete panel AF including intron/UTR; rebuild with `workflow/scripts/build_panel_gnomad_af.sh` when the panel BED changes. Optional genome-wide CADD/REVEL plugins remain as a fallback. `AnnotateGnomadAf` + `LiftGnomadInfo` expose `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`.
-10. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
-11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo.
-12. **Assess.** `pdvar` filters, scores, assigns inheritance, ranks, and writes the Terra outputs. See [Variant prioritisation](#variant-prioritisation).
+10. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties inside Assess. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
+11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo. Scores are merged onto alleles already in the sample callset; Introme carrier-table alleles absent from that callset are not injected as candidates.
+12. **Assess.** `pdvar` filters, scores, assigns inheritance, ranks, and writes `report.html`, `qc_summary.json`, and `candidates.tsv`. Full protocol: [Variant prioritisation](#variant-prioritisation).
 
 ## Variant prioritisation
 
@@ -181,13 +181,13 @@ Work top-down by `rank`. Same-gene partners for AR review share `gene` and often
 
 ## Hard filters
 
-Single-sample hard filters are used because VQSR fits tranches on a cohort and this repository does not ship a CNN scoring model. SNP sites fail when `QD < 2.0`, `QUAL < 30.0`, `SOR > 3.0`, `FS > 60.0`, `MQ < 40.0`, `MQRankSum < -12.5`, or `ReadPosRankSum < -8.0`. INDEL sites fail when `QD < 2.0`, `QUAL < 30.0`, `FS > 200.0`, or `ReadPosRankSum < -20.0`. Only `PASS` records continue.
+These are **GATK callset** filters on the small-variant VCF (before VEP / Assess). Single-sample hard filters are used because VQSR fits tranches on a cohort and this repository does not ship a CNN scoring model. SNP sites fail when `QD < 2.0`, `QUAL < 30.0`, `SOR > 3.0`, `FS > 60.0`, `MQ < 40.0`, `MQRankSum < -12.5`, or `ReadPosRankSum < -8.0`. INDEL sites fail when `QD < 2.0`, `QUAL < 30.0`, `FS > 200.0`, or `ReadPosRankSum < -20.0`. Only `PASS` records continue. Separate panel / AF / depth rules inside Assess are listed under [Keep or drop](#2-keep-or-drop).
 
 ## Outputs written back to the row
 
 | Output | File |
 | --- | --- |
-| `candidates` | Array of Assess files: `report.html`, `qc_summary.json`, `candidates.tsv` |
+| `candidates` | Assess array, in order: `report.html` (triage narrative + classification), `qc_summary.json` (module / callset status), `candidates.tsv` (ranked shortlist, including `followup_reason` alleles). Column dictionary: [`docs/data_dictionary.md`](docs/data_dictionary.md) |
 | `vep_vcf` | `{sample_id}.vep.vcf.gz` — VEP VCF after the gnomAD INFO lift |
 | `sv_vcf` / `sv_vcf_index` | `{sample_id}.sv.vcf.gz` — GATK-SV call, joint subset, or reused `sv_prior_vcf` (written back for the next run) |
 | `coverage_counts`, `manta_vcf`, `manta_index`, `pesr_disc`, `pesr_disc_index`, `pesr_sd`, `pesr_sd_index`, `pesr_split`, `pesr_split_index`, `scramble_vcf`, `scramble_index`, `scramble_clusters`, `scramble_table`, `wham_vcf`, `wham_index` | GatherSampleEvidence intermediates (`File?`). Set when `GatkSvSingle` runs; unset on the joint-SV path. Reuse as `sv_case_*` inputs on later runs. |
@@ -208,11 +208,11 @@ To run without a custom image, leave `pdvar_docker` at `python:3.11.11-slim-book
 
 ## Two panel BEDs
 
-`workflow/assets/monopdaus-genes.grch38.bed` is the calling and Introme interval list (gene spans). `resources/panel/monopdaus-genes.grch38.bed` and `monopdaus-exons.grch38.bed` are the overlap BEDs the SV scorer uses. Spans are the union of GENCODE-primary / MANE exons per panel ENSG (±5 kb flank; exons ±100 bp), rebuilt with `workflow/scripts/build_panel_beds.py` from GENCODE v44 — not every exon that merely overlaps an Ensembl gene interval (that mislabelled GPR4 exons as OPA3). Inheritance labels live in `resources/panel/monopdaus-gene-inheritance.csv` and are placeholders pending expert review. `GBA` is aliased to `GBA1`.
+`workflow/assets/monopdaus-genes.grch38.bed` is the calling and Introme interval list (gene spans). `resources/panel/monopdaus-genes.grch38.bed` and `monopdaus-exons.grch38.bed` are the overlap BEDs the SV scorer uses. Spans are the union of GENCODE-primary / MANE exons per panel ENSG (±5 kb flank; exons ±100 bp), rebuilt with `workflow/scripts/build_panel_beds.py` from GENCODE v44 — not every exon that merely overlaps an Ensembl gene interval (that mislabelled GPR4 exons as OPA3). Inheritance labels in `resources/panel/monopdaus-gene-inheritance.csv` drive Assess MOI status and are placeholders pending expert review. `GBA` is aliased to `GBA1`.
 
 ## Cost
 
-The default interval list keeps HaplotypeCaller, VEP, and Introme on the panel gene spans. Whole-genome small-variant calling (`wgs_small_variants`) and a full GATK-SV reference-panel run dominate cost. Introme's SpliceAI, MMSplice, and Pangolin tasks are the next largest CPU (or GPU) block. ExpansionHunter, Gauchian, VerifyBamID2, somalier, and mosdepth are small beside those. The mitochondria workflow realigns chrM. There is no joint genotyping and no VQSR.
+The default interval list keeps HaplotypeCaller, VEP, and Introme on the panel gene spans. Whole-genome small-variant calling (`wgs_small_variants`) and a full GATK-SV reference-panel run dominate cost. Introme's SpliceAI, MMSplice, and Pangolin tasks are the next largest CPU (or GPU) block. ExpansionHunter, Gauchian, VerifyBamID2, somalier, and mosdepth are small beside those. The mitochondria workflow realigns chrM. Assess (`pdvar`) is cheap beside callers. There is no joint genotyping and no VQSR.
 
 `ReleaseAfterQc` hardlinks the BAM and `.bai` after the QC gate (as `sample_id.bam` / `sample_id.bam.bai`) so the imported mitochondria and GATK-SV workflows do not start early. The task disk is twice the BAM size so a cross-filesystem copy can finish when a hardlink is unavailable.
 
@@ -225,8 +225,10 @@ pytest
 bash workflow/scripts/validate_wdl.sh
 ```
 
+`outdir` receives the same Assess trio Terra writes: `report.html`, `qc_summary.json`, `candidates.tsv` (plus `report.md` for the narrative source). There is no `liability.tsv` or `followup.tsv`.
+
 ## Limits and staging
 
-Prioritisation is triage only (see [Variant prioritisation](#variant-prioritisation)). Penetrance and PRS stay null until cited in `config/config.yaml`. STR floors live under `str_loci` (STRchive-cited; `workflow/assets/expansionhunter_catalog_sources.tsv`). Inheritance labels and phenotype profiles need expert review before use beyond triage.
+Prioritisation is triage only (see [Variant prioritisation](#variant-prioritisation)). Penetrance and PRS stay null until cited in `config/config.yaml`. STR floors live under `str_loci` (STRchive-cited; `workflow/assets/expansionhunter_catalog_sources.tsv`). Panel inheritance labels (`resources/panel/monopdaus-gene-inheritance.csv`) and phenotype profiles (`config/gene_phenotypes.yaml`) are starter literature synthesis and need expert review before use beyond triage.
 
 Resources to stage: [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md), [`docs/setup_checklist.md`](docs/setup_checklist.md). Tool versions: [`workflow/README.md`](workflow/README.md). Annotation methods: [`docs/methods.md`](docs/methods.md).
