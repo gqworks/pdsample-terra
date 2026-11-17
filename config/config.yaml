@@ -197,6 +197,9 @@ sv:
   # GATK-SV depth-genotyped records are unchanged. Set pesr_caller_qc: false to disable.
   pesr_caller_qc: true
   max_span_bp: 2000000
+  # DEL/DUP >= this span without FORMAT CN are dropped (depth genotype required).
+  # Catches junction-only Manta false DELs in the 100 kb–2 Mb band (e.g. 1.66 Mb TWNK).
+  require_cn_min_span_bp: 100000
   drop_imprecise: true
   large_event_min_span_bp: 50000
   large_event_require_sr: true

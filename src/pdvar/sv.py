@@ -83,6 +83,10 @@ DEFAULT_PESR_CALLER_QC = {
     "enabled": True,
     # Absolute span cap for DEL/DUP when CN is absent (|SVLEN| or END-POS).
     "max_span_bp": 2_000_000,
+    # DEL/DUP at or above this span require FORMAT CN (depth genotype). Raw Manta
+    # junction-only calls in the 100 kb–2 Mb band (e.g. false 1.66 Mb TWNK DEL)
+    # otherwise pass SR checks and score as transcript_ablation.
+    "require_cn_min_span_bp": 100_000,
     # Drop INFO/IMPRECISE DEL/DUP when CN is absent.
     "drop_imprecise": True,
     # Above this span, require Manta-style SR alt support (FORMAT SR = ref,alt).
@@ -189,6 +193,9 @@ def pesr_caller_qc_config(sv_cfg: dict | None) -> dict:
     return {
         "enabled": bool(cfg.get("pesr_caller_qc", defaults["enabled"])),
         "max_span_bp": int(cfg.get("max_span_bp", defaults["max_span_bp"])),
+        "require_cn_min_span_bp": int(
+            cfg.get("require_cn_min_span_bp", defaults["require_cn_min_span_bp"])
+        ),
         "drop_imprecise": bool(cfg.get("drop_imprecise", defaults["drop_imprecise"])),
         "large_event_min_span_bp": int(
             cfg.get("large_event_min_span_bp", defaults["large_event_min_span_bp"])
@@ -236,6 +243,7 @@ def is_pesr_caller_artifact(
     span_bp: int,
     zygosity: str | None,
     max_span_bp: int = 2_000_000,
+    require_cn_min_span_bp: int = 100_000,
     drop_imprecise: bool = True,
     large_event_min_span_bp: int = 50_000,
     large_event_require_sr: bool = True,
@@ -248,6 +256,7 @@ def is_pesr_caller_artifact(
     skip this path. Rules (any match drops):
 
     - absolute span above ``max_span_bp``
+    - span at or above ``require_cn_min_span_bp`` without depth ``CN``
     - ``INFO/IMPRECISE`` when ``drop_imprecise``
     - ``JUNCTION_QUAL`` present and below ``min_junction_qual``
     - span above ``large_event_min_span_bp`` without SR alt support
@@ -258,6 +267,8 @@ def is_pesr_caller_artifact(
     if svtype not in _SPAN_FILTER_TYPES:
         return False
     if span_bp > max_span_bp:
+        return True
+    if require_cn_min_span_bp > 0 and span_bp >= require_cn_min_span_bp:
         return True
     if drop_imprecise and info.get("IMPRECISE") is True:
         return True
@@ -590,6 +601,7 @@ def ingest_sv(
                 span_bp=event_span_bp(info, record["pos"], end, svlen),
                 zygosity=zyg,
                 max_span_bp=pesr_cfg["max_span_bp"],
+                require_cn_min_span_bp=pesr_cfg["require_cn_min_span_bp"],
                 drop_imprecise=pesr_cfg["drop_imprecise"],
                 large_event_min_span_bp=pesr_cfg["large_event_min_span_bp"],
                 large_event_require_sr=pesr_cfg["large_event_require_sr"],
