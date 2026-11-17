@@ -44,11 +44,11 @@ def _pair(**overrides) -> pd.DataFrame:
 
 
 def test_unphased_pair_stays_candidate():
-    out, follow = refine(_pair())
+    out = refine(_pair())
     assert set(out["inheritance_status"]) == {"AR_comphet_candidate"}
     assert "phase_source" not in out.columns
     assert "phase_relation" not in out.columns
-    assert follow.empty
+    assert (out["followup_reason"] == "").all()
 
 
 def test_hemizygous_overlap_and_homozygous_conflict():
@@ -85,23 +85,22 @@ def test_hemizygous_overlap_and_homozygous_conflict():
             },
         ]
     )
-    out, _follow = refine(hemi)
+    out = refine(hemi)
     assert set(out["inheritance_status"]) == {"AR_hemizygous"}
 
     conflict = hemi.copy()
     conflict.loc[conflict["variant_class"] == "SV", "zygosity"] = "hom"
     conflict.loc[conflict["variant_class"] == "SV", "copy_number"] = 0
     conflict.loc[conflict["variant_class"] == "SV", "genotype"] = "1/1"
-    out, follow = refine(conflict)
+    out = refine(conflict)
     assert set(out["inheritance_status"]) == {"review_conflict"}
-    assert "homozygous deletion" in follow.iloc[0]["reason"]
+    assert out["followup_reason"].str.contains("homozygous deletion").all()
 
 
 def test_single_het_followup_string():
     df = _pair().iloc[:1].copy()
     df["inheritance_status"] = "AR_single_het"
-    out, follow = refine(df)
-    assert follow.iloc[0]["reason"] == SINGLE_HET_REASON
+    out = refine(df)
     assert set(out["followup_reason"]) == {SINGLE_HET_REASON}
 
 
@@ -172,11 +171,11 @@ def test_prkn_dup_pairs_with_pathogenic_missense_over_intronic_introme():
             },
         ]
     )
-    out, follow = refine(df)
+    out = refine(df)
     solved = out[out["inheritance_status"] == "AR_comphet_candidate"]
     assert set(solved["variant_id"]) == {"6-161350208-C-T", "dup-exons"}
     assert (out.loc[out["variant_id"] == "6-162326073-T-A", "inheritance_status"] == "AR_intronic_candidate").all()
-    assert follow.empty
+    assert (out["followup_reason"] == "").all()
 
 
 def test_intron_only_ar_gene_demoted_to_intronic_candidate():
@@ -245,9 +244,9 @@ def test_intron_only_ar_gene_demoted_to_intronic_candidate():
             },
         ]
     )
-    out, follow = refine(df)
+    out = refine(df)
     assert (out["inheritance_status"] == "AR_intronic_candidate").all()
-    assert follow.empty
+    assert (out["followup_reason"] == "").all()
 
 
 def test_demoted_intron_hom_does_not_leave_false_comphet():
@@ -297,11 +296,11 @@ def test_demoted_intron_hom_does_not_leave_false_comphet():
             },
         ]
     )
-    out, follow = refine(df)
+    out = refine(df)
     by_id = out.set_index("variant_id")["inheritance_status"]
     assert by_id["frameshift"] == "AR_single_het"
     assert by_id["intron_hom"] == "AR_intronic_candidate"
-    assert not follow.empty
+    assert (out["followup_reason"] == SINGLE_HET_REASON).all()
 
 
 def test_introme_ar_hom_demoted_when_coding_partners_exist():
@@ -371,12 +370,12 @@ def test_introme_ar_hom_demoted_when_coding_partners_exist():
             },
         ]
     )
-    out, follow = refine(df)
+    out = refine(df)
     by_id = out.set_index("variant_id")["inheritance_status"]
     assert by_id["6-162443378-CCT-C"] == "AR_comphet_candidate"
     assert by_id["6-161569384-G-A"] == "AR_comphet_candidate"
     assert by_id["6-162201629-A-G"] == "AR_intronic_candidate"
-    assert follow.empty
+    assert (out["followup_reason"] == "").all()
 
 
 def test_coding_plus_intron_keeps_coding_solved():
@@ -425,7 +424,7 @@ def test_coding_plus_intron_keeps_coding_solved():
             },
         ]
     )
-    out, _follow = refine(df)
+    out = refine(df)
     by_id = out.set_index("variant_id")["inheritance_status"]
     assert by_id["missense"] == "AR_comphet_candidate"
     # Strong allele present → intron partner is not gene-level demoted.

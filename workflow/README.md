@@ -40,9 +40,11 @@ GATK-SV is a required call. Panel and resource `File` inputs are required `PdSam
 | PASS and norm | `quay.io/biocontainers/bcftools:1.24--h118bc1c_4` | bcftools 1.24 |
 | VEP | `quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0` | 116.2 |
 | AlphaGenome AVI (precomputed table) | `python:3.11.11-slim-bookworm` | pip `pysam==0.24.1`, local Tabix lookup |
+| Annotate panel gnomAD AF / Lift gnomAD INFO | `python:3.11.11-slim-bookworm` | `annotate_gnomad_af.py`, `lift_gnomad_from_csq.py` |
 | ExpansionHunter | `quay.io/biocontainers/expansionhunter:5.0.0--hc26b3af_5` | 5.0.0, 19-locus catalog |
 | Gauchian | `python:3.11.11-slim-bookworm` unless `gauchian_docker` is set | pip `gauchian==1.0.2` |
 | mtDNA | images inside vendored MitochondriaPipeline | GATK 4.7.0.0 |
+| AnnotateMtdna (MitImpact) | `python:3.11.11-slim-bookworm` | `annotate_mtdna.py`; unset `mtdna_mitimpact` → `not_assessed` |
 | GATK-SV | pins in `PdSample.wdl` (`sv_*_docker`) | gatk-sv v1.1.1, required |
 | Introme preprocessing | `gabyou/data_prepocessing:v2.0` | upstream tag, including the image-name spelling |
 | VariantInfo | `gabyou/variant_info:v3.2` | v3.2 |
@@ -53,7 +55,7 @@ GATK-SV is a required call. Panel and resource `File` inputs are required `PdSam
 | Spliceogen | `headoncollusion/spliceogen:v2.0` | v2.0 (v2.1 was never published) |
 | Introme functions / anno / infer | `headoncollusion/ag_check:v1.6` | v1.6 |
 | Introme asset fetch | `python:3.11.11-slim-bookworm` | archive `d6da48bc` |
-| Assess | `python:3.11.11-slim-bookworm` or your `pdvar` image | git commit or the Dockerfile |
+| Assess (`pdvar`) | `python:3.11.11-slim-bookworm` or your `pdvar` image | git commit or the Dockerfile |
 
 GATK-SV image pins (overridable), from v1.1.1 `inputs/values/dockers.json`:
 
@@ -66,6 +68,18 @@ GATK-SV image pins (overridable), from v1.1.1 `inputs/values/dockers.json`:
 - gq recalibrator `us.gcr.io/broad-dsde-methods/markw/gatk:mw-tb-form-sv-filter-training-data-eb62a3`
 - cloud SDK `google/cloud-sdk`
 
+## Assess outputs
+
+`Tasks.Assess` writes one Terra `Array[File] candidates` column, in this order:
+
+| Index | File | Contents |
+| --- | --- | --- |
+| 0 | `report.html` | Per-sample triage narrative (classification / explained liability) plus the ranked table |
+| 1 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module / callset status |
+| 2 | `candidates.tsv` | Ranked shortlist. AR single-het / review-conflict alleles carry `followup_reason` and are force-kept |
+
+How `pdvar` filters, scores, assigns inheritance, and ranks is documented in the repository root [`README.md` § Variant prioritisation](../README.md#variant-prioritisation). Column meanings: [`docs/data_dictionary.md`](../docs/data_dictionary.md).
+
 ## Assess image
 
 ```bash
@@ -77,4 +91,4 @@ Set `PdSample.pdvar_docker` to that image. Leave `pdvar_git_commit` empty when t
 
 `FetchRepoAssets` is marked `volatile` and uses `PdSample.assets_git_commit` (default `main`) for scripts, config, and panel assets. It always re-downloads; downstream tasks still call-cache on the content hashes of those `File`s, so only consumers of changed assets rerun. Pin `assets_git_commit` to a SHA to freeze assets.
 
-Prefer pinning `PdSample.pdvar_git_commit` to a **commit SHA**, not `main`. Cromwell call-cache keys Assess on that input string, so a moving `main` tip reuses a stale Assess result. Bump the SHA when `src/pdvar` changes.
+Prefer pinning `PdSample.pdvar_git_commit` to a **commit SHA**, not `main`. Cromwell call-cache keys Assess on that input string, so a moving `main` tip reuses a stale Assess result. Bump the SHA when `src/pdvar` changes (including prioritisation / scoring changes under `src/pdvar`).

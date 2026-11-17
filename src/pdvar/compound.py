@@ -5,7 +5,7 @@ SNV, indel, SV, and splice rows are already in one table. This step:
 - marks an apparent homozygous SNV inside a heterozygous deletion as hemizygous
 - pairs a LoF / exon-disrupting SV with a coding (or ClinVar P/LP) allele as
   ``AR_comphet_candidate``, and demotes same-gene Introme-only intron "solves"
-- lists recessive genes that still have only one heterozygous hit
+- tags recessive genes that still have only one heterozygous hit via ``followup_reason``
 """
 
 from __future__ import annotations
@@ -52,12 +52,6 @@ WEAK_NONCODING_TERMS = {
     "3_prime_UTR_variant",
     "5_prime_UTR_variant",
 }
-FOLLOWUP_COLUMNS = [
-    "sample_id", "gene", "moi", "variant_ids", "variant_classes", "zygosities",
-    "inheritance_status", "reason",
-]
-
-
 def _text(value: object) -> str:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return ""
@@ -278,22 +272,18 @@ def _overlaps(snv: pd.Series, sv: pd.Series) -> bool:
     return sv_iv[0] <= pos <= sv_iv[1] and chrom_bare(_text(snv.get("chrom"))) == chrom_bare(_text(sv.get("chrom")))
 
 
-def _empty_followup() -> pd.DataFrame:
-    return pd.DataFrame(columns=FOLLOWUP_COLUMNS)
-
-
-def refine(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def refine(df: pd.DataFrame) -> pd.DataFrame:
     """Update AR statuses for hemizygosity and SV second hits, and tag follow-up genes.
 
     Follow-up genes (single-het AR or review_conflict) are annotated on every
     allele in that sample×gene via ``followup_reason`` so Assess can force-keep
-    them in ``candidates.tsv`` instead of writing a separate followup file.
+    them in ``candidates.tsv``.
     """
     if df.empty or "moi" not in df.columns or "inheritance_status" not in df.columns:
         out = df.copy()
         if "followup_reason" not in out.columns:
             out["followup_reason"] = ""
-        return out, _empty_followup()
+        return out
 
     df = df.copy()
     df["followup_reason"] = ""
@@ -304,8 +294,7 @@ def refine(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         _pair_sv_with_coding(df, idx)
         _demote_intron_only_ar(df, idx)
 
-    follow_rows = []
-    for (sample, gene), grp in df[ar].groupby(["sample_id", "gene"], sort=False):
+    for (_, _), grp in df[ar].groupby(["sample_id", "gene"], sort=False):
         statuses = set(grp["inheritance_status"].astype(str))
         if statuses & SOLVED_AR:
             continue
@@ -317,20 +306,7 @@ def refine(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
             else SINGLE_HET_REASON
         )
         df.loc[list(grp.index), "followup_reason"] = reason
-        follow_rows.append(
-            {
-                "sample_id": sample,
-                "gene": gene,
-                "moi": "AR",
-                "variant_ids": ";".join(grp["variant_id"].astype(str)) if "variant_id" in grp.columns else "",
-                "variant_classes": ";".join(grp.get("variant_class", pd.Series(dtype=str)).astype(str)),
-                "zygosities": ";".join(grp["zygosity"].astype(str)) if "zygosity" in grp.columns else "",
-                "inheritance_status": ";".join(sorted(statuses)),
-                "reason": reason,
-            }
-        )
-    follow = pd.DataFrame(follow_rows) if follow_rows else _empty_followup()
-    return df, follow
+    return df
 
 
 def _apply_hemizygosity(df: pd.DataFrame, idx: list) -> None:

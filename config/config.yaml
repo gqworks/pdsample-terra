@@ -2,10 +2,6 @@
 # Thresholds are placeholders - tune once real data distributions have been reviewed.
 
 paths:
-  raw_dir: data/raw
-  interim_dir: data/interim
-  processed_dir: data/processed
-  results_dir: results
   columns: config/columns.yaml
   gene_phenotypes: config/gene_phenotypes.yaml
   gene_bed: resources/panel/monopdaus-genes.grch38.bed
@@ -16,10 +12,6 @@ inputs:
   # GBA1-PD Browser single-variant extract (Parlar et al. Mov Disord 2023).
   # Joined onto Gauchian catalog SNVs for PD severity class + score bump.
   gba1_pd_browser: resources/gba1/gba1_pd_browser.tsv
-  splicevault: null
-  prs_weights: null
-
-genome_build: GRCh38
 
 # Legacy/alias symbol -> symbol used throughout (applied to VEP symbols and the panel).
 gene_aliases:
@@ -175,7 +167,6 @@ phenotype:
 
 report:
   max_candidates_per_patient: 20
-  excel_filename: curation_sheet.xlsx
 
 sv:
   auto_index: true
@@ -217,14 +208,13 @@ liability:
     - GBA1
     - LRRK2
   # Numeric penetrance stays null until a value and a citation are both set.
+  # Optional PRS / sex / age contributions need cited coefficients; weights come from
+  # the Assess ``prs_weights`` File input (see resources/prs/weights_format.tsv).
   penetrance: {}
-  prs_weights: null
   prs_beta: null
   prs_beta_citation: null
   sex_coefficient: null
-  sex_coefficient_citation: null
   age_coefficient: null
-  age_coefficient_citation: null
 
 biomarkers:
   gene_classes:

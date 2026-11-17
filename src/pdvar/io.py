@@ -1,4 +1,4 @@
-"""Readers and writers for pipeline inputs and intermediate tables."""
+"""Readers for pipeline inputs and tables."""
 
 from __future__ import annotations
 
@@ -7,8 +7,6 @@ from pathlib import Path
 import pandas as pd
 
 from .config import resolve
-
-INPUT_KINDS = ("introme", "phenotype", "panel")
 
 
 def read_table(path: str | Path) -> pd.DataFrame:
@@ -43,17 +41,3 @@ def load_raw(cfg: dict, kind: str) -> pd.DataFrame:
         df["source_file"] = f.name
         frames.append(df)
     return pd.concat(frames, ignore_index=True)
-
-
-def interim_path(cfg: dict, name: str) -> Path:
-    return resolve(cfg["paths"]["interim_dir"]) / f"{name}.parquet"
-
-
-def processed_path(cfg: dict, name: str) -> Path:
-    return resolve(cfg["paths"]["processed_dir"]) / f"{name}.parquet"
-
-
-def write_parquet(df: pd.DataFrame, path: Path) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(path, index=False)
-    return path

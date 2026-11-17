@@ -1,6 +1,6 @@
 # Data dictionary
 
-Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` is `not_qualifying`.
+Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` is `not_qualifying`. How ranking and shortlisting work: [README § Variant prioritisation](../README.md#variant-prioritisation).
 
 ## Files
 
@@ -8,15 +8,15 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 
 | File | Contents |
 | --- | --- |
-| `candidates.tsv` | Ranked variants for the Terra row. AR single-het / review-conflict follow-up alleles are force-kept (after Mendelian solves) and carry `followup_reason` |
-| `report.html` | Per-sample triage report. Classification / explained-liability narrative is unchanged. The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
+| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module status |
+| `candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles are force-kept (after Mendelian solves) and carry `followup_reason` |
 
 ## Candidate columns
 
 | Column | Meaning |
 | --- | --- |
-| `rank` | Order inside the sample. Solved recessive statuses come first |
+| `rank` | Order inside the sample after inheritance priority, ClinVar preference, tier, score, AVI, and phenotype tie-breaks. Mendelian / AD / risk / high-evidence mtDNA statuses lead; `AR_single_het` follow-up rows sort lower |
 | `gene`, `moi` | Panel symbol after aliasing, and AD / AR / XL / RISK / UNKNOWN |
 | `mechanism`, `mechanism_notes` | AD GoF/LoF/DN triage from the panel CSV (`gof`, `lof`, `dn`, `mixed`, `unknown`). Used to demote intron hits in GoF/DN genes to `AD_gof_intronic` |
 | `variant_id` | `chrom-pos-ref-alt` with no `chr` prefix |

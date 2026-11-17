@@ -175,12 +175,6 @@ def _pick_csq(info: dict, fields: list[str], alt: str, ref: str = "") -> dict[st
     return chosen or {}
 
 
-def _max_present(mapped: dict[str, str], names: tuple[str, ...]) -> float | None:
-    values = [_float(mapped.get(name)) for name in names]
-    present = [value for value in values if value is not None]
-    return max(present) if present else None
-
-
 def _first_token(value: object) -> str:
     """First non-empty / non-dot token from VEP or dbNSFP multi-value fields."""
     if value is None or value is True:

@@ -231,12 +231,6 @@ def normalize_introme(
     return variants.reset_index(drop=True), carriers
 
 
-def normalize_phenotype(df: pd.DataFrame, mapping: dict[str, str]) -> pd.DataFrame:
-    df = apply_column_map(df, mapping)
-    df["sample_id"] = df["sample_id"].astype(str)
-    return df
-
-
 def normalize_panel(df: pd.DataFrame, mapping: dict[str, str], aliases: dict[str, str] | None = None) -> pd.DataFrame:
     df = apply_column_map(df, mapping)
     df["gene"] = apply_gene_aliases(df["gene"], aliases)

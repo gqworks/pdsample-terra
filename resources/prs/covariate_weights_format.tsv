@@ -1,4 +1,0 @@
-# name	coefficient	citation
-# Sex and age coefficients are not shipped. Set liability.sex_coefficient and
-# liability.age_coefficient in config only together with a citation.
-name	coefficient	citation
