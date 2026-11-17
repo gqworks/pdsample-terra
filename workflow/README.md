@@ -78,7 +78,7 @@ GATK-SV image pins (overridable), from v1.1.1 `inputs/values/dockers.json`:
 | 1 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module / callset status |
 | 2 | `candidates.tsv` | Ranked shortlist. AR single-het / review-conflict alleles carry `followup_reason` and are force-kept |
 
-There is no `liability.tsv` or `followup.tsv`. How `pdvar` filters, scores, assigns inheritance, and ranks is documented in the repository root [`README.md` § Variant prioritisation](../README.md#variant-prioritisation). Column meanings: [`docs/data_dictionary.md`](../docs/data_dictionary.md).
+How `pdvar` filters, scores, assigns inheritance, and ranks is documented in the repository root [`README.md` § Variant prioritisation](../README.md#variant-prioritisation). Column meanings: [`docs/data_dictionary.md`](../docs/data_dictionary.md).
 
 ## Assess image
 

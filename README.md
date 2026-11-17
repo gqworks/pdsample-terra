@@ -173,7 +173,7 @@ The report header still classifies the sample from inheritance statuses:
 - **partially_explained** — risk, reduced-penetrance, single-het AR, or high-evidence mtDNA
 - **unexplained** — none of those
 
-Numeric `explained_liability` stays null until cited penetrances are set in config. There is no separate liability / followup TSV; follow-up alleles live in `candidates.tsv`.
+Numeric `explained_liability` stays null until cited penetrances are set in config. Incomplete AR genes are tagged with `followup_reason` on the shortlist rows.
 
 ### 7. How to read `candidates.tsv`
 
@@ -225,7 +225,7 @@ pytest
 bash workflow/scripts/validate_wdl.sh
 ```
 
-`outdir` receives the same Assess trio Terra writes: `report.html`, `qc_summary.json`, `candidates.tsv` (plus `report.md` for the narrative source). There is no `liability.tsv` or `followup.tsv`.
+`outdir` receives the same Assess trio Terra writes: `report.html`, `qc_summary.json`, `candidates.tsv` (plus `report.md` for the narrative source).
 
 ## Limits and staging
 

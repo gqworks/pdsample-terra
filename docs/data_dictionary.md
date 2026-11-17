@@ -4,11 +4,11 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 
 ## Files
 
-Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `candidates.tsv`. There is no `liability.tsv` or `followup.tsv`.
+Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `candidates.tsv`.
 
 | File | Contents |
 | --- | --- |
-| `report.html` | Per-sample triage report. Still prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null). The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
+| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module status |
 | `candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles are force-kept (after Mendelian solves) and carry `followup_reason` |
 

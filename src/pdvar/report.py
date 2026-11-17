@@ -37,26 +37,6 @@ STATUS_PRIORITY = {
 
 FOLLOWUP_STATUSES = frozenset({"AR_single_het", "review_conflict"})
 
-CURATION_COLUMNS = [
-    "sample_id", "family_id", "gene", "moi", "mechanism", "mechanism_notes", "panel_confidence", "risk_allele_exception", "variant_id", "hgvsc", "hgvsp", "consequence",
-    "zygosity", "tier", "evidence_score", "evidence_reasons", "inheritance_status", "followup_reason", "hit_source",
-    "gba1_pd_class", "gba1_gd_acmg", "gba1_pd_variant_name", "gba1_pd_matched_cdna",
-    "introme_class", "introme_score", "introme_cohort_af", "introme_n_carriers", "introme_gene_region",
-    "splice_rule", "splice_subgroup", "splice_sav_pct", "splice_heuristic_n",
-    "clinvar_class", "gnomad_af", "gnomad_popmax_af",
-    "cadd", "revel",
-    "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
-    "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
-    "avi_phred", "avi_raw", "avi_quantile", "avi_url",
-    "age_onset", "onset_category", "sex", "ethnicity",
-    "onset_match", "matched_features", "phenotype_score", "clinical_match", "symptoms",
-    "variant_class", "dosage_mechanism",
-    "svtype", "svlen", "biomarker_notes",
-    "str_locus", "str_expanded", "heteroplasmy",
-    "mitomap_status", "mitomap_clinical_info", "mitomap_gb_freq", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
-    "mlc_score", "mitimpact_hgvs", "gnomad_af_het",
-]
-
 # Genomic id, then the c./p. HGVS and SV length, so the report table reads
 # coordinates and annotations together.
 LEAD_COLUMNS = [
@@ -188,8 +168,7 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
             # High-evidence mtDNA only — common mtdna_variant haplogroup rows
             # must stay under the top-N cap (Bugbot #58).
             "mtdna_pathogenic_candidate",
-            # Single-het AR / review_conflict: keep for same-gene second-hit review
-            # without a separate followup.tsv.
+            # Single-het AR / review_conflict: keep for same-gene second-hit review.
             *FOLLOWUP_STATUSES,
         }
     )
@@ -233,62 +212,6 @@ def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
     out = out.sort_values(["sample_id", "rank"], kind="mergesort")
     out["rank"] = out.groupby("sample_id", sort=False).cumcount() + 1
     return out.reset_index(drop=True)
-
-
-def gene_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Per gene: number of carriers per inheritance status."""
-    q = df[df["inheritance_status"] != "not_qualifying"]
-    if q.empty:
-        return pd.DataFrame(columns=["gene"])
-    return (
-        q.groupby(["gene", "inheritance_status"])["sample_id"].nunique()
-        .unstack(fill_value=0)
-        .assign(total_carriers=lambda t: t.sum(axis=1))
-        .sort_values("total_carriers", ascending=False)
-        .reset_index()
-    )
-
-
-def write_reports(
-    df: pd.DataFrame,
-    results_dir: Path,
-    rcfg: dict,
-    extras: dict[str, pd.DataFrame] | None = None,
-) -> dict[str, Path]:
-    tables = results_dir / "tables"
-    reports = results_dir / "reports"
-    tables.mkdir(parents=True, exist_ok=True)
-    reports.mkdir(parents=True, exist_ok=True)
-
-    cands = patient_candidates(df, rcfg["max_candidates_per_patient"])
-    genes = gene_summary(df)
-    cols = ["rank"] + [c for c in CURATION_COLUMNS if c in cands.columns]
-    curation = cands[cols].copy()
-    curation["curator_decision"] = ""
-    curation["curator_notes"] = ""
-
-    out = {
-        "candidates": tables / "patient_candidates.tsv",
-        "genes": tables / "gene_summary.tsv",
-        "excel": reports / rcfg["excel_filename"],
-    }
-    cands.to_csv(out["candidates"], sep="\t", index=False)
-    genes.to_csv(out["genes"], sep="\t", index=False)
-    extras = extras or {}
-    for name, table in extras.items():
-        if table is None or table.empty:
-            continue
-        path = tables / f"{name}.tsv"
-        table.to_csv(path, sep="\t", index=False)
-        out[name] = path
-    with pd.ExcelWriter(out["excel"]) as xl:
-        curation.to_excel(xl, sheet_name="candidates", index=False)
-        genes.to_excel(xl, sheet_name="gene_summary", index=False)
-        for name, table in extras.items():
-            if table is None or table.empty:
-                continue
-            table.to_excel(xl, sheet_name=name[:31], index=False)
-    return out
 
 
 def _jsonable(value):
@@ -530,11 +453,10 @@ def write_sample_outputs(
     outdir: Path,
     sample_id: str,
 ) -> dict[str, Path]:
-    """Write the files the Assess task returns to the Terra row.
+    """Write Assess outputs: ``candidates.tsv``, ``report.html`` / ``report.md``, ``qc_summary.json``.
 
     Liability classification still feeds the report narrative. Follow-up AR
-    alleles live in ``candidates.tsv`` (``followup_reason`` + force-keep), not
-    separate TSVs.
+    alleles are rows in ``candidates.tsv`` with ``followup_reason`` set.
     """
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)

@@ -711,7 +711,3 @@ def apply_dosage_evidence(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
     df["tier"] = assign_tier(df["evidence_score"], scfg["tiers"])
     return df
 
-
-def parse_info_field(text: str) -> dict[str, str | bool]:
-    """Public alias so tests can target the INFO grammar without a whole VCF."""
-    return parse_info(text)

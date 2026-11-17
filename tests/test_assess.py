@@ -187,8 +187,7 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert "mitomap_pathogenic" in str(mito["evidence_reasons"])
     assert "RFC1" not in set(candidates["gene"].astype(str))
 
-    assert "liability_tsv" not in written
-    assert "followup_tsv" not in written
+    assert set(written) >= {"candidates_tsv", "report_html", "qc_json"}
     assert "followup_reason" in candidates.columns
 
     qc = json.loads(written["qc_json"].read_text(encoding="utf-8"))

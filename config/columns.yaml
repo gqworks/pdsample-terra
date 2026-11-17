@@ -1,4 +1,4 @@
-# Map canonical column names to the Introme TSV, phenotype table, and panel CSV.
+# Map canonical column names to the Introme TSV and panel CSV.
 
 introme:                        # Introme v2 TSV
   chrom: CHROM
@@ -20,15 +20,6 @@ introme:                        # Introme v2 TSV
   introme_pangolin_loss: "INFO:Pangolin_Loss"
   introme_mmsplice_pathogenicity: "INFO:MMSplice_pathogenicity"
   introme_spip_score: "INFO:SPIP_Score"
-
-phenotype:
-  sample_id: sample_id
-  sex: sex
-  ethnicity: ethnicity
-  age_onset: age_at_onset
-  age_sampling: age_at_sampling
-  symptoms: symptoms
-  family_history: family_history
 
 panel:                          # resources/panel/monopdaus-gene-inheritance.csv
   gene_id: Gene_ID              # Ensembl gene ID

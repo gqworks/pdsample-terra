@@ -1,5 +1,4 @@
-# Patient / cohort data - never commit
-data/raw/*/*
+# Large / patient data - never commit
 resources/bravo-dbsnp-all.vcf.gz
 resources/bravo-dbsnp-all.vcf.gz.tbi
 resources/bravo-dbsnp-all.vcf.gz.csi
@@ -10,10 +9,6 @@ resources/gnomad/*.log
 resources/gnomad/_verify.sh
 # Local GENCODE cache used by workflow/scripts/build_panel_beds.py
 resources/gencode/*.gtf.gz
-data/interim/*
-data/processed/*
-results/*/*
-!**/.gitkeep
 
 # Python
 __pycache__/

@@ -261,7 +261,7 @@ def assess_sample(
             scored = _annotate_splice_heuristics(scored, notes, fasta_path, fai_path, gtf_path, panel, cfg)
             scored = inheritance.annotate_moi(scored, panel)
             scored = inheritance.evaluate_inheritance(scored, cfg["inheritance"])
-            scored, _follow = compound.refine(scored)
+            scored = compound.refine(scored)
             scored = _integrate_special_calls(scored, cfg)
             pheno = _phenotype_frame(sample_id, sex, _phenotype_payload(sample))
             scored = phenotype.phenotype_concordance(scored, pheno, cfg.get("gene_phenotypes") or {}, cfg["phenotype"])
