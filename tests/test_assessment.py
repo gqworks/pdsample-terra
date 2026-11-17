@@ -59,6 +59,22 @@ def test_pesr_caller_artifact_helpers():
         span_bp=100_000,
         zygosity="het",
     )
+    # 1.66 Mb TWNK-like: SR-supported but no CN — require_cn_min_span_bp drops it
+    assert sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL"},
+        {"GT": "0/1", "GQ": "310", "PR": "3,4", "SR": "30,27"},
+        svtype="DEL",
+        span_bp=1_657_725,
+        zygosity="het",
+    )
+    # Just under CN floor with SR — kept (e.g. 99 kb)
+    assert not sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL"},
+        {"GT": "0/1", "SR": "5,8", "PR": "4,3"},
+        svtype="DEL",
+        span_bp=99_000,
+        zygosity="het",
+    )
     # Homozygous multi-kb without CN
     assert sv.is_pesr_caller_artifact(
         {"SVTYPE": "DEL"},
@@ -124,6 +140,8 @@ def test_sv_drops_raw_manta_spanning_dels(tmp_path):
                 "chr10\t50000000\timprecise\tN\t<DEL>\t999\tPASS\tEND=80000000;SVTYPE=DEL;SVLEN=-30000000;IMPRECISE;JUNCTION_QUAL=1\tGT:GQ:PR\t0/1:450:14,5",
                 # Hom 15 Mb — drop
                 "chr10\t40000000\thom_huge\tN\t<DEL>\t940\tPASS\tEND=55000000;SVTYPE=DEL;SVLEN=-15000000\tGT:GQ:PR:SR\t1/1:29:0,3:3,23",
+                # APGS_004451-like 1.66 Mb TWNK DEL with SR but no CN — drop
+                "chr10\t99838115\ttwnk_mid\tN\t<DEL>\t999\tPASS\tEND=101495840;SVTYPE=DEL;SVLEN=-1657725\tGT:GQ:PR:SR\t0/1:310:3,4:30,27",
                 # Small SERAC1-like 800 bp with SR — keep
                 "chr6\t158127234\tsmall\tT\t<DEL>\t316\tPASS\tEND=158128034;SVTYPE=DEL;SVLEN=-800\tGT:GQ:PR:SR\t0/1:24:0,3:0,6",
                 # GATK-SV-like with CN, multi-Mb — keep (CN path skips PE/SR QC)
@@ -139,6 +157,7 @@ def test_sv_drops_raw_manta_spanning_dels(tmp_path):
     assert "huge" not in ids
     assert "imprecise" not in ids
     assert "hom_huge" not in ids
+    assert "twnk_mid" not in ids
     assert "small" in ids
     assert "gatk_cn" in ids
     small = table[table["sv_id"] == "small"].iloc[0]
