@@ -9,7 +9,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | File | Contents |
 | --- | --- |
 | `candidates.tsv` | Ranked variants for the Terra row |
-| `report.html` | Per-sample triage report |
+| `report.html` | Per-sample triage report. The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module status |
 | `liability.tsv` | `solved`, `partially_explained`, or `unexplained`, plus a null explained-liability until penetrance is cited |
 | `followup.tsv` | Recessive genes that still have a single heterozygous hit |
@@ -37,7 +37,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `clinvar_class` | `P/LP`, `B/LB`, `conflicting`, `VUS`, `other`, or `none` (from dbNSFP `clinvar_clnsig`) |
 | `gnomad_af`, `gnomad_popmax_af` | Nuclear: prefer panel-sliced gnomAD v4.1 joint sites (`AF_joint` / `AF_grpmax_joint` → INFO); else dbNSFP `gnomAD4.1_joint_*` via CSQ lift. mtDNA: `gnomad_af` is MitImpact `AF_hom_gnomad` (gnomAD v3.1). Missing means rare |
 | `gnomad_af_het` | mtDNA only: MitImpact `AF_het_gnomad` |
-| `mitomap_status`, `mitomap_gb_freq`, `apogee2_class`, `apogee2_score`, `mitotip_score`, `mitotip_quartile`, `mlc_score`, `mitimpact_hgvs` | MitImpact annotations on kept `hit_source=mtdna` rows. `mlc_score` ≥ 0.5 adds `mlc_high`. Rows with heteroplasmy below 1% or a blank `MITOMAP_Disease_GenBank_Freq` are dropped before scoring |
+| `mitomap_status`, `mitomap_clinical_info`, `mitomap_gb_freq`, `apogee2_class`, `apogee2_score`, `mitotip_score`, `mitotip_quartile`, `mlc_score`, `mitimpact_hgvs` | MitImpact annotations on kept `hit_source=mtdna` rows. `mitomap_clinical_info` is `MITOMAP_Disease_Clinical_info`. `mlc_score` ≥ 0.5 adds `mlc_high`. Rows with heteroplasmy below 1% or a blank `MITOMAP_Disease_GenBank_Freq` are dropped before scoring |
 | `cadd`, `revel` | From academic dbNSFP 5.4a (`CADD_phred` / `REVEL_score`) or optional CADD/REVEL plugins |
 | `sift`, `sift_pred`, `polyphen`, `polyphen_pred` | From dbNSFP (`SIFT_*` / `Polyphen2_HDIV_*`); optional VEP cache `--sift/--polyphen` if `vep_sift_polyphen` is enabled |
 | `eigen`, `muttaster`, `muttaster_pred`, `fathmm`, `fathmm_pred` | From dbNSFP when set; 5.4a uses `fathmm-XF_coding_*` (maps to `fathmm` / `fathmm_pred`) |

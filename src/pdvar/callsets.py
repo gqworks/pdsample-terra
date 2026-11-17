@@ -44,7 +44,7 @@ VARIANT_COLUMNS = [
     "sift", "sift_pred", "polyphen", "polyphen_pred", "eigen",
     "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
     "clinvar", "clinvar_class", "variant_class", "hit_source", "heteroplasmy",
-    "mitomap_status", "mitomap_gb_freq", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
+    "mitomap_status", "mitomap_clinical_info", "mitomap_gb_freq", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
     "mlc_score", "mitimpact_hgvs", "repeat_count", "str_locus", "str_expanded", "str_citation", "copy_number",
     "dosage_mechanism", "dosage_event", "scored_dosage",
 ]
@@ -597,6 +597,7 @@ def parse_mtdna(
                     hit_source="mtdna",
                     heteroplasmy=heteroplasmy if heteroplasmy is not None else pd.NA,
                     mitomap_status=str(info.get("MI_MITOMAP_status") or ""),
+                    mitomap_clinical_info=str(info.get("MI_MITOMAP_clinical") or "").replace("_", " "),
                     mitomap_gb_freq=mitomap_gb,
                     mlc_score=mlc_score if mlc_score is not None else pd.NA,
                     apogee2_class=str(info.get("MI_APOGEE2") or ""),
