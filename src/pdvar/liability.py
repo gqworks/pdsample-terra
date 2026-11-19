@@ -224,9 +224,6 @@ def classify_cohort(
         intron_ad = pd.Series(False, index=grp.index)
         if not grp.empty and "inheritance_status" in grp.columns:
             intron_ad = grp["inheritance_status"].fillna("").astype(str).eq("AD_candidate") & weak_intronic_mask(grp)
-            if "mechanism" in grp.columns:
-                splice_gof = grp["mechanism"].fillna("").astype(str).str.lower().eq("splice_gof")
-                intron_ad = intron_ad & ~splice_gof
         intron_ids = set(grp.index[intron_ad]) if intron_ad.any() else set()
         if not grp.empty and "inheritance_status" in grp.columns:
             for rec, idx in zip(grp.to_dict(orient="records"), grp.index):

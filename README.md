@@ -171,7 +171,7 @@ Phenotype concordance writes `clinical_match` and `phenotype_score` (onset range
 The report header still classifies the sample from inheritance statuses:
 
 - **solved** — MOI-complete finding outside reduced-penetrance genes (default GBA1, LRRK2), including AD/XL STR expansions and biallelic AR expansions with a confirmed pathogenic motif
-- **partially_explained** — risk, reduced-penetrance, single-het AR, high-evidence mtDNA, intron-only AD (except MAPT `splice_gof`), or a one-allele / unconfirmed-motif AR expansion
+- **partially_explained** — risk, reduced-penetrance, single-het AR, high-evidence mtDNA, intron-only AD (including MAPT `splice_gof` without ClinVar P/LP or a canonical splice), or a one-allele / unconfirmed-motif AR expansion
 - **unexplained** — none of those
 
 Numeric `explained_liability` stays null until cited penetrances are set in config. Incomplete AR genes are tagged with `followup_reason` on the shortlist rows.

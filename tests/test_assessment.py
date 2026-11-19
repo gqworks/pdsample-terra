@@ -424,7 +424,7 @@ def test_str_expansion_sets_classification():
     assert out.iloc[0]["classification"] == "solved"
 
 
-def test_intron_only_ad_is_partial_except_splice_gof():
+def test_intron_only_ad_is_partial_including_mapt():
     intron = pd.DataFrame(
         [
             {
@@ -438,14 +438,25 @@ def test_intron_only_ad_is_partial_except_splice_gof():
             }
         ]
     )
-    out = liability.classify_cohort(intron, ["S1"], cfg={"reduced_penetrance_genes": ["GBA1", "LRRK2"]})
+    reduced = {"reduced_penetrance_genes": ["GBA1", "LRRK2"]}
+    out = liability.classify_cohort(intron, ["S1"], cfg=reduced)
     assert out.iloc[0]["classification"] == "partially_explained"
 
     mapt = intron.copy()
     mapt["gene"] = "MAPT"
     mapt["mechanism"] = "splice_gof"
     mapt["consequence"] = "splice_region_variant"
-    out = liability.classify_cohort(mapt, ["S1"], cfg={"reduced_penetrance_genes": ["GBA1", "LRRK2"]})
+    out = liability.classify_cohort(mapt, ["S1"], cfg=reduced)
+    assert out.iloc[0]["classification"] == "partially_explained"
+
+    donor = mapt.copy()
+    donor["consequence"] = "splice_donor_variant"
+    out = liability.classify_cohort(donor, ["S1"], cfg=reduced)
+    assert out.iloc[0]["classification"] == "solved"
+
+    plp = mapt.copy()
+    plp["clinvar_class"] = "P/LP"
+    out = liability.classify_cohort(plp, ["S1"], cfg=reduced)
     assert out.iloc[0]["classification"] == "solved"
 
 
