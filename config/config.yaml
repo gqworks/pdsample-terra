@@ -193,12 +193,12 @@ sv:
   # has no PE/SR, RD_GQ or OGQ <= max. Second-hit search can still rescue exon overlaps.
   drop_depth_only_artifacts: true
   depth_only_artifact_max_rd_gq: 5
-  # Raw Manta (sv_prior_vcf) lacks FORMAT CN. Multi-Mb PASS DELs then exon-overlap
-  # into false transcript_ablation solves. Applied only when CN is absent so
-  # GATK-SV depth-genotyped records are unchanged. Set pesr_caller_qc: false to disable.
+  # Raw Manta (sv_prior_vcf) lacks FORMAT CN and RD_CN. Multi-Mb PASS DELs then exon-overlap
+  # into false transcript_ablation solves. Applied only when both are absent so
+  # GATK-SV depth-genotyped records (CN or RD_CN) are unchanged. Set pesr_caller_qc: false to disable.
   pesr_caller_qc: true
   max_span_bp: 2000000
-  # DEL/DUP >= this span without FORMAT CN are dropped (depth genotype required).
+  # DEL/DUP >= this span without FORMAT CN or RD_CN are dropped (depth genotype required).
   # Catches junction-only Manta false DELs in the 100 kb–2 Mb band (e.g. 1.66 Mb TWNK).
   require_cn_min_span_bp: 100000
   drop_imprecise: true

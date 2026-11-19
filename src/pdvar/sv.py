@@ -80,13 +80,13 @@ DEFAULT_DEPTH_ONLY_ARTIFACT = {
     "max_rd_gq": 5.0,
 }
 
-# Raw Manta (and similar PE/SR) priors lack FORMAT CN / depth genotyping.
+# Raw Manta (and similar PE/SR) priors lack FORMAT CN / RD_CN depth genotyping.
 # Multi-Mb PASS DELs then exon-overlap into false transcript_ablation solves.
 DEFAULT_PESR_CALLER_QC = {
     "enabled": True,
     # Absolute span cap for DEL/DUP when CN is absent (|SVLEN| or END-POS).
     "max_span_bp": 2_000_000,
-    # DEL/DUP at or above this span require FORMAT CN (depth genotype). Raw Manta
+    # DEL/DUP at or above this span require FORMAT CN or RD_CN (depth genotype). Raw Manta
     # junction-only calls in the 100 kb–2 Mb band (e.g. false 1.66 Mb TWNK DEL)
     # otherwise pass SR checks and score as transcript_ablation.
     "require_cn_min_span_bp": 100_000,
@@ -233,9 +233,17 @@ def manta_alt_count(fmt: dict, key: str = "SR") -> int | None:
         return None
 
 
+def depth_copy_number(fmt: dict) -> int | None:
+    """FORMAT ``CN``, else GATK-SV ``RD_CN``. Raw Manta priors have neither."""
+    cn = _as_int(fmt.get("CN"))
+    if cn is not None:
+        return cn
+    return _as_int(fmt.get("RD_CN"))
+
+
 def lacks_depth_cn(fmt: dict) -> bool:
-    """True when FORMAT lacks ``CN`` (raw Manta-like; GATK-SV genotypes carry CN)."""
-    return _as_int(fmt.get("CN")) is None
+    """True when FORMAT lacks ``CN`` and ``RD_CN`` (raw Manta-like)."""
+    return depth_copy_number(fmt) is None
 
 
 def is_pesr_caller_artifact(
@@ -255,8 +263,9 @@ def is_pesr_caller_artifact(
 ) -> bool:
     """True for raw PE/SR-caller DEL/DUP calls that should not enter triage.
 
-    Applied only when FORMAT ``CN`` is absent. GATK-SV records keep depth CN and
-    skip this path. Rules (any match drops):
+    Applied only when FORMAT ``CN`` and ``RD_CN`` are both absent. GATK-SV
+    records keep depth CN (``CN`` or ``RD_CN``) and skip this path. Rules
+    (any match drops):
 
     - absolute span above ``max_span_bp``
     - span at or above ``require_cn_min_span_bp`` without depth ``CN``
@@ -600,7 +609,7 @@ def ingest_sv(
             if sample_prefix and not str(sample).startswith(sample_prefix):
                 continue
             gt = fmt.get("GT", "./.")
-            cn = _as_int(fmt.get("CN"))
+            cn = depth_copy_number(fmt)
             ecn = _as_int(fmt.get("ECN"))
             if not _is_carrier(gt, cn, ecn if ecn is not None else 2):
                 continue

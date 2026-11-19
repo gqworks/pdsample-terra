@@ -35,6 +35,9 @@ def test_pesr_caller_artifact_helpers():
     manta = {"GT": "0/1", "GQ": "144", "PR": "14,4", "SR": "14,9"}
     assert sv.lacks_depth_cn(manta)
     assert not sv.lacks_depth_cn({"GT": "0/1", "CN": "1", "ECN": "2"})
+    assert not sv.lacks_depth_cn({"GT": "0/1", "RD_CN": "1", "ECN": "2"})
+    assert sv.depth_copy_number({"GT": "0/1", "RD_CN": "1"}) == 1
+    assert sv.depth_copy_number({"CN": "2", "RD_CN": "1"}) == 2
     assert sv.manta_alt_count(manta, "SR") == 9
     assert sv.manta_alt_count({"SR": "3,0"}, "SR") == 0
     assert sv.manta_alt_count({"PR": "14,5"}, "SR") is None
@@ -97,6 +100,22 @@ def test_pesr_caller_artifact_helpers():
         {"GT": "0/1", "CN": "1", "ECN": "2"},
         svtype="DEL",
         span_bp=5_000_000,
+        zygosity="het",
+    )
+    # GATK-SV joint VCFs write RD_CN, not CN. 54 kb PRKN DEL must skip Manta PESR QC.
+    assert not sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL", "ALGORITHMS": "depth,manta"},
+        {"GT": "0/1", "RD_CN": "1", "ECN": "2", "EV": "RD,SR", "SR_GT": "1", "SR_GQ": "67"},
+        svtype="DEL",
+        span_bp=54_475,
+        zygosity="het",
+    )
+    # Same span without CN or RD_CN still drops (no Manta SR=ref,alt)
+    assert sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL"},
+        {"GT": "0/1", "EV": "RD,SR", "SR_GT": "1"},
+        svtype="DEL",
+        span_bp=54_475,
         zygosity="het",
     )
 
@@ -163,6 +182,24 @@ def test_sv_drops_raw_manta_spanning_dels(tmp_path):
     small = table[table["sv_id"] == "small"].iloc[0]
     assert small["gene"] == "SERAC1"
     assert small["consequence"] == "transcript_ablation"
+
+
+def test_gatk_sv_rd_cn_prkn_del_is_kept():
+    """Joint GATK-SV PRKN exon DEL with RD_CN (no CN) must not be PESR-dropped."""
+    from pdvar.config import PROJECT_ROOT
+
+    vcf = Path(__file__).resolve().parent / "fixtures" / "sv" / "apgs_000502_prkn_del.vcf"
+    genes = PROJECT_ROOT / "resources" / "panel" / "monopdaus-genes.grch38.bed"
+    exons = PROJECT_ROOT / "resources" / "panel" / "monopdaus-exons.grch38.bed"
+    panel = pd.DataFrame({"gene": ["PRKN"], "gene_id": ["ENSG00000185345"]})
+    table, _ = sv.ingest_sv(vcf, genes, exons, panel, snv_samples=["APGS_000502"], auto_index=False)
+    row = table[table["sv_id"].astype(str).str.contains("DEL_chr6_1438")].iloc[0]
+    assert row["gene"] == "PRKN"
+    assert int(row["copy_number"]) == 1
+    assert int(row["exons_overlapped"]) >= 1
+    assert row["consequence"] == "transcript_ablation"
+    assert bool(row["scored_dosage"]) is True
+    assert bool(row["sv_artifact"]) is False
 
 
 def test_sv_dosage_and_not_assessed(tmp_path):
