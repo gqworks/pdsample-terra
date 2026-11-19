@@ -22,6 +22,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from .callsets import DEFAULT_STR_AR, str_moi_for
+from .inheritance import weak_intronic_mask
 from .vcf_stream import chrom_bare, iter_vcf
 
 SOLVED_STATUSES = {
@@ -40,6 +42,49 @@ PARTIAL_STATUSES = {
     "review_conflict",
     "mtdna_pathogenic_candidate",
 }
+
+
+def _truthy(value: object) -> bool:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return False
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    return text in {"1", "true", "yes", "t"}
+
+
+def _str_n_expanded(rec: dict) -> int | None:
+    raw = rec.get("str_n_expanded_alleles")
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _classify_str_expanded(rec: dict, cfg: dict) -> str:
+    """``solved`` / ``partial`` for a cited STR expansion.
+
+    AD and XL expansions solve. AR expansions (RFC1, CSTB, FXN) solve only when
+    both alleles meet the floor and the pathogenic motif is confirmed. Until the
+    motif is parsed, keep AR expansions partial.
+    """
+    gene = str(rec.get("gene") or rec.get("str_locus") or "").upper()
+    locus = str(rec.get("str_locus") or gene)
+    moi = str(rec.get("str_moi") or rec.get("moi") or "").strip().upper()
+    if moi not in {"AD", "AR", "XL"}:
+        moi = str_moi_for(locus, cfg)
+    n_hit = _str_n_expanded(rec)
+    motif_ok = rec.get("str_motif_pathogenic")
+    ar_loci = {str(item).upper() for item in (cfg.get("str_ar_loci") or DEFAULT_STR_AR)}
+    is_ar = moi == "AR" or gene in ar_loci or locus in ar_loci
+    if is_ar:
+        biallelic = n_hit is not None and n_hit >= 2
+        if biallelic and _truthy(motif_ok):
+            return "solved"
+        return "partial"
+    return "solved"
 BIALLELIC = {"AR_hom", "AR_comphet_candidate", "AR_hemizygous", "risk_biallelic"}
 
 PRS_COLUMNS = ["chrom", "pos", "effect_allele", "other_allele", "weight", "rsid", "citation"]
@@ -176,8 +221,15 @@ def classify_cohort(
         grp = by_sample.get(str(sample), variants.iloc[0:0])
         solved, partial, components = [], [], []
         penetrances = []
+        intron_ad = pd.Series(False, index=grp.index)
         if not grp.empty and "inheritance_status" in grp.columns:
-            for rec in grp.to_dict(orient="records"):
+            intron_ad = grp["inheritance_status"].fillna("").astype(str).eq("AD_candidate") & weak_intronic_mask(grp)
+            if "mechanism" in grp.columns:
+                splice_gof = grp["mechanism"].fillna("").astype(str).str.lower().eq("splice_gof")
+                intron_ad = intron_ad & ~splice_gof
+        intron_ids = set(grp.index[intron_ad]) if intron_ad.any() else set()
+        if not grp.empty and "inheritance_status" in grp.columns:
+            for rec, idx in zip(grp.to_dict(orient="records"), grp.index):
                 status = str(rec.get("inheritance_status") or "")
                 gene = str(rec.get("gene") or "").upper()
                 if status in {"", "not_qualifying", "nan"}:
@@ -198,9 +250,20 @@ def classify_cohort(
                 use_solved = status in SOLVED_STATUSES and gene not in reduced
                 if status == "AR_second_hit_splice":
                     use_solved = gene not in reduced
-                if use_solved:
+                if status == "AD_candidate" and idx in intron_ids:
+                    # Intron-only AD (no ClinVar P/LP, no coding/canonical splice) is not a solve.
+                    use_solved = False
+                if status == "str_expanded":
+                    bucket = _classify_str_expanded(rec, cfg)
+                    if bucket == "solved" and gene not in reduced:
+                        solved.append(gene)
+                    else:
+                        partial.append(gene)
+                elif use_solved:
                     solved.append(gene)
-                elif status in PARTIAL_STATUSES or gene in reduced:
+                elif status in PARTIAL_STATUSES or gene in reduced or (
+                    status == "AD_candidate" and idx in intron_ids
+                ):
                     partial.append(gene)
                 if value is not None:
                     penetrances.append(value)

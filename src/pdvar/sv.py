@@ -37,6 +37,8 @@ DEFAULT_DOSAGE_RULES = [
     {
         "gene": "SNCA",
         "effect": "copy_gain",
+        "min_span_bp": 10_000,
+        "require_copy_gain_or_exon": True,
         "citation": "Singleton AB et al. Science. 2003;302:841. Chartier-Harlin MC et al. Lancet. 2004;364:1167.",
     },
     {
@@ -69,6 +71,7 @@ VARIANT_COLUMNS = [
     "copy_number", "expected_cn", "dosage_mechanism", "dosage_event", "dosage_citation",
     "scored_dosage", "predicted_effects", "exons_overlapped", "exon_count", "filter",
     "cn_inferred_gt", "sv_algorithms", "sv_evidence", "rd_gq", "ogq",
+    "high_sr_background", "freq_het", "sv_artifact",
 ]
 
 # Default QC for depth-only IGV artifacts that remain FILTER=PASS.
@@ -358,8 +361,17 @@ def _rule_matches(
     n_gene_exons: int,
     cn: int | None,
     ecn: int | None,
+    span_bp: int = 0,
 ) -> bool:
     if rule.get("effect") == "copy_gain":
+        require = bool(rule.get("require_copy_gain_or_exon", True))
+        if require:
+            copy_gain_or_exon = bool(predicted & GAIN_PREDICTED) or n_exons > 0
+            if not copy_gain_or_exon:
+                return False
+        min_span = int(rule.get("min_span_bp") or 0)
+        if min_span and int(span_bp or 0) < min_span:
+            return False
         return event in {"duplication", "triplication_or_higher"} or bool(predicted & GAIN_PREDICTED)
     if rule.get("effect") != "lof":
         return False
@@ -382,20 +394,23 @@ def classify_dosage(
     n_exons: int,
     n_gene_exons: int,
     rules: list[dict] | None = None,
+    span_bp: int = 0,
 ) -> tuple[str, str, bool, str]:
     """Return mechanism, event, whether to score it, and the citation.
 
     ``scored`` is true for configured dosage genes and for exon-disrupting
     deletions. Copy gains are scored only for genes whose rule says ``copy_gain``
-    (SNCA duplication/triplication). LoF SVs use ``null_variant`` plus
-    ``sv_dosage_lof``; copy-gain reuses ``null_variant`` as ``sv_dosage_gain``.
+    (SNCA duplication/triplication) when the call looks like a gene
+    multiplication (PREDICTED_COPY_GAIN / TSS / exon overlap and gene-scale span).
+    LoF SVs use ``null_variant`` plus ``sv_dosage_lof``; copy-gain reuses
+    ``null_variant`` as ``sv_dosage_gain``.
     """
     rules = rules if rules is not None else DEFAULT_DOSAGE_RULES
     event = dosage_event(svtype, cn, ecn, predicted)
     for rule in rules:
         if str(rule.get("gene", "")).upper() != gene:
             continue
-        if _rule_matches(rule, svtype, event, predicted, n_exons, n_gene_exons, cn, ecn):
+        if _rule_matches(rule, svtype, event, predicted, n_exons, n_gene_exons, cn, ecn, span_bp):
             return str(rule["effect"]), event, True, str(rule.get("citation") or "")
     if predicted & LOF_PREDICTED or (svtype == "DEL" and n_exons > 0):
         return "lof", event if event == "deletion" else "deletion", True, "Exon disruption (GATK-SV PREDICTED_* or exon BED overlap)."
@@ -588,17 +603,20 @@ def ingest_sv(
                 gq = _as_float(fmt.get("RD_GQ"))
             allele_index = _allele_index(gt)
             cohort_af = cohort_frequency(info, svtype, allele_index)
-            if artifact_cfg["enabled"] and is_depth_only_artifact(
-                info,
-                fmt,
-                max_rd_gq=artifact_cfg["max_rd_gq"],
-            ):
-                continue
+            span_bp = event_span_bp(info, record["pos"], end, svlen)
+            artifact = bool(
+                artifact_cfg["enabled"]
+                and is_depth_only_artifact(
+                    info,
+                    fmt,
+                    max_rd_gq=artifact_cfg["max_rd_gq"],
+                )
+            )
             if pesr_cfg["enabled"] and is_pesr_caller_artifact(
                 info,
                 fmt,
                 svtype=svtype,
-                span_bp=event_span_bp(info, record["pos"], end, svlen),
+                span_bp=span_bp,
                 zygosity=zyg,
                 max_span_bp=pesr_cfg["max_span_bp"],
                 require_cn_min_span_bp=pesr_cfg["require_cn_min_span_bp"],
@@ -613,13 +631,21 @@ def ingest_sv(
             evidence = str(fmt.get("EV") or "")
             rd_gq = _as_float(fmt.get("RD_GQ"))
             ogq = _as_float(fmt.get("OGQ"))
+            high_sr = info.get("HIGH_SR_BACKGROUND") is True or str(info.get("HIGH_SR_BACKGROUND") or "").upper() in {
+                "TRUE",
+                "YES",
+                "1",
+            }
+            freq_het = _as_float(info.get("FREQ_HET"))
             for gene in sorted(gene_symbols):
                 predicted = effects.get(gene, set())
                 n_exons = len({(h["chrom"], h["start"], h["end"]) for h in exons_by_gene.get(gene, [])})
                 mechanism, event, scored, citation = classify_dosage(
                     gene, svtype, cn, ecn if ecn is not None else 2, predicted,
-                    n_exons, exon_counts.get(gene, 0), rules,
+                    n_exons, exon_counts.get(gene, 0), rules, span_bp,
                 )
+                if artifact:
+                    mechanism, scored, citation = "other", False, ""
                 rows.append(
                     {
                         "sample_id": str(sample),
@@ -680,6 +706,9 @@ def ingest_sv(
                         "sv_evidence": evidence,
                         "rd_gq": rd_gq if rd_gq is not None else pd.NA,
                         "ogq": ogq if ogq is not None else pd.NA,
+                        "high_sr_background": high_sr,
+                        "freq_het": freq_het if freq_het is not None else pd.NA,
+                        "sv_artifact": artifact,
                     }
                 )
     table = pd.DataFrame(rows) if rows else empty_variant_table()

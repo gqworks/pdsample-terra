@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from pdvar.compound import SINGLE_HET_REASON, refine
+from pdvar.compound import SINGLE_HET_REASON, UNPHASED_REASON, refine
 
 
 def _pair(**overrides) -> pd.DataFrame:
@@ -48,7 +48,7 @@ def test_unphased_pair_stays_candidate():
     assert set(out["inheritance_status"]) == {"AR_comphet_candidate"}
     assert "phase_source" not in out.columns
     assert "phase_relation" not in out.columns
-    assert (out["followup_reason"] == "").all()
+    assert (out["followup_reason"] == UNPHASED_REASON).all()
 
 
 def test_hemizygous_overlap_and_homozygous_conflict():
@@ -87,6 +87,7 @@ def test_hemizygous_overlap_and_homozygous_conflict():
     )
     out = refine(hemi)
     assert set(out["inheritance_status"]) == {"AR_hemizygous"}
+    assert (out["followup_reason"] == UNPHASED_REASON).all()
 
     conflict = hemi.copy()
     conflict.loc[conflict["variant_class"] == "SV", "zygosity"] = "hom"
@@ -175,7 +176,8 @@ def test_prkn_dup_pairs_with_pathogenic_missense_over_intronic_introme():
     solved = out[out["inheritance_status"] == "AR_comphet_candidate"]
     assert set(solved["variant_id"]) == {"6-161350208-C-T", "dup-exons"}
     assert (out.loc[out["variant_id"] == "6-162326073-T-A", "inheritance_status"] == "AR_intronic_candidate").all()
-    assert (out["followup_reason"] == "").all()
+    assert (solved["followup_reason"] == UNPHASED_REASON).all()
+    assert (out.loc[out["variant_id"] == "6-162326073-T-A", "followup_reason"] == "").all()
 
 
 def test_intron_only_ar_gene_demoted_to_intronic_candidate():
@@ -375,7 +377,9 @@ def test_introme_ar_hom_demoted_when_coding_partners_exist():
     assert by_id["6-162443378-CCT-C"] == "AR_comphet_candidate"
     assert by_id["6-161569384-G-A"] == "AR_comphet_candidate"
     assert by_id["6-162201629-A-G"] == "AR_intronic_candidate"
-    assert (out["followup_reason"] == "").all()
+    solved = out[out["inheritance_status"] == "AR_comphet_candidate"]
+    assert (solved["followup_reason"] == UNPHASED_REASON).all()
+    assert (out.loc[out["variant_id"] == "6-162201629-A-G", "followup_reason"] == "").all()
 
 
 def test_coding_plus_intron_keeps_coding_solved():

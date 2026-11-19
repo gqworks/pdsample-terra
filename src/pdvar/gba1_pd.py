@@ -1,7 +1,7 @@
-"""GBA1-PD Browser lookup for Gauchian catalog SNVs.
+"""GBA1-PD Browser lookup for Gauchian and VEP GBA1 SNVs.
 
 Source: Parlar et al. Mov Disord. 2023 (GBA1-PD Browser). Used as triage
-annotation and a score bump on ``hit_source=gauchian`` alleles only.
+annotation and a score bump on GBA1 alleles matched by c. HGVS.
 """
 
 from __future__ import annotations
@@ -143,24 +143,24 @@ def load_browser(path: str | Path | None) -> pd.DataFrame:
 
 
 def annotate_gauchian(df: pd.DataFrame, browser: pd.DataFrame | None) -> pd.DataFrame:
-    """Left-join browser fields onto Gauchian GBA1 SNVs matched by c. HGVS."""
+    """Left-join browser fields onto GBA1 SNVs (Gauchian and VEP) matched by c. HGVS."""
     df = df.copy()
     for column in ANNOTATION_COLUMNS:
         if column not in df.columns:
             df[column] = pd.NA
     if df.empty or browser is None or browser.empty:
         return df
-    if "hit_source" not in df.columns or "gene" not in df.columns:
+    if "gene" not in df.columns:
         return df
     gene = df["gene"].astype(str).str.upper()
-    hit = df["hit_source"].fillna("").astype(str)
-    gauchian = gene.eq("GBA1") & hit.eq("gauchian")
-    if not gauchian.any():
+    hit = df["hit_source"].fillna("").astype(str) if "hit_source" in df.columns else pd.Series("", index=df.index)
+    targets = gene.eq("GBA1") & hit.isin(["gauchian", "small_variant", ""])
+    if not targets.any():
         return df
     hgvsc = df["hgvsc"] if "hgvsc" in df.columns else pd.Series("", index=df.index)
     keys = hgvsc.map(gba_c_dot)
     lookup = browser.set_index("cdna_key", drop=False)
-    for idx in df.index[gauchian]:
+    for idx in df.index[targets]:
         key = keys.at[idx]
         if not key or key not in lookup.index:
             continue
@@ -176,21 +176,21 @@ def annotate_gauchian(df: pd.DataFrame, browser: pd.DataFrame | None) -> pd.Data
 
 
 def apply_evidence(df: pd.DataFrame, scfg: dict) -> pd.DataFrame:
-    """Add configured score bumps for Gauchian rows with a browser PD class."""
+    """Add configured score bumps for GBA1 rows with a browser PD class."""
     if df.empty or "evidence_score" not in df.columns:
         return df
-    if "gba1_pd_class" not in df.columns or "hit_source" not in df.columns:
+    if "gba1_pd_class" not in df.columns:
         return df
     df = df.copy()
     points = scfg.get("points") or {}
-    hit = df["hit_source"].fillna("").astype(str)
+    gene = df["gene"].astype(str).str.upper() if "gene" in df.columns else pd.Series("", index=df.index)
     classes = df["gba1_pd_class"].fillna("").astype(str).str.strip().str.lower()
     reasons = df["evidence_reasons"].fillna("").astype(str)
     for pd_class, reason in CLASS_REASON.items():
         pts = int(points.get(reason) or 0)
         if not pts:
             continue
-        mask = hit.eq("gauchian") & classes.eq(pd_class) & ~reasons.str.contains(reason, regex=False)
+        mask = gene.eq("GBA1") & classes.eq(pd_class) & ~reasons.str.contains(reason, regex=False)
         if not mask.any():
             continue
         df.loc[mask, "evidence_score"] = df.loc[mask, "evidence_score"] + pts
@@ -207,7 +207,7 @@ def annotate_and_score(
     *,
     browser_path: str | Path | None = None,
 ) -> pd.DataFrame:
-    """Resolve the browser table, annotate Gauchian rows, and apply score bumps."""
+    """Resolve the browser table, annotate GBA1 rows, and apply score bumps."""
     cfg = cfg or {}
     path = Path(browser_path) if browser_path else default_browser_path(cfg)
     browser = load_browser(path)

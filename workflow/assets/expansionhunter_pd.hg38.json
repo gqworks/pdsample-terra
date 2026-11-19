@@ -445,5 +445,55 @@
     "LocusStructure": "(CGCGGGGCGGGG)*",
     "ReferenceRegion": "chr21:43776443-43776479",
     "VariantType": "Repeat"
+  },
+  {
+    "LocusId": "FGF14",
+    "LocusStructure": "(GAA)*",
+    "ReferenceRegion": "chr13:102161574-102161726",
+    "VariantType": "Repeat"
+  },
+  {
+    "LocusId": "NOTCH2NLC",
+    "LocusStructure": "(GGC)*",
+    "ReferenceRegion": "chr1:149390802-149390841",
+    "VariantType": "Repeat"
+  },
+  {
+    "LocusId": "BEAN1",
+    "LocusStructure": "(TGGAA)*(TAAAA)*",
+    "ReferenceRegion": [
+      "chr16:66490398-66490398",
+      "chr16:66490398-66490453"
+    ],
+    "VariantId": [
+      "BEAN1",
+      "BEAN1_TAAAA"
+    ],
+    "VariantType": [
+      "Repeat",
+      "Repeat"
+    ]
+  },
+  {
+    "LocusId": "LRP12",
+    "LocusStructure": "(CCG)*",
+    "ReferenceRegion": "chr8:104588972-104588999",
+    "VariantType": "Repeat"
+  },
+  {
+    "LocusId": "FXN",
+    "LocusStructure": "(A)*(GAA)*",
+    "ReferenceRegion": [
+      "chr9:69037261-69037286",
+      "chr9:69037286-69037304"
+    ],
+    "VariantId": [
+      "FXN_A",
+      "FXN"
+    ],
+    "VariantType": [
+      "Repeat",
+      "Repeat"
+    ]
   }
 ]

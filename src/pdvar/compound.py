@@ -16,6 +16,10 @@ from .scoring import NULL_CONSEQUENCES
 from .vcf_stream import chrom_bare
 
 SINGLE_HET_REASON = "single heterozygous hit in recessive gene, second allele not found"
+UNPHASED_REASON = "phase unknown; confirm the two alleles are in trans"
+NO_SECOND_SMALL = "no second small variant above the depth floor"
+NO_EXON_SV = "no exon-overlapping SV"
+GAUCHIAN_NEGATIVE = "Gauchian catalog negative"
 SOLVED_AR = {
     "AR_hom",
     "AR_comphet_candidate",
@@ -306,7 +310,34 @@ def refine(df: pd.DataFrame) -> pd.DataFrame:
             else SINGLE_HET_REASON
         )
         df.loc[list(grp.index), "followup_reason"] = reason
+    _tag_unphased(df)
     return df
+
+
+def _append_reason(existing: object, extra: str) -> str:
+    current = _text(existing)
+    if not extra:
+        return current
+    if extra in current:
+        return current
+    return f"{current}; {extra}" if current else extra
+
+
+def _tag_unphased(df: pd.DataFrame) -> None:
+    """Note inferred compound-het / hemizygous pairs whose phase is unknown."""
+    if "inheritance_status" not in df.columns:
+        return
+    status = df["inheritance_status"].fillna("").astype(str)
+    inferred = status.isin({"AR_comphet_candidate", "AR_hemizygous"})
+    if not inferred.any():
+        return
+    for (_, _), grp in df[inferred].groupby(["sample_id", "gene"], sort=False):
+        if len(grp) < 2 and not (grp["inheritance_status"].astype(str) == "AR_hemizygous").any():
+            # A lone labelled row is still an inferred pair (SV+SNV partner may
+            # share the status); still record the phase note.
+            pass
+        for i in grp.index:
+            df.at[i, "followup_reason"] = _append_reason(df.at[i, "followup_reason"], UNPHASED_REASON)
 
 
 def _apply_hemizygosity(df: pd.DataFrame, idx: list) -> None:

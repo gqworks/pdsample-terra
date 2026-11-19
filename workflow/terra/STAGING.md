@@ -21,6 +21,8 @@ See [`docs/setup_checklist.md`](../../docs/setup_checklist.md).
 | `PdSample.dbnsfp_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/dbnsfp/dbNSFP5.4a_grch38.gz.tbi` | Tabix index for that file | small |
 | `PdSample.gnomad_af_vcf` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.joint.v4.1.panel.sites.vcf.bgz` | Panel-sliced gnomAD v4.1 joint sites (`AF_joint`) | depends on panel |
 | `PdSample.gnomad_af_vcf_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/gnomad/gnomad.joint.v4.1.panel.sites.vcf.bgz.tbi` | Tabix index for that file | small |
+| `PdSample.clinvar_plp_vcf` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.20250504.panel.plp.vcf.bgz` | Panel-sliced ClinVar P/LP sites | depends on panel |
+| `PdSample.clinvar_plp_vcf_index` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/clinvar/clinvar.20250504.panel.plp.vcf.bgz.tbi` | Tabix index for that file | small |
 | `PdSample.mtdna_mitimpact` | terra only | `gs://YOUR_WORKSPACE_BUCKET/resources/mitimpact/MitImpact4_V059.csv` | MitImpact 4 CSV (unzip from MitImpact downloads) | ~20 MB unzipped |
 
 `PdSample.terra_inputs.json` binds the alignment to `${this.bam_or_cram_file}` and `${this.bai}` on the sample table (WDL inputs are `bam` and optional `bai`). BAM + `.bai` and CRAM (with or without `.crai`) both work: `EnsureBam` converts CRAM to BAM/BAI before callers run. The example JSON paths exist so Dockstore and `womtool` have a `File`. `SYNTHETIC_SAMPLE` is not a real sample.
@@ -177,6 +179,25 @@ Public source (Google Cloud Public Datasets):
 3. Point `PdSample.gnomad_af_vcf` / `PdSample.gnomad_af_vcf_index` at those objects (pre-filled in `PdSample.terra_inputs.json`). Leave unset to keep dbNSFP-only AF.
 4. **When the panel gene BED changes**, re-run the script and overwrite (or version) the staged objects. No WDL/`pdvar` code change is required for gene add/remove.
 
+### Stage panel-sliced ClinVar P/LP
+
+Public source:
+
+`gs://gcp-public-data--gnomad/resources/grch38/clinvar/clinvar_20250504.vcf.gz`
+
+1. Build a panel extract with `workflow/scripts/build_panel_clinvar.sh`:
+
+```bash
+./workflow/scripts/build_panel_clinvar.sh \
+  --bed resources/panel/monopdaus-genes.grch38.bed \
+  --clinvar gs://gcp-public-data--gnomad/resources/grch38/clinvar/clinvar_20250504.vcf.gz \
+  --out clinvar.20250504.panel.plp.vcf.bgz
+```
+
+2. Upload `clinvar.20250504.panel.plp.vcf.bgz` and `.tbi` to `resources/clinvar/` in the workspace bucket.
+3. Point `PdSample.clinvar_plp_vcf` / `PdSample.clinvar_plp_vcf_index` at those objects (pre-filled in `PdSample.terra_inputs.json`). Leave unset to keep dbNSFP missense/splice ClinVar only.
+4. **When the panel gene BED changes**, re-run the script and overwrite (or version) the staged objects.
+
 ## mtDNA MitImpact 4
 
 ClinVar, MITOMAP, gnomAD v3.1 mtDNA AF, APOGEE2, and MitoTIP for MitochondriaPipeline alleles come from one **MitImpact 4** CSV (not separate ClinVar/gnomAD VCF customs). APOGEE is CC BY-NC; see MitImpact `LICENSES.md` in the zip.
@@ -193,4 +214,4 @@ These are unset in both JSON files. A default launch does not need them.
 - **Introme GTF.** Stage GENCODE v44 to `gs://YOUR_WORKSPACE_BUCKET/resources/gencode/gencode.v44.annotation.gtf.gz` (see above). The Introme pin is `d6da48bc84abda66f588470f79abcf1244acfb21`.
 - **Introme assets tar.** Optional `introme_assets_tar`. Unset, the fetch task downloads `https://github.com/CCICB/introme/archive/d6da48bc84abda66f588470f79abcf1244acfb21.tar.gz`.
 - **Genome-wide CADD / REVEL plugins** (`cadd_snv`, optional `cadd_indels`, `revel`, and indexes). Optional fallback when you need scores outside dbNSFP’s missense/splice SNV scope; academic 5.4a already provides `CADD_phred` / `REVEL_score` for those sites.
-- **ExpansionHunter / Gauchian catalogs.** `eh_catalog` is already the vendored 19-locus hg38 catalog in this repo (ExpansionHunter 5.0.0). Gauchian 1.0.2 has no catalog file input.
+- **ExpansionHunter / Gauchian catalogs.** `eh_catalog` is already the vendored 24-locus hg38 catalog in this repo (ExpansionHunter 5.0.0, including FGF14, NOTCH2NLC, BEAN1, LRP12, FXN). Gauchian 1.0.2 has no catalog file input.

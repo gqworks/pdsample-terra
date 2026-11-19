@@ -51,7 +51,7 @@ ENSG00000155980,KIF5A,AD,SPG10 / CMT2 / ALS; AD,false,high,OMIM:KIF5A; GeneRevie
 ENSG00000272333,KMT2B,AD,DYT28 dystonia; AD (often de novo),false,high,OMIM:KMT2B; GeneReviews dystonia,lof,DYT28 haploinsufficiency; GeneReviews dystonia
 ENSG00000188906,LRRK2,AD,"PARK-LRRK2 AD reduced penetrance; selected alleles (e.g. G2019S, G2385R) behave as risk — AF exception",true,high,GeneReviews NBK1208; NBK1223; MDSGene,gof,PARK-LRRK2 kinase hyperactivation (e.g. G2019S); HMG 2007; GeneReviews NBK1208
 ENSG00000143669,LYST,AR,Chediak-Higashi; biallelic; parkinsonism in survivors,false,high,OMIM:LYST; GeneReviews CHS,,
-ENSG00000186868,MAPT,AD,FTDP-17 / PSP-like; AD,false,high,OMIM:MAPT; GeneReviews MAPT,gof,FTDP-17 toxic tau / altered splicing of exon 10; not MAPT HI; GeneReviews MAPT
+ENSG00000186868,MAPT,AD,FTDP-17 / PSP-like; AD,false,high,OMIM:MAPT; GeneReviews MAPT,splice_gof,FTDP-17 toxic tau / exon-10 cassette splice (+14/+16); not MAPT HI; GeneReviews MAPT
 ENSG00000169057,MECP2,XL,Rett / related NDD; X-linked,false,high,OMIM:MECP2; GeneReviews Rett,,
 ENSG00000164976,MYORG,AR,PFBC AR; biallelic,false,high,MDSGene PFBC; OMIM:MYORG,,
 ENSG00000164134,NAA15,AD,NDD; AD,false,medium,OMIM:NAA15,lof,NDD LoF/haploinsufficiency; OMIM:NAA15

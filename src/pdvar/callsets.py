@@ -45,7 +45,8 @@ VARIANT_COLUMNS = [
     "muttaster", "muttaster_pred", "fathmm", "fathmm_pred",
     "clinvar", "clinvar_class", "variant_class", "hit_source", "heteroplasmy",
     "mitomap_status", "mitomap_clinical_info", "mitomap_gb_freq", "apogee2_class", "apogee2_score", "mitotip_score", "mitotip_quartile",
-    "mlc_score", "mitimpact_hgvs", "repeat_count", "str_locus", "str_expanded", "str_citation", "copy_number",
+    "mlc_score", "mitimpact_hgvs", "repeat_count", "str_locus", "str_expanded", "str_citation",
+    "str_n_expanded_alleles", "str_motif", "str_motif_pathogenic", "str_moi", "copy_number",
     "dosage_mechanism", "dosage_event", "scored_dosage",
 ]
 
@@ -86,13 +87,100 @@ def _carrier_gt(gt: str) -> bool:
     return any(part not in {"0"} for part in alleles)
 
 
-def _expanded(locus: str, counts: list[float], cfg: dict) -> tuple[object, str]:
+DEFAULT_STR_AR = ("RFC1", "CSTB", "FXN")
+DEFAULT_STR_XL = ("FMR1", "AR")
+DEFAULT_STR_MOTIFS = {"RFC1": ("AAGGG",)}
+
+
+def str_moi_for(locus: str, cfg: dict | None = None) -> str:
+    """AD / AR / XL for an ExpansionHunter locus id."""
+    cfg = cfg or {}
+    meta = (cfg.get("str_loci") or {}).get(locus) or {}
+    tagged = str(meta.get("moi") or "").strip().upper()
+    if tagged in {"AD", "AR", "XL"}:
+        return tagged
+    ar = {str(item).upper() for item in (cfg.get("str_ar_loci") or DEFAULT_STR_AR)}
+    xl = {str(item).upper() for item in (cfg.get("str_xl_loci") or DEFAULT_STR_XL)}
+    key = str(locus or "").upper()
+    if key in ar:
+        return "AR"
+    if key in xl:
+        return "XL"
+    return "AD"
+
+
+def _pathogenic_motifs(locus: str, cfg: dict) -> set[str]:
+    meta = (cfg.get("str_loci") or {}).get(locus) or {}
+    raw = meta.get("pathogenic_motif") or meta.get("pathogenic_motifs")
+    if raw:
+        values = raw if isinstance(raw, (list, tuple, set)) else [raw]
+        return {str(item).strip().upper() for item in values if str(item).strip()}
+    table = cfg.get("str_pathogenic_motifs") or DEFAULT_STR_MOTIFS
+    values = table.get(locus) or table.get(str(locus).upper()) or ()
+    if isinstance(values, str):
+        values = [values]
+    return {str(item).strip().upper() for item in values if str(item).strip()}
+
+
+def _normalize_motif(value: object) -> str:
+    text = str(value or "").strip().upper()
+    if not text or text in {".", "NAN", "NONE", "TRUE"}:
+        return ""
+    text = text.split(",")[0].split(";")[0].strip()
+    text = text.replace("(", "").replace(")", "").replace("*", "").replace("+", "")
+    return text
+
+
+def _observed_motif(info: dict, fmt: dict, alt: str) -> str:
+    """Best-effort observed / catalog motif. Standard EH 5 VCFs often only have INFO/RU."""
+    for source in (fmt.get("RU"), fmt.get("MOTIF"), info.get("RU"), info.get("MOTIF")):
+        motif = _normalize_motif(source)
+        if motif:
+            return motif
+    alt_text = str(alt or "")
+    if alt_text.startswith("<") or alt_text in {".", ""}:
+        return ""
+    return _normalize_motif(alt_text)
+
+
+def _motif_is_pathogenic(motif: str, expected: set[str]) -> object:
+    if not expected:
+        return pd.NA
+    if not motif:
+        return pd.NA
+    compact = motif.replace(" ", "")
+    for item in expected:
+        if compact == item or item in compact or compact in item:
+            return True
+    return False
+
+
+def _expanded(locus: str, counts: list[float], cfg: dict) -> tuple[object, str, object]:
+    """Return ``(any_allele_expanded, citation, n_alleles_at_or_above_floor)``."""
     meta = (cfg.get("str_loci") or {}).get(locus) or {}
     cutoff = meta.get("pathogenic_min_repeats")
     citation = meta.get("citation")
     if cutoff is None or not citation or not counts:
-        return pd.NA, ""
-    return bool(max(counts) >= float(cutoff)), str(citation)
+        return pd.NA, "", pd.NA
+    n_hit = sum(1 for value in counts if value >= float(cutoff))
+    return bool(n_hit > 0), str(citation), int(n_hit)
+
+
+def _locus_id(info: dict, record_id: str, cfg: dict) -> str:
+    """Prefer VARID when it is a configured locus; skip auxiliary tracts (FXN_A, BEAN1_TAAAA)."""
+    loci = cfg.get("str_loci") or {}
+    varid = str(info.get("VARID") or "").strip()
+    repid = str(info.get("REPID") or "").strip()
+    rec_id = str(record_id or "").strip()
+    if varid and varid in loci:
+        return varid
+    if varid and varid not in {".", ""} and varid != repid and varid not in loci:
+        return ""
+    if repid and repid not in {".", ""}:
+        return repid
+    if rec_id and rec_id not in {".", ""}:
+        return rec_id
+    return "STR"
 
 
 def _gene_for_locus(locus: str, cfg: dict) -> str:
@@ -137,20 +225,23 @@ def parse_expansionhunter(path: str | Path, cfg: dict | None = None, sample_pref
     carriers: set[str] = set()
     for record in iter_vcf(path):
         info = record["info"]
-        locus = str(info.get("REPID") or info.get("VARID") or record["id"] or "STR")
-        if locus in {".", ""}:
-            locus = "STR"
+        locus = _locus_id(info, record["id"], cfg)
+        if not locus:
+            continue
         gene = _gene_for_locus(locus, cfg)
         ref_repeats = _float_or_none(info.get("REF"))
+        expected_motifs = _pathogenic_motifs(locus, cfg)
+        moi = str_moi_for(locus, cfg)
         for sample, fmt in _prefix(record["samples"], sample_prefix).items():
             gt = str(fmt.get("GT") or "./.")
             counts = _rep_counts(fmt.get("REPCN") or info.get("REPCN"))
             if not _carrier_gt(gt):
                 continue
             carriers.add(str(sample))
-            expanded, citation = _expanded(locus, counts, cfg)
+            expanded, citation, n_hit = _expanded(locus, counts, cfg)
             repeat_count = max(counts) if counts else pd.NA
             alt = record["alt"].split(",")[0]
+            motif = _observed_motif(info, fmt, alt)
             chrom = chrom_bare(record["chrom"])
             rows.append(
                 _blank_row(
@@ -175,6 +266,10 @@ def parse_expansionhunter(path: str | Path, cfg: dict | None = None, sample_pref
                     str_locus=locus,
                     str_expanded=expanded,
                     str_citation=citation,
+                    str_n_expanded_alleles=n_hit if n_hit is not pd.NA else pd.NA,
+                    str_motif=motif or pd.NA,
+                    str_motif_pathogenic=_motif_is_pathogenic(motif, expected_motifs),
+                    str_moi=moi,
                     scored_dosage=False,
                 )
             )
@@ -331,7 +426,12 @@ def _variant_raw_depth_ab(raw_counts: object, hgvsc: str, hgvsp: str) -> tuple[f
 
 
 def drop_redundant_gauchian_snvs(df: pd.DataFrame) -> pd.DataFrame:
-    """Prefer VEP/small-variant GBA1 alleles when Gauchian reports the same c. HGVS."""
+    """Prefer VEP/small-variant GBA1 alleles when Gauchian reports the same c. HGVS.
+
+    Copy GBA1-PD Browser class (and related annotation) onto the surviving VEP
+    row so a ClinVar-benign risk allele such as E365K is not lost with the
+    Gauchian duplicate.
+    """
     if df.empty or "hit_source" not in df.columns or "gene" not in df.columns:
         return df
     gene = df["gene"].astype(str).str.upper()
@@ -346,6 +446,33 @@ def drop_redundant_gauchian_snvs(df: pd.DataFrame) -> pd.DataFrame:
     if not seen:
         return df
     drop = gauchian & hgvsc.map(lambda value: gba_c_dot(value) in seen)
+    copy_cols = [
+        col
+        for col in (
+            "gba1_pd_class",
+            "gba1_gd_acmg",
+            "gba1_pd_variant_name",
+            "gba1_pd_rsid",
+            "gba1_pd_matched_cdna",
+        )
+        if col in df.columns
+    ]
+    if copy_cols:
+        by_key: dict[str, dict] = {}
+        for idx in df.index[drop]:
+            key = gba_c_dot(hgvsc.at[idx] if "hgvsc" in df.columns else "")
+            if not key:
+                continue
+            by_key[key] = {col: df.at[idx, col] for col in copy_cols}
+        for idx in df.index[small]:
+            key = gba_c_dot(hgvsc.at[idx])
+            src = by_key.get(key)
+            if not src:
+                continue
+            for col, value in src.items():
+                current = df.at[idx, col]
+                if current is None or (isinstance(current, float) and pd.isna(current)) or str(current).strip() in {"", "nan", "<NA>"}:
+                    df.at[idx, col] = value
     return df.loc[~drop].reset_index(drop=True)
 
 

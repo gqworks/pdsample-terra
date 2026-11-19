@@ -7,7 +7,7 @@ import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai). SV precedence: optional sample sv_prior_vcf (reuse this.sv_vcf) skips calling; else workspace sv_joint_vcf subsets when sample_id is in the header; else GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai). SV precedence: optional sample sv_prior_vcf (reuse this.sv_vcf) skips calling; else workspace sv_joint_vcf subsets when sample_id is in the header; else GATK-SV v1.1.1 (Scramble on, MELT off). Optional introme_prior (reuse this.introme) skips Introme. A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
   }
   input {
     String sample_id
@@ -49,6 +49,11 @@ workflow PdSample {
     # panel BED changes (workflow/scripts/build_panel_gnomad_af.sh). Unset keeps dbNSFP-only AF.
     File? gnomad_af_vcf
     File? gnomad_af_vcf_index
+    # Panel-sliced ClinVar P/LP sites (CLNSIG Pathogenic / Likely_pathogenic).
+    # Rebuild when the panel BED changes (workflow/scripts/build_panel_clinvar.sh).
+    # Unset keeps dbNSFP missense/splice ClinVar only.
+    File? clinvar_plp_vcf
+    File? clinvar_plp_vcf_index
 
     File somalier_sites
     Float max_freemix = 0.02
@@ -61,6 +66,10 @@ workflow PdSample {
 
     File introme_gtf
     File? introme_assets_tar
+    # Optional per-sample prior Introme TSV (Terra: this.introme). When set, skips
+    # the Introme subworkflow and reuses this callset. String so blank this.introme
+    # cells do not select the prior path or fail localization.
+    String introme_prior = ""
     Boolean introme_quality_filter = false
     Int introme_min_qual = 200
     Int introme_min_dp = 20
@@ -288,6 +297,8 @@ workflow PdSample {
   # Blank Terra sample cells arrive as "". WDL 1.0 has no None, so use an empty
   # Array[File] when unset; Assess localizes only when this has one path.
   Array[File] phenotype_report_files = if phenotype_report != "" then [phenotype_report] else []
+  # Optional Introme reuse: non-empty this.introme skips the Introme subworkflow.
+  Array[File] introme_prior_files = if introme_prior != "" then [introme_prior] else []
   # SV path selection: non-empty prior → joint subset → GATK-SV (optional case_*
   # evidence reuse) → full GATK-SV when case_* are also blank.
   Array[File] sv_prior_vcf_files = if sv_prior_vcf != "" then [sv_prior_vcf] else []
@@ -438,10 +449,22 @@ workflow PdSample {
       gatk_docker = hc_gatk_docker,
       preemptible = preemptible
   }
-  call Tasks.NormPass {
+  call Tasks.RescueSites {
     input:
       vcf = GenotypeHardFilter.vcf,
       vcf_index = GenotypeHardFilter.vcf_index,
+      rescue_nonpass_sites_py = FetchRepoAssets.rescue_nonpass_sites_py,
+      clinvar_plp_vcf = clinvar_plp_vcf,
+      clinvar_plp_vcf_index = clinvar_plp_vcf_index,
+      gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
+      sample_id = sample_id,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.NormPass {
+    input:
+      vcf = RescueSites.vcf,
+      vcf_index = RescueSites.vcf_index,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       sample_id = sample_id,
@@ -495,6 +518,21 @@ workflow PdSample {
       sample_id = sample_id,
       preemptible = preemptible
   }
+  if (defined(clinvar_plp_vcf) && defined(clinvar_plp_vcf_index)) {
+    call Tasks.AnnotateClinvarPlp as AnnotateClinvarSmall {
+      input:
+        vcf = LiftGnomadInfo.lifted_vcf,
+        vcf_index = LiftGnomadInfo.lifted_vcf_index,
+        sites_vcf = select_first([clinvar_plp_vcf]),
+        sites_vcf_index = select_first([clinvar_plp_vcf_index]),
+        annotate_clinvar_plp_py = FetchRepoAssets.annotate_clinvar_plp_py,
+        sample_id = sample_id,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
+  }
+  File sample_vep_vcf = select_first([AnnotateClinvarSmall.annotated_vcf, LiftGnomadInfo.lifted_vcf])
+  File sample_vep_vcf_index = select_first([AnnotateClinvarSmall.annotated_vcf_index, LiftGnomadInfo.lifted_vcf_index])
   call Tasks.ExpansionHunter {
     input:
       bam = sample_bam,
@@ -750,8 +788,23 @@ workflow PdSample {
   # Prefer prior, then GatkSv (sample absent from joint → fallback), then joint.
   # select_all turns optional if-branch File? into a 0-or-1 Array for flatten.
   Array[File] prior_sv_vcfs = sv_prior_vcf_files
-  File sample_sv_vcf = select_first(flatten([prior_sv_vcfs, select_all([GatkSvSingle.final_vcf]), SubsetJointSvVcf.vcf]))
-  File sample_sv_vcf_index = select_first(flatten([select_all([PriorSvIndex.out]), select_all([GatkSvSingle.final_vcf_idx]), SubsetJointSvVcf.vcf_index]))
+  File raw_sv_vcf = select_first(flatten([prior_sv_vcfs, select_all([GatkSvSingle.final_vcf]), SubsetJointSvVcf.vcf]))
+  File raw_sv_vcf_index = select_first(flatten([select_all([PriorSvIndex.out]), select_all([GatkSvSingle.final_vcf_idx]), SubsetJointSvVcf.vcf_index]))
+  if (defined(clinvar_plp_vcf) && defined(clinvar_plp_vcf_index)) {
+    call Tasks.AnnotateClinvarPlp as AnnotateClinvarSv {
+      input:
+        vcf = raw_sv_vcf,
+        vcf_index = raw_sv_vcf_index,
+        sites_vcf = select_first([clinvar_plp_vcf]),
+        sites_vcf_index = select_first([clinvar_plp_vcf_index]),
+        annotate_clinvar_plp_py = FetchRepoAssets.annotate_clinvar_plp_py,
+        sample_id = sample_id + ".sv",
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
+  }
+  File sample_sv_vcf = select_first([AnnotateClinvarSv.annotated_vcf, raw_sv_vcf])
+  File sample_sv_vcf_index = select_first([AnnotateClinvarSv.annotated_vcf_index, raw_sv_vcf_index])
   # Stage as sample_id.sv.vcf.gz (GATK-SV finals are opaque; prior/joint already match).
   call Tasks.ReleaseAfterQc as NameSvVcf {
     input:
@@ -765,10 +818,12 @@ workflow PdSample {
       gate = QcGate.gate,
       name = sample_id + ".sv.vcf.gz.tbi"
   }
+  Boolean use_prior_introme = length(introme_prior_files) > 0
+  if (!use_prior_introme) {
   call IntromeWf.Introme as Introme {
     input:
-      vcf = LiftGnomadInfo.lifted_vcf,
-      vcf_index = LiftGnomadInfo.lifted_vcf_index,
+      vcf = sample_vep_vcf,
+      vcf_index = sample_vep_vcf_index,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       gtf = introme_gtf,
@@ -803,11 +858,19 @@ workflow PdSample {
       python_docker = python_docker,
       preemptible = preemptible
   }
+  }
+  File sample_introme = select_first(flatten([introme_prior_files, select_all([Introme.introme_tsv])]))
+  call Tasks.ReleaseAfterQc as NameIntrome {
+    input:
+      payload = sample_introme,
+      gate = QcGate.gate,
+      name = sample_id + ".introme.predictions.tsv"
+  }
   call Tasks.Assess {
     input:
       sample_id = sample_id,
       sex = QcGate.sex,
-      vep_vcf = LiftGnomadInfo.lifted_vcf,
+      vep_vcf = sample_vep_vcf,
       small_vcf = NormPass.normalized_vcf,
       sv_vcf = NameSvVcf.released,
       sv_status = if use_prior_sv then "prior" else if use_joint_sv then "joint" else "called",
@@ -815,8 +878,10 @@ workflow PdSample {
       gauchian_json = Gauchian.json,
       mtdna_vcf = AnnotateMtdna.mtdna_vcf,
       mtdna_annotation = AnnotateMtdna.annotation_status,
-      introme_tsv = Introme.introme_tsv,
+      introme_tsv = NameIntrome.released,
+      introme_status = if use_prior_introme then "prior" else "called",
       avi_tsv = AnnotateAvi.avi_tsv,
+      avi_requested = defined(avi_table),
       qc_json = QcGate.qc_json,
       config_yaml = FetchRepoAssets.config_yaml,
       columns_yaml = FetchRepoAssets.columns_yaml,
@@ -838,10 +903,11 @@ workflow PdSample {
 
   output {
     Array[File] candidates = Assess.candidates
-    File vep_vcf = LiftGnomadInfo.lifted_vcf
-    File vep_vcf_index = LiftGnomadInfo.lifted_vcf_index
+    File vep_vcf = sample_vep_vcf
+    File vep_vcf_index = sample_vep_vcf_index
     File sv_vcf = NameSvVcf.released
     File sv_vcf_index = NameSvVcfIndex.released
+    File introme = NameIntrome.released
     # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
     # File? is unset when the joint-SV path skipped GatkSvSingle. Metrics stay
     # Array[File] (empty on the joint path).

@@ -16,6 +16,7 @@ from . import (
     callsets,
     compound,
     filters,
+    followup,
     gba1_pd,
     inheritance,
     io,
@@ -86,6 +87,32 @@ def _integrate_special_calls(df: pd.DataFrame, cfg: dict | None = None) -> pd.Da
     if "str_expanded" in df.columns:
         expanded = df["hit_source"].eq("expansionhunter") & df["str_expanded"].fillna(False).astype(bool)
         df.loc[expanded, "inheritance_status"] = "str_expanded"
+        if "followup_reason" not in df.columns:
+            df["followup_reason"] = ""
+        locus = (
+            df["str_locus"].astype("string").fillna("").astype(str)
+            if "str_locus" in df.columns
+            else pd.Series("", index=df.index, dtype=str)
+        )
+        gene = (
+            df["gene"].astype("string").fillna("").astype(str)
+            if "gene" in df.columns
+            else pd.Series("", index=df.index, dtype=str)
+        )
+        locus = locus.mask(locus.str.lower().isin(["", "nan", "<na>", "none"]), "")
+        gene = gene.mask(gene.str.lower().isin(["", "nan", "<na>", "none"]), "")
+        keys = locus.where(locus.str.strip().ne(""), gene)
+        ar = expanded & keys.map(lambda loc: callsets.str_moi_for(str(loc or ""), cfg or {}) == "AR")
+        n_hit = pd.to_numeric(df.get("str_n_expanded_alleles"), errors="coerce")
+        motif_ok = df["str_motif_pathogenic"].fillna(False).astype(bool) if "str_motif_pathogenic" in df.columns else pd.Series(False, index=df.index)
+        incomplete = ar & ~((n_hit.fillna(0) >= 2) & motif_ok)
+        for idx in df.index[incomplete]:
+            n_val = n_hit.at[idx] if idx in n_hit.index else None
+            if pd.notna(n_val) and int(n_val) >= 2:
+                extra = "both alleles expanded, pathogenic motif not confirmed"
+            else:
+                extra = "single expanded allele in recessive STR, motif not confirmed"
+            df.at[idx, "followup_reason"] = compound._append_reason(df.at[idx, "followup_reason"], extra)
     max_af = None
     if cfg is not None:
         max_af = (cfg.get("filters") or {}).get("max_gnomad_af")
@@ -215,7 +242,9 @@ def assess_sample(
         variants["gene"] = normalize.apply_gene_aliases(variants["gene"], cfg.get("gene_aliases"))
     variants = splicing.ensure_hit_source(variants, default="small_variant") if not variants.empty else variants
     if not variants.empty:
+        variants = gba1_pd.annotate_gauchian(variants, gba1_pd.load_browser(gba1_browser))
         variants = callsets.drop_redundant_gauchian_snvs(variants)
+    unfiltered = variants.copy() if not variants.empty else variants
 
     introme_path = _exists(sample.get("introme_tsv"))
     introme_variants = pd.DataFrame()
@@ -224,11 +253,12 @@ def assess_sample(
     else:
         raw_introme = io.read_table(introme_path)
         if not raw_introme.empty:
-            # Scores only; do not inject Introme carrier alleles absent from the sample callset.
+            # Scores attach to callset alleles. Gene-scoped injection of uncalled
+            # Introme hits runs later, only in genes tagged with followup_reason.
             introme_variants, _carriers = normalize.normalize_introme(
                 raw_introme, cfg["columns"]["introme"], cfg.get("gene_aliases")
             )
-        notes["introme"] = "called"
+        notes["introme"] = str(sample.get("introme_status") or "called")
     notes["vep"] = "called"
 
     avi_path = _exists(sample.get("avi_tsv"))
@@ -262,6 +292,21 @@ def assess_sample(
             scored = inheritance.annotate_moi(scored, panel)
             scored = inheritance.evaluate_inheritance(scored, cfg["inheritance"])
             scored = compound.refine(scored)
+            gauchian_neg = notes.get("gauchian") == "called" and (
+                unfiltered.empty
+                or "hit_source" not in unfiltered.columns
+                or not unfiltered["hit_source"].fillna("").astype(str).eq("gauchian").any()
+            )
+            scored = followup.rescue_second_hits(
+                scored,
+                unfiltered,
+                introme_variants=introme_variants,
+                cfg=cfg,
+                sample_id=sample_id,
+            )
+            if not introme_variants.empty and "introme_score" in scored.columns:
+                scored = splicing.apply_introme_evidence(scored, cfg["splicing"], cfg["scoring"])
+            scored = followup.annotate_empty_searches(scored, gauchian_catalog_negative=gauchian_neg)
             scored = _integrate_special_calls(scored, cfg)
             pheno = _phenotype_frame(sample_id, sex, _phenotype_payload(sample))
             scored = phenotype.phenotype_concordance(scored, pheno, cfg.get("gene_phenotypes") or {}, cfg["phenotype"])
@@ -271,17 +316,38 @@ def assess_sample(
                 early_onset_age=(cfg.get("phenotype") or {}).get("early_onset_age"),
             )
 
+    liability_cfg = dict(cfg.get("liability") or {})
+    for key in ("str_ar_loci", "str_xl_loci", "str_loci", "str_pathogenic_motifs"):
+        if key in cfg:
+            liability_cfg[key] = cfg[key]
+    pheno_frame = _phenotype_frame(sample_id, sex, _phenotype_payload(sample))
+    commit = str((sample.get("qc") or {}).get("pdvar_git_commit") or sample.get("pdvar_git_commit") or "")
+    avi_requested = bool(sample.get("avi_requested"))
+
+    def _maybe_stubs(candidates: pd.DataFrame, classification: str) -> pd.DataFrame:
+        if classification != "unexplained" or (candidates is not None and not candidates.empty):
+            return candidates
+        stubs = followup.module_stub_rows(
+            sample_id,
+            notes,
+            sv_status=sv_status,
+            avi_requested=avi_requested,
+            pdvar_git_commit=commit,
+        )
+        return stubs if not stubs.empty else candidates
+
     if scored.empty or "inheritance_status" not in scored.columns:
         candidates = _empty_candidates()
         classes = liability.classify_cohort(
             pd.DataFrame(columns=["sample_id", "inheritance_status"]),
             [sample_id],
-            _phenotype_frame(sample_id, sex, _phenotype_payload(sample)),
+            pheno_frame,
             None,
-            cfg.get("liability") or {},
+            liability_cfg,
         )
+        classification = str(classes.iloc[0]["classification"]) if not classes.empty else "unexplained"
+        candidates = _maybe_stubs(candidates, classification)
     else:
-        candidates = report.patient_candidates(scored, cfg["report"]["max_candidates_per_patient"])
         prs = None
         weights_path = _exists(sample.get("prs_weights"))
         if weights_path is not None:
@@ -294,10 +360,22 @@ def assess_sample(
         classes = liability.classify_cohort(
             scored,
             [sample_id],
-            _phenotype_frame(sample_id, sex, _phenotype_payload(sample)),
+            pheno_frame,
             prs,
-            cfg.get("liability") or {},
+            liability_cfg,
         )
+        classification = str(classes.iloc[0]["classification"]) if not classes.empty else "unexplained"
+        onset = None
+        if not pheno_frame.empty and "age_onset" in pheno_frame.columns:
+            onset = pheno_frame.iloc[0].get("age_onset")
+        scored = followup.early_onset_keep(
+            scored,
+            age_onset=onset,
+            classification=classification,
+            cfg=cfg,
+        )
+        candidates = report.patient_candidates(scored, cfg["report"]["max_candidates_per_patient"])
+        candidates = _maybe_stubs(candidates, classification)
 
     qc = dict(sample.get("qc") or {})
     qc["sample_id"] = sample_id

@@ -122,8 +122,8 @@ def _gnomad_from_info(info: dict) -> tuple[float | None, float | None]:
 
 
 def _clinvar_from_info(info: dict) -> str:
-    """CLNSIG from legacy VEP ``--custom`` when present."""
-    for key in ("ClinVar_CLNSIG", "ClinVar"):
+    """CLNSIG from panel ClinVar slice, rescue INFO, or legacy VEP ``--custom``."""
+    for key in ("ClinVar_CLNSIG", "CLNSIG", "clinvar_clnsig", "ClinVar"):
         raw = info.get(key)
         if raw and raw is not True:
             return str(raw).split("|")[0]
@@ -277,7 +277,9 @@ def parse_vep(path: str | Path, sample_id: str) -> pd.DataFrame:
     rows: list[dict] = []
     wanted = str(sample_id)
     for record in iter_vcf(path, allow_full_scan=True):
-        if record["filter"] not in {"PASS", "."}:
+        filt = str(record["filter"] or "")
+        rescued = bool(record["info"].get("PDVAR_RESCUE")) if record.get("info") else False
+        if filt not in {"PASS", "."} and not rescued:
             continue
         alts = [alt for alt in str(record["alt"]).split(",") if alt and alt != "."]
         samples = record["samples"]

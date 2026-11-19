@@ -139,8 +139,13 @@ def demote_gof_ad_intronic(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
     } or set(GOF_LIKE_MECHANISMS)
     df = df.copy()
     gof_like = df["mechanism"].fillna("").astype(str).str.lower().isin(mechanisms)
+    skip = {
+        str(m).strip().lower()
+        for m in (icfg.get("skip_gof_intronic_mechanisms") or ["splice_gof"])
+    }
+    skip_mech = df["mechanism"].fillna("").astype(str).str.lower().isin(skip) if skip else pd.Series(False, index=df.index)
     ad = df["inheritance_status"].fillna("").astype(str).eq("AD_candidate")
-    demote = ad & gof_like & weak_intronic_mask(df)
+    demote = ad & gof_like & ~skip_mech & weak_intronic_mask(df)
     df.loc[demote, "inheritance_status"] = AD_GOF_INTRONIC_STATUS
     return df
 
@@ -189,6 +194,16 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
 
     df.loc[(df["moi"] == "AD") & ad_q, "inheritance_status"] = "AD_candidate"
     df.loc[(df["moi"] == "RISK") & ad_q, "inheritance_status"] = "risk_carrier"
+    gba_q = pd.Series(False, index=df.index)
+    if icfg.get("qualify_gba1_pd_class", True) and "gba1_pd_class" in df.columns:
+        allowed = {
+            str(item).strip().lower()
+            for item in (icfg.get("gba1_pd_qualify_classes") or ("severe", "mild", "risk"))
+        }
+        gba_class = df["gba1_pd_class"].fillna("").astype(str).str.strip().str.lower()
+        gene = df["gene"].astype(str).str.upper() if "gene" in df.columns else pd.Series("", index=df.index)
+        gba_q = gene.eq("GBA1") & gba_class.isin(allowed)
+        df.loc[gba_q, "inheritance_status"] = "risk_carrier"
     df.loc[(df["moi"] == "XL") & ad_q & (df["zygosity"] == "hemi"), "inheritance_status"] = "XL_hemi"
     df.loc[(df["moi"] == "XL") & ad_q & (df["zygosity"] != "hemi"), "inheritance_status"] = "AD_candidate"
     unknown_q = _qualifies(df, icfg.get("unknown_moi_min_tier", icfg["ad_min_tier"]))
@@ -196,7 +211,7 @@ def evaluate_inheritance(df: pd.DataFrame, icfg: dict) -> pd.DataFrame:
         unknown_q = unknown_q | clinvar_vus_mask(df)
     df.loc[(df["moi"] == "UNKNOWN") & unknown_q, "inheritance_status"] = "MOI_unknown_candidate"
 
-    for (_, _), grp in df[(df["moi"] == "RISK") & ad_q].groupby(["sample_id", "gene"]):
+    for (_, _), grp in df[(df["moi"] == "RISK") & (ad_q | gba_q)].groupby(["sample_id", "gene"]):
         if len(grp) >= 2 or (grp["zygosity"] == "hom").any():
             df.loc[grp.index, "inheritance_status"] = "risk_biallelic"
 

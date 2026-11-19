@@ -174,6 +174,27 @@ def test_dn_ad_intronic_demoted(cfg):
     assert out.loc[0, "inheritance_status"] == "AD_gof_intronic"
 
 
+def test_mapt_splice_gof_skips_intron_demotion(cfg):
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "MAPT",
+                "moi": "AD",
+                "mechanism": "splice_gof",
+                "zygosity": "het",
+                "tier": 2,
+                "introme_class": "high",
+                "evidence_reasons": "introme_high",
+                "consequence": "splice_region_variant",
+                "clinvar_class": "none",
+            }
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, cfg["inheritance"])
+    assert out.loc[0, "inheritance_status"] == "AD_candidate"
+
+
 def test_gof_demotion_can_be_disabled(cfg):
     icfg = {**cfg["inheritance"], "demote_gof_ad_intronic": False}
     rows = pd.DataFrame(
