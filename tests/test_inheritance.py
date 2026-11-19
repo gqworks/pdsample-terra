@@ -230,6 +230,28 @@ def test_hets_in_different_samples_not_comphet(cfg):
     assert set(out["inheritance_status"]) == {"AR_single_het"}
 
 
+def test_gba1_pd_class_qualifies_clinvar_blb(cfg):
+    """Browser risk/severe/mild GBA1 alleles qualify even with ClinVar B/LB."""
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "GBA1",
+                "moi": "RISK",
+                "zygosity": "het",
+                "tier": 4,
+                "introme_class": "none",
+                "evidence_reasons": "clinvar_blb",
+                "consequence": "missense_variant",
+                "clinvar_class": "B/LB",
+                "gba1_pd_class": "risk",
+            }
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, cfg["inheritance"])
+    assert out.loc[0, "inheritance_status"] == "risk_carrier"
+
+
 def test_clinvar_vus_ad_missense_qualifies_below_tier(cfg):
     """XPR1-style AD missense VUS at tier 4 becomes AD_candidate (het or hom)."""
     for zyg in ("het", "hom"):

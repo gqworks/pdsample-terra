@@ -377,8 +377,42 @@ def test_snca_tiny_intronic_dup_is_not_scored(tmp_path):
     assert row["gene"] == "SNCA"
     assert bool(row["scored_dosage"]) is False
     assert row["dosage_mechanism"] == "other"
+    assert row["consequence"] != "copy_number_gain"
     assert bool(row["high_sr_background"]) is True
     assert float(row["freq_het"]) == pytest.approx(0.1)
+
+
+def test_snca_tiny_copy_gain_prediction_is_not_scored(tmp_path):
+    genes, exons = _beds(tmp_path)
+    vcf = tmp_path / "sv.vcf"
+    vcf.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                "##INFO=<ID=END,Number=1,Type=Integer,Description=End>",
+                "##INFO=<ID=SVTYPE,Number=1,Type=String,Description=Type>",
+                "##INFO=<ID=PREDICTED_COPY_GAIN,Number=.,Type=String,Description=Gain>",
+                "##INFO=<ID=ClinVar_CLNSIG,Number=1,Type=String,Description=ClinVar>",
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "##FORMAT=<ID=CN,Number=1,Type=Integer,Description=CN>",
+                "##FORMAT=<ID=ECN,Number=1,Type=Integer,Description=ECN>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_C",
+                "chr4\t3000\ttinygain\tN\t<DUP>\t.\tPASS\tEND=3124;SVTYPE=DUP;PREDICTED_COPY_GAIN=SNCA\tGT:CN:ECN\t0/1:3:2",
+                "chr4\t900\tplp\tN\t<DUP>\t.\tPASS\tEND=20000;SVTYPE=DUP;PREDICTED_COPY_GAIN=SNCA;ClinVar_CLNSIG=Pathogenic\tGT:CN:ECN\t0/1:4:2",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    panel = pd.DataFrame({"gene": ["SNCA"], "gene_id": ["1"]})
+    table, _ = sv.ingest_sv(vcf, genes, exons, panel, snv_samples=["SAMPLE_C"], auto_index=False)
+    tiny = table[table["sv_id"] == "tinygain"].iloc[0]
+    assert bool(tiny["scored_dosage"]) is False
+    assert tiny["consequence"] != "copy_number_gain"
+    scored = table[table["sv_id"] == "plp"].iloc[0]
+    assert bool(scored["scored_dosage"]) is True
+    assert scored["consequence"] == "copy_number_gain"
+    assert scored["clinvar_class"] == "P/LP"
 
 
 def test_str_expansion_sets_classification():

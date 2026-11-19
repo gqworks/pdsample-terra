@@ -189,7 +189,8 @@ sv:
     - SAMPLE_WGD_OUTLIER
   # Depth-only PASS DELs that stay above DEPTH_LT_5KB (e.g. SOX6 ~10 kb, OPA1 ~10 kb)
   # but lack PE/SR and have weak depth genotypes are often IGV artifacts.
-  # Drop when ALL of: ALGORITHMS=depth only, FORMAT EV has no PE/SR, RD_GQ or OGQ <= max.
+  # Keep as unscored sv_artifact rows when ALL of: ALGORITHMS=depth only, FORMAT EV
+  # has no PE/SR, RD_GQ or OGQ <= max. Second-hit search can still rescue exon overlaps.
   drop_depth_only_artifacts: true
   depth_only_artifact_max_rd_gq: 5
   # Raw Manta (sv_prior_vcf) lacks FORMAT CN. Multi-Mb PASS DELs then exon-overlap

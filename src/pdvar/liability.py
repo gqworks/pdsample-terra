@@ -223,6 +223,8 @@ def classify_cohort(
         penetrances = []
         intron_ad = pd.Series(False, index=grp.index)
         if not grp.empty and "inheritance_status" in grp.columns:
+            # MAPT splice_gof skips GoF demotion (stays AD_candidate / force-kept)
+            # but intron-only AD still is not a sample-level solve.
             intron_ad = grp["inheritance_status"].fillna("").astype(str).eq("AD_candidate") & weak_intronic_mask(grp)
         intron_ids = set(grp.index[intron_ad]) if intron_ad.any() else set()
         if not grp.empty and "inheritance_status" in grp.columns:

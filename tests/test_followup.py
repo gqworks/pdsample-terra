@@ -3,7 +3,7 @@
 import pandas as pd
 
 from pdvar import followup, report
-from pdvar.compound import NO_EXON_SV, NO_SECOND_SMALL, SINGLE_HET_REASON
+from pdvar.compound import NO_EXON_SV, NO_SECOND_SMALL, SINGLE_HET_REASON, UNPHASED_REASON
 
 
 def test_rescue_low_depth_null_in_followup_gene():
@@ -132,6 +132,66 @@ def test_empty_search_phrases_and_early_onset_keep():
     assert followup.EARLY_ONSET_REASON in kept.iloc[0]["followup_reason"]
     top = report.patient_candidates(kept, max_per_patient=20)
     assert "1-50-G-A" in set(top["variant_id"])
+
+    with_intron_ad = pd.concat(
+        [
+            nulls,
+            pd.DataFrame(
+                [
+                    {
+                        "sample_id": "S1",
+                        "gene": "GRN",
+                        "variant_id": "17-1-A-G",
+                        "inheritance_status": "AD_candidate",
+                        "consequence": "intron_variant",
+                        "clinvar_class": "none",
+                        "mechanism": "lof",
+                    }
+                ]
+            ),
+        ],
+        ignore_index=True,
+    )
+    kept_partial = followup.early_onset_keep(
+        with_intron_ad,
+        age_onset=32,
+        classification="partially_explained",
+        cfg={"phenotype": {"early_onset_age": 50}, "biomarkers": {"gene_classes": {"recessive_eopd": ["PRKN", "PINK1", "PARK7"]}}},
+    )
+    pink1 = kept_partial[kept_partial["variant_id"] == "1-50-G-A"].iloc[0]
+    assert followup.EARLY_ONSET_REASON in pink1["followup_reason"]
+
+
+def test_empty_search_skips_unphased_solved_pairs():
+    df = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "PRKN",
+                "variant_id": "6-100-C-T",
+                "variant_class": "SNV",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_comphet_candidate",
+                "followup_reason": UNPHASED_REASON,
+                "consequence": "missense_variant",
+                "clinvar_class": "none",
+            },
+            {
+                "sample_id": "S1",
+                "gene": "PRKN",
+                "variant_id": "6-200-G-A",
+                "variant_class": "SNV",
+                "hit_source": "small_variant",
+                "inheritance_status": "AR_comphet_candidate",
+                "followup_reason": UNPHASED_REASON,
+                "consequence": "missense_variant",
+                "clinvar_class": "none",
+            },
+        ]
+    )
+    out = followup.annotate_empty_searches(df)
+    assert (out["followup_reason"] == UNPHASED_REASON).all()
+    assert NO_EXON_SV not in " ".join(out["followup_reason"].astype(str))
 
 
 def test_module_stubs_when_required_module_missing():

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .normalize import apply_gene_aliases, derive_zygosity
+from .normalize import apply_gene_aliases, derive_zygosity, normalize_clinvar
 from .scoring import assign_tier
 from .vcf_stream import IntervalIndex, chrom_bare, ensure_tabix, iter_vcf, parse_info
 
@@ -422,11 +422,20 @@ def classify_dosage(
 def _consequence(mechanism: str, scored: bool, n_exons: int) -> str:
     if mechanism == "lof" and scored:
         return "transcript_ablation"
-    if mechanism == "copy_gain":
+    if mechanism == "copy_gain" and scored:
         return "copy_number_gain"
     if n_exons > 0:
         return "structural_variant"
     return "intron_variant"
+
+
+def _clinvar_raw(info: dict) -> str:
+    """ClinVar CLNSIG from a panel-sliced INFO annotation, if present."""
+    for key in ("ClinVar_CLNSIG", "CLNSIG", "clinvar_clnsig"):
+        value = info.get(key)
+        if value and value is not True:
+            return str(value).split("|")[0]
+    return ""
 
 
 def _zygosity(gt: str, cn: int | None, ecn: int | None) -> tuple[str | None, str, bool]:
@@ -637,6 +646,7 @@ def ingest_sv(
                 "1",
             }
             freq_het = _as_float(info.get("FREQ_HET"))
+            clinvar_raw = _clinvar_raw(info)
             for gene in sorted(gene_symbols):
                 predicted = effects.get(gene, set())
                 n_exons = len({(h["chrom"], h["start"], h["end"]) for h in exons_by_gene.get(gene, [])})
@@ -684,7 +694,7 @@ def ingest_sv(
                         "muttaster_pred": "",
                         "fathmm": pd.NA,
                         "fathmm_pred": "",
-                        "clinvar": "",
+                        "clinvar": clinvar_raw,
                         "clinvar_class": "none",
                         "variant_class": "SV",
                         "hit_source": "sv",
@@ -713,6 +723,7 @@ def ingest_sv(
                 )
     table = pd.DataFrame(rows) if rows else empty_variant_table()
     if not table.empty:
+        table["clinvar_class"] = normalize_clinvar(table["clinvar"])
         table = derive_zygosity(table)
         # derive_zygosity keeps a provided zygosity. CN-inferred genotypes are already set.
     carriers = table["sample_id"].astype(str).unique().tolist() if not table.empty else []

@@ -14,6 +14,7 @@ from .compound import (
     _is_lof_sv,
     _text,
 )
+from .inheritance import weak_intronic_mask
 from .scoring import NULL_CONSEQUENCES
 
 EARLY_ONSET_REASON = "early-onset recessive null below the tier floor; review for a second allele"
@@ -67,9 +68,17 @@ def annotate_empty_searches(df: pd.DataFrame, *, gauchian_catalog_negative: bool
     if not follow.any():
         return df
     for (_, _), grp in df[follow].groupby(["sample_id", "gene"], sort=False):
+        statuses = set(grp["inheritance_status"].fillna("").astype(str))
+        reasons = " ".join(grp["followup_reason"].fillna("").astype(str))
+        # Phase notes on solved AR_comphet / hemizygous pairs are not a second-hit search.
+        if (
+            "AR_single_het" not in statuses
+            and "review_conflict" not in statuses
+            and SINGLE_HET_REASON not in reasons
+        ):
+            continue
         has_second_small = False
         has_exon_sv = False
-        statuses = set(grp["inheritance_status"].fillna("").astype(str))
         qualifying_small = 0
         for i in grp.index:
             row = grp.loc[i] if i in grp.index else df.loc[i]
@@ -95,7 +104,6 @@ def annotate_empty_searches(df: pd.DataFrame, *, gauchian_catalog_negative: bool
             for extra in extras:
                 reason = _append_reason(reason, extra)
             df.at[i, "followup_reason"] = reason
-        del statuses
     return df
 
 
@@ -265,7 +273,9 @@ def early_onset_keep(
             "XL_hemi",
         }
     )
-    if classification == "solved" or mendelian.any():
+    # Intron-only AD_candidate is partial, not a Mendelian solve; still search for EOPD nulls.
+    intron_ad = statuses.eq("AD_candidate") & weak_intronic_mask(scored)
+    if classification == "solved" or (mendelian & ~intron_ad).any():
         return scored
     if classification not in {"unexplained", "partially_explained"}:
         return scored
