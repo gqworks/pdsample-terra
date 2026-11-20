@@ -104,7 +104,7 @@ workflow PdSample {
     String assets_git_commit = "main"
     # Pin a SHA so Assess call-cache invalidates when pdvar (src/pdvar) changes.
     # "main" does not change as an input string when the tip of main moves.
-    String pdvar_git_commit = "94e4ea0687765b88613325306504b2d2763beda4"
+    String pdvar_git_commit = "d18d01efb2e7605d2e3e0f626e82f6b09fdf4219"
     File? splicevault_tsv
     File? prs_weights
     # Optional GP2-style phenotype text. Age at onset, ancestry, and clinical fields
