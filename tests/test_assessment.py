@@ -7,7 +7,7 @@ import pytest
 
 from pdvar import biomarkers, liability, sv
 from pdvar.config import load_config
-from pdvar.splicing import merge_splicevault, summarize_splice_scores
+from pdvar.splicing import summarize_splice_scores
 
 
 def _beds(directory: Path) -> tuple[Path, Path]:
@@ -368,19 +368,7 @@ def test_biomarker_multiplier_needs_citation():
     assert "missing_citation" in out.iloc[0]["biomarker_notes"]
 
 
-def test_splicevault_keeps_highest_proportion_without_new_points():
-    variants = pd.DataFrame(
-        [{"variant_id": "1-10-A-G", "evidence_score": 4, "evidence_reasons": "introme_high", "consequence": "splice_region_variant"}]
-    )
-    vault = pd.DataFrame(
-        [
-            {"chrom": "chr1", "pos": 10, "ref": "A", "alt": "G", "gene": "PINK1", "event": "skip", "outcome": "exon_skip", "proportion": 0.2, "exon_start": 1, "exon_end": 5},
-            {"chrom": "1", "pos": 10, "ref": "A", "alt": "G", "gene": "PINK1", "event": "cryptic", "outcome": "cryptic_donor", "proportion": 0.8, "exon_start": 8, "exon_end": 12},
-        ]
-    )
-    merged = merge_splicevault(variants, vault)
-    assert merged.iloc[0]["splicevault_outcome"] == "cryptic_donor"
-    assert merged.iloc[0]["evidence_score"] == 4
+def test_summarize_splice_scores_records_pangolin_max_without_new_points():
     summary = summarize_splice_scores(pd.DataFrame([{"introme_pangolin_gain": 0.1, "introme_pangolin_loss": 0.4}]))
     assert summary.iloc[0]["pangolin_max"] == 0.4
     assert "alphamissense" in summary.columns

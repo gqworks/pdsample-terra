@@ -53,43 +53,6 @@ def ensure_hit_source(df: pd.DataFrame, default: str = "small_variant") -> pd.Da
     return df
 
 
-def merge_splicevault(variants: pd.DataFrame, table: pd.DataFrame) -> pd.DataFrame:
-    """Attach the highest-proportion SpliceVault outcome per variant. No extra points."""
-    if table.empty or variants.empty:
-        return variants
-    table = table.copy()
-    for column in ("chrom", "pos", "ref", "alt"):
-        if column not in table.columns:
-            return variants
-    table["chrom"] = table["chrom"].astype(str).str.replace(r"^chr", "", regex=True)
-    table["variant_id"] = (
-        table["chrom"].astype(str)
-        + "-"
-        + table["pos"].astype(int).astype(str)
-        + "-"
-        + table["ref"].astype(str)
-        + "-"
-        + table["alt"].astype(str)
-    )
-    if "proportion" in table.columns:
-        table = table.sort_values("proportion", ascending=False)
-    table = table.drop_duplicates("variant_id")
-    rename = {
-        "outcome": "splicevault_outcome",
-        "event": "splicevault_event",
-        "proportion": "splicevault_proportion",
-        "n_reads": "splicevault_n_reads",
-        "transcript_id": "splicevault_transcript",
-        "citation": "splicevault_citation",
-        "exon_chrom": "splicevault_exon_chrom",
-        "exon_start": "splicevault_exon_start",
-        "exon_end": "splicevault_exon_end",
-    }
-    keep = ["variant_id", *[src for src in rename if src in table.columns]]
-    extra = table[keep].rename(columns=rename)
-    return variants.merge(extra, on="variant_id", how="left")
-
-
 def summarize_splice_scores(df: pd.DataFrame) -> pd.DataFrame:
     """Record Pangolin and AlphaMissense when the columns already exist. No new points."""
     df = df.copy()

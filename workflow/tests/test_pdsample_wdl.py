@@ -212,7 +212,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File panel_csv = sample_panel_csv" in text
     assert "File? avi_tsv = sample_avi_tsv" in text
     assert "File gba1_pd_browser = sample_gba1_pd_browser" in text
-    assert "File? splicevault_tsv = sample_splicevault_tsv" in text
+    assert "splicevault" not in text.lower()
+    assert "splicevault" not in sample_tasks.lower()
     assert "File sample_introme = select_first(flatten([introme_prior_files, select_all([Introme.introme_tsv])]))" in text
     assert "introme_tsv = NameIntrome.released" in text
     assert "expansionhunter_vcf = sample_expansionhunter_vcf" in text
@@ -687,7 +688,6 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "Boolean use_prior_panel = ProbePanelPrior.usable" in text
     assert "Boolean use_prior_avi = ProbeAviPrior.usable" in text
     assert "Boolean use_prior_gba1 = ProbeGba1Prior.usable" in text
-    assert "Boolean use_prior_splicevault = ProbeSplicevaultPrior.usable" in text
     assert "Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []" in text
     assert "Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []" in text
     assert "Array[File] small_vcf_prior_files = if use_prior_small then [small_vcf_prior] else []" in text
@@ -717,7 +717,6 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert 'String panel_csv_prior = ""' in text
     assert 'String avi_tsv_prior = ""' in text
     assert 'String gba1_pd_browser_prior = ""' in text
-    assert 'String splicevault_tsv_prior = ""' in text
     assert '"PdSample.small_vcf_prior": "${this.small_vcf}"' in terra
     assert '"PdSample.expansionhunter_vcf_prior": "${this.expansionhunter_vcf}"' in terra
     assert '"PdSample.gauchian_json_prior": "${this.gauchian_json}"' in terra
@@ -725,7 +724,6 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert '"PdSample.panel_csv_prior": "${this.panel_csv}"' in terra
     assert '"PdSample.avi_tsv_prior": "${this.avi_tsv}"' in terra
     assert '"PdSample.gba1_pd_browser_prior": "${this.gba1_pd_browser}"' in terra
-    assert '"PdSample.splicevault_tsv_prior": "${this.splicevault_tsv}"' in terra
     assert '("workflow/scripts/probe_prior_file.py", "probe_prior_file.py")' in tasks
 
 

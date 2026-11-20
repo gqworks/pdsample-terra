@@ -284,9 +284,6 @@ def assess_sample(
             if not introme_variants.empty:
                 scored = splicing.merge_introme(scored, introme_variants)
             scored = splicing.apply_introme_evidence(scored, cfg["splicing"], cfg["scoring"])
-            vault = _exists(sample.get("splicevault"))
-            if vault is not None:
-                scored = splicing.merge_splicevault(scored, io.read_table(vault))
             scored = splicing.summarize_splice_scores(scored)
             scored = _annotate_splice_heuristics(scored, notes, fasta_path, fai_path, gtf_path, panel, cfg)
             scored = inheritance.annotate_moi(scored, panel)

@@ -67,7 +67,6 @@
   "PdSample.panel_csv_prior": "${this.panel_csv}",
   "PdSample.avi_tsv_prior": "${this.avi_tsv}",
   "PdSample.gba1_pd_browser_prior": "${this.gba1_pd_browser}",
-  "PdSample.splicevault_tsv_prior": "${this.splicevault_tsv}",
   "PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}",
   "PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}",
   "PdSample.sv_ref_samples_list": "${workspace.ref_panel_samples_list}",
