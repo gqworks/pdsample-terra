@@ -64,7 +64,7 @@ def test_json_csv_tsv_kinds(tmp_path: Path):
     assert probe.usable(str(json_path), kind="vcf") is False
     assert probe.usable(str(csv_path), kind="panel_csv") is True
     assert probe.usable(str(csv_path), kind="tsv") is False
-    assert probe.usable(str(tsv_path), kind="gba1_pd_browser") is True
+    assert probe.usable(str(tsv_path), kind="tsv") is True
     assert probe.usable(str(avi_path), kind="avi_tsv") is True
     assert probe.usable(str(avi_path), kind="vcf") is False
 

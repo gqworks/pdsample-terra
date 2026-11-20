@@ -7,7 +7,7 @@ import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai). Optional this.<name> priors (ProbePriorFile) skip only that file's producer: vep_vcf, small_vcf, sv_vcf, expansionhunter_vcf, gauchian_json, mtdna_vcf, introme, panel_csv, avi_tsv, gba1_pd_browser. Empty/placeholder/zero-byte priors run the caller. Else SV: sv_joint_vcf subset or GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai). Optional this.<name> priors (ProbePriorFile) skip only that file's producer: vep_vcf, small_vcf, sv_vcf, expansionhunter_vcf, gauchian_json, mtdna_vcf, introme, panel_csv, avi_tsv. Empty/placeholder/zero-byte priors run the caller. Else SV: sv_joint_vcf subset or GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
   }
   input {
     String sample_id
@@ -88,7 +88,6 @@ workflow PdSample {
     String mtdna_vcf_prior = ""
     String panel_csv_prior = ""
     String avi_tsv_prior = ""
-    String gba1_pd_browser_prior = ""
     Boolean introme_quality_filter = false
     Int introme_min_qual = 200
     Int introme_min_dp = 20
@@ -428,14 +427,6 @@ workflow PdSample {
       python_docker = python_docker,
       preemptible = preemptible
   }
-  call Tasks.ProbePriorFile as ProbeGba1Prior {
-    input:
-      path = gba1_pd_browser_prior,
-      kind = "tsv",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
-  }
   Boolean use_prior_introme = ProbeIntromePrior.usable
   Boolean use_prior_vep = ProbeVepPrior.usable
   Boolean use_prior_small = ProbeSmallPrior.usable
@@ -445,7 +436,6 @@ workflow PdSample {
   Boolean use_prior_mtdna = ProbeMtdnaPrior.usable
   Boolean use_prior_panel = ProbePanelPrior.usable
   Boolean use_prior_avi = ProbeAviPrior.usable
-  Boolean use_prior_gba1 = ProbeGba1Prior.usable
   Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []
   Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []
   Array[File] vep_prior_vcf_index_files = if ProbeVepPriorIndex.usable then [vep_prior_vcf_index] else []
@@ -458,9 +448,7 @@ workflow PdSample {
   Array[File] mtdna_vcf_prior_files = if use_prior_mtdna then [mtdna_vcf_prior] else []
   Array[File] panel_csv_prior_files = if use_prior_panel then [panel_csv_prior] else []
   Array[File] avi_tsv_prior_files = if use_prior_avi then [avi_tsv_prior] else []
-  Array[File] gba1_pd_browser_prior_files = if use_prior_gba1 then [gba1_pd_browser_prior] else []
   File sample_panel_csv = select_first(flatten([panel_csv_prior_files, [FetchRepoAssets.panel_csv]]))
-  File sample_gba1_pd_browser = select_first(flatten([gba1_pd_browser_prior_files, [FetchRepoAssets.gba1_pd_browser]]))
 
   scatter (unused in if defined(ref_dict) then [1] else []) {
     call Tasks.CopyReferenceDict as ProvidedReferenceDict {
@@ -599,7 +587,7 @@ workflow PdSample {
       rescue_nonpass_sites_py = FetchRepoAssets.rescue_nonpass_sites_py,
       clinvar_plp_vcf = clinvar_plp_vcf,
       clinvar_plp_vcf_index = clinvar_plp_vcf_index,
-      gba1_pd_browser = sample_gba1_pd_browser,
+      gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
       sample_id = sample_id,
       python_docker = python_docker,
       preemptible = preemptible
@@ -1071,7 +1059,7 @@ workflow PdSample {
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       gtf = introme_gtf,
-      gba1_pd_browser = sample_gba1_pd_browser,
+      gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
       prs_weights = prs_weights,
       phenotype_report_files = phenotype_report_files,
       pdvar_docker = pdvar_docker,
@@ -1093,7 +1081,6 @@ workflow PdSample {
     File introme = NameIntrome.released
     File panel_csv = sample_panel_csv
     File? avi_tsv = sample_avi_tsv
-    File gba1_pd_browser = sample_gba1_pd_browser
     # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
     # File? is unset when the joint-SV path skipped GatkSvSingle. Metrics stay
     # Array[File] (empty on the joint path).

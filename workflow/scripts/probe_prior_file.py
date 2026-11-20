@@ -35,7 +35,6 @@ KIND_CHOICES = (
     "panel_csv",
     "tsv",
     "avi_tsv",
-    "gba1_pd_browser",
     "table",
 )
 
@@ -220,7 +219,7 @@ def usable(path: str, kind: str = "any", min_bytes: int = 1) -> bool:
         return looks_json(head)
     if kind in {"csv", "panel_csv"}:
         return looks_csv(head)
-    if kind in {"tsv", "avi_tsv", "gba1_pd_browser"}:
+    if kind in {"tsv", "avi_tsv"}:
         return looks_tsv(head)
     if kind == "table":
         return looks_table(head)

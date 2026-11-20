@@ -211,7 +211,7 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File mtdna_vcf_index =" not in text
     assert "File panel_csv = sample_panel_csv" in text
     assert "File? avi_tsv = sample_avi_tsv" in text
-    assert "File gba1_pd_browser = sample_gba1_pd_browser" in text
+    assert "File gba1_pd_browser =" not in text
     assert "splicevault" not in text.lower()
     assert "splicevault" not in sample_tasks.lower()
     assert "File sample_introme = select_first(flatten([introme_prior_files, select_all([Introme.introme_tsv])]))" in text
@@ -549,8 +549,7 @@ def test_fetch_repo_assets_is_volatile_and_uses_assets_git_commit():
     assert "git_commit = assets_git_commit" in call_block
     assert "pdvar_git_commit" not in call_block
     assert "pdvar_git_commit = pdvar_git_commit" in text
-    assert "[FetchRepoAssets.gba1_pd_browser]" in text
-    assert "gba1_pd_browser = sample_gba1_pd_browser" in text
+    assert "gba1_pd_browser = FetchRepoAssets.gba1_pd_browser" in text
     assert example["PdSample.assets_git_commit"] == "main"
     assert terra["PdSample.assets_git_commit"] == "main"
     assert "PdSample.pdvar_git_commit" in example
@@ -687,7 +686,6 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "Boolean use_prior_mtdna = ProbeMtdnaPrior.usable" in text
     assert "Boolean use_prior_panel = ProbePanelPrior.usable" in text
     assert "Boolean use_prior_avi = ProbeAviPrior.usable" in text
-    assert "Boolean use_prior_gba1 = ProbeGba1Prior.usable" in text
     assert "Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []" in text
     assert "Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []" in text
     assert "Array[File] small_vcf_prior_files = if use_prior_small then [small_vcf_prior] else []" in text
@@ -716,14 +714,13 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert 'String mtdna_vcf_prior = ""' in text
     assert 'String panel_csv_prior = ""' in text
     assert 'String avi_tsv_prior = ""' in text
-    assert 'String gba1_pd_browser_prior = ""' in text
     assert '"PdSample.small_vcf_prior": "${this.small_vcf}"' in terra
     assert '"PdSample.expansionhunter_vcf_prior": "${this.expansionhunter_vcf}"' in terra
     assert '"PdSample.gauchian_json_prior": "${this.gauchian_json}"' in terra
     assert '"PdSample.mtdna_vcf_prior": "${this.mtdna_vcf}"' in terra
     assert '"PdSample.panel_csv_prior": "${this.panel_csv}"' in terra
     assert '"PdSample.avi_tsv_prior": "${this.avi_tsv}"' in terra
-    assert '"PdSample.gba1_pd_browser_prior": "${this.gba1_pd_browser}"' in terra
+    assert "gba1_pd_browser_prior" not in terra
     assert '("workflow/scripts/probe_prior_file.py", "probe_prior_file.py")' in tasks
 
 
