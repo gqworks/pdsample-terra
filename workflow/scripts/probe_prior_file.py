@@ -32,7 +32,6 @@ KIND_CHOICES = (
     "json",
     "gauchian_json",
     "csv",
-    "panel_csv",
     "tsv",
     "avi_tsv",
     "table",
@@ -217,7 +216,7 @@ def usable(path: str, kind: str = "any", min_bytes: int = 1) -> bool:
         return looks_vcf(head)
     if kind in {"json", "gauchian_json"}:
         return looks_json(head)
-    if kind in {"csv", "panel_csv"}:
+    if kind == "csv":
         return looks_csv(head)
     if kind in {"tsv", "avi_tsv"}:
         return looks_tsv(head)

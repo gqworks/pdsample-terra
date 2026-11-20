@@ -64,7 +64,6 @@
   "PdSample.expansionhunter_vcf_prior": "${this.expansionhunter_vcf}",
   "PdSample.gauchian_json_prior": "${this.gauchian_json}",
   "PdSample.mtdna_vcf_prior": "${this.mtdna_vcf}",
-  "PdSample.panel_csv_prior": "${this.panel_csv}",
   "PdSample.avi_tsv_prior": "${this.avi_tsv}",
   "PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}",
   "PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}",

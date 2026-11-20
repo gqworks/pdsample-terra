@@ -209,7 +209,7 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File gauchian_json = sample_gauchian_json" in text
     assert "File mtdna_vcf = sample_mtdna_vcf" in text
     assert "File mtdna_vcf_index =" not in text
-    assert "File panel_csv = sample_panel_csv" in text
+    assert "File panel_csv =" not in text
     assert "File? avi_tsv = sample_avi_tsv" in text
     assert "File gba1_pd_browser =" not in text
     assert "splicevault" not in text.lower()
@@ -550,6 +550,7 @@ def test_fetch_repo_assets_is_volatile_and_uses_assets_git_commit():
     assert "pdvar_git_commit" not in call_block
     assert "pdvar_git_commit = pdvar_git_commit" in text
     assert "gba1_pd_browser = FetchRepoAssets.gba1_pd_browser" in text
+    assert "panel_csv = FetchRepoAssets.panel_csv" in text
     assert example["PdSample.assets_git_commit"] == "main"
     assert terra["PdSample.assets_git_commit"] == "main"
     assert "PdSample.pdvar_git_commit" in example
@@ -675,7 +676,6 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert 'kind = "introme"' in text
     assert 'kind = "vcf"' in text
     assert 'kind = "json"' in text
-    assert 'kind = "csv"' in text
     assert 'kind = "tsv"' in text
     assert "Boolean use_prior_introme = ProbeIntromePrior.usable" in text
     assert "Boolean use_prior_vep = ProbeVepPrior.usable" in text
@@ -684,7 +684,6 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "Boolean use_prior_eh = ProbeEhPrior.usable" in text
     assert "Boolean use_prior_gauchian = ProbeGauchianPrior.usable" in text
     assert "Boolean use_prior_mtdna = ProbeMtdnaPrior.usable" in text
-    assert "Boolean use_prior_panel = ProbePanelPrior.usable" in text
     assert "Boolean use_prior_avi = ProbeAviPrior.usable" in text
     assert "Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []" in text
     assert "Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []" in text
@@ -712,14 +711,13 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert 'String expansionhunter_vcf_prior = ""' in text
     assert 'String gauchian_json_prior = ""' in text
     assert 'String mtdna_vcf_prior = ""' in text
-    assert 'String panel_csv_prior = ""' in text
     assert 'String avi_tsv_prior = ""' in text
     assert '"PdSample.small_vcf_prior": "${this.small_vcf}"' in terra
     assert '"PdSample.expansionhunter_vcf_prior": "${this.expansionhunter_vcf}"' in terra
     assert '"PdSample.gauchian_json_prior": "${this.gauchian_json}"' in terra
     assert '"PdSample.mtdna_vcf_prior": "${this.mtdna_vcf}"' in terra
-    assert '"PdSample.panel_csv_prior": "${this.panel_csv}"' in terra
     assert '"PdSample.avi_tsv_prior": "${this.avi_tsv}"' in terra
+    assert "panel_csv_prior" not in terra
     assert "gba1_pd_browser_prior" not in terra
     assert '("workflow/scripts/probe_prior_file.py", "probe_prior_file.py")' in tasks
 
