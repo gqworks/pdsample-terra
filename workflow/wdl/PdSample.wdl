@@ -7,7 +7,7 @@ import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai). SV precedence: optional sample sv_prior_vcf (reuse this.sv_vcf) skips calling; else workspace sv_joint_vcf subsets when sample_id is in the header; else GATK-SV v1.1.1 (Scramble on, MELT off). Optional introme_prior (reuse this.introme) skips Introme. A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai). Optional this.<name> priors (ProbePriorFile) skip only that file's producer: vep_vcf, small_vcf, sv_vcf, expansionhunter_vcf, gauchian_json, mtdna_vcf, introme, avi_tsv. Empty/placeholder/zero-byte priors run the caller. Else SV: sv_joint_vcf subset or GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
   }
   input {
     String sample_id
@@ -66,10 +66,27 @@ workflow PdSample {
 
     File introme_gtf
     File? introme_assets_tar
-    # Optional per-sample prior Introme TSV (Terra: this.introme). When set, skips
-    # the Introme subworkflow and reuses this callset. String so blank this.introme
-    # cells do not select the prior path or fail localization.
+    # Optional per-sample prior Introme TSV (Terra: this.introme). A real
+    # non-empty Introme TSV skips the Introme subworkflow. Empty, missing,
+    # placeholder, or zero-byte this.introme is treated as unset (Introme runs).
+    # String so blank cells are not coerced to File before ProbePriorFile.
     String introme_prior = ""
+    # Optional per-sample prior VEP VCF (Terra: this.vep_vcf / this.vep_vcf_index).
+    # A real non-empty VCF skips VepAnnotate, AnnotateGnomadAf, LiftGnomadInfo,
+    # and AnnotateClinvarSmall. Assess still runs. Empty/missing/placeholder/
+    # zero-byte this.vep_vcf is treated as unset (VEP chain runs). Same probe
+    # as introme_prior; WDL never size()s a bad File.
+    String vep_prior_vcf = ""
+    String vep_prior_vcf_index = ""
+    # Same ProbePriorFile failsafe as introme_prior / vep_prior_vcf. Empty,
+    # missing, placeholder, or zero-byte this.<name> runs the producer. A real
+    # non-empty file skips only that producer. Assess still runs.
+    String small_vcf_prior = ""
+    String small_vcf_prior_index = ""
+    String expansionhunter_vcf_prior = ""
+    String gauchian_json_prior = ""
+    String mtdna_vcf_prior = ""
+    String avi_tsv_prior = ""
     Boolean introme_quality_filter = false
     Int introme_min_qual = 200
     Int introme_min_dp = 20
@@ -104,8 +121,7 @@ workflow PdSample {
     String assets_git_commit = "main"
     # Pin a SHA so Assess call-cache invalidates when pdvar (src/pdvar) changes.
     # "main" does not change as an input string when the tip of main moves.
-    String pdvar_git_commit = "d18d01efb2e7605d2e3e0f626e82f6b09fdf4219"
-    File? splicevault_tsv
+    String pdvar_git_commit = "9dfc351453451e825c7a3a4caf3f9b760a2133c1"
     File? prs_weights
     # Optional GP2-style phenotype text. Age at onset, ancestry, and clinical fields
     # are read from this file only (no separate sample-table phenotype columns).
@@ -167,9 +183,9 @@ workflow PdSample {
     String sv_case_pesr_split = ""
     String sv_case_pesr_sd = ""
     # Optional per-sample prior SV VCF (Terra: this.sv_vcf / this.sv_vcf_index).
-    # When set, skips both SubsetJointSvVcf and GATKSVPipelineSingleSample and
-    # reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
-    # String so blank this.sv_vcf cells do not select the prior path or fail localization.
+    # A real non-empty VCF skips SubsetJointSvVcf and GATKSVPipelineSingleSample
+    # and reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
+    # Empty/missing/placeholder/zero-byte this.sv_vcf is probed like introme_prior.
     String sv_prior_vcf = ""
     String sv_prior_vcf_index = ""
     # Optional cohort joint-called SV VCF (e.g. GATK-SV CleanVcf / FinalizeGVCF
@@ -297,12 +313,8 @@ workflow PdSample {
   # Blank Terra sample cells arrive as "". WDL 1.0 has no None, so use an empty
   # Array[File] when unset; Assess localizes only when this has one path.
   Array[File] phenotype_report_files = if phenotype_report != "" then [phenotype_report] else []
-  # Optional Introme reuse: non-empty this.introme skips the Introme subworkflow.
-  Array[File] introme_prior_files = if introme_prior != "" then [introme_prior] else []
-  # SV path selection: non-empty prior → joint subset → GATK-SV (optional case_*
-  # evidence reuse) → full GATK-SV when case_* are also blank.
-  Array[File] sv_prior_vcf_files = if sv_prior_vcf != "" then [sv_prior_vcf] else []
-  Array[File] sv_prior_vcf_index_files = if sv_prior_vcf_index != "" then [sv_prior_vcf_index] else []
+  # Prior File arrays are built after ProbePriorFile so a placeholder gs:// path
+  # is not coerced to File (no size() 404). SV: prior → joint → GATK-SV.
   Array[File] sv_joint_vcf_files = if sv_joint_vcf != "" then [sv_joint_vcf] else []
   Array[File] sv_joint_vcf_index_files = if sv_joint_vcf_index != "" then [sv_joint_vcf_index] else []
   File? case_manta_vcf = if sv_case_manta_vcf != "" then sv_case_manta_vcf else optional_file_none
@@ -318,6 +330,113 @@ workflow PdSample {
       git_commit = assets_git_commit,
       python_docker = python_docker
   }
+  call Tasks.ProbePriorFile as ProbeIntromePrior {
+    input:
+      path = introme_prior,
+      kind = "introme",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeVepPrior {
+    input:
+      path = vep_prior_vcf,
+      kind = "vcf",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeVepPriorIndex {
+    input:
+      path = vep_prior_vcf_index,
+      kind = "any",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeSmallPrior {
+    input:
+      path = small_vcf_prior,
+      kind = "vcf",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeSmallPriorIndex {
+    input:
+      path = small_vcf_prior_index,
+      kind = "any",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeSvPrior {
+    input:
+      path = sv_prior_vcf,
+      kind = "vcf",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeSvPriorIndex {
+    input:
+      path = sv_prior_vcf_index,
+      kind = "any",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeEhPrior {
+    input:
+      path = expansionhunter_vcf_prior,
+      kind = "vcf",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeGauchianPrior {
+    input:
+      path = gauchian_json_prior,
+      kind = "json",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeMtdnaPrior {
+    input:
+      path = mtdna_vcf_prior,
+      kind = "vcf",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  call Tasks.ProbePriorFile as ProbeAviPrior {
+    input:
+      path = avi_tsv_prior,
+      kind = "tsv",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
+  Boolean use_prior_introme = ProbeIntromePrior.usable
+  Boolean use_prior_vep = ProbeVepPrior.usable
+  Boolean use_prior_small = ProbeSmallPrior.usable
+  Boolean use_prior_sv = ProbeSvPrior.usable
+  Boolean use_prior_eh = ProbeEhPrior.usable
+  Boolean use_prior_gauchian = ProbeGauchianPrior.usable
+  Boolean use_prior_mtdna = ProbeMtdnaPrior.usable
+  Boolean use_prior_avi = ProbeAviPrior.usable
+  Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []
+  Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []
+  Array[File] vep_prior_vcf_index_files = if ProbeVepPriorIndex.usable then [vep_prior_vcf_index] else []
+  Array[File] small_vcf_prior_files = if use_prior_small then [small_vcf_prior] else []
+  Array[File] small_vcf_prior_index_files = if ProbeSmallPriorIndex.usable then [small_vcf_prior_index] else []
+  Array[File] sv_prior_vcf_files = if use_prior_sv then [sv_prior_vcf] else []
+  Array[File] sv_prior_vcf_index_files = if ProbeSvPriorIndex.usable then [sv_prior_vcf_index] else []
+  Array[File] expansionhunter_vcf_prior_files = if use_prior_eh then [expansionhunter_vcf_prior] else []
+  Array[File] gauchian_json_prior_files = if use_prior_gauchian then [gauchian_json_prior] else []
+  Array[File] mtdna_vcf_prior_files = if use_prior_mtdna then [mtdna_vcf_prior] else []
+  Array[File] avi_tsv_prior_files = if use_prior_avi then [avi_tsv_prior] else []
 
   scatter (unused in if defined(ref_dict) then [1] else []) {
     call Tasks.CopyReferenceDict as ProvidedReferenceDict {
@@ -461,101 +580,135 @@ workflow PdSample {
       python_docker = python_docker,
       preemptible = preemptible
   }
-  call Tasks.NormPass {
-    input:
-      vcf = RescueSites.rescued_vcf,
-      vcf_index = RescueSites.rescued_vcf_index,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      sample_id = sample_id,
-      preemptible = preemptible
-  }
-  call Tasks.AnnotateAvi {
-    input:
-      vcf = NormPass.normalized_vcf,
-      annotate_avi_py = FetchRepoAssets.annotate_avi_py,
-      avi_table = avi_table,
-      avi_table_index = avi_table_index,
-      preemptible = preemptible
-  }
-  call Tasks.VepAnnotate {
-    input:
-      vcf = NormPass.normalized_vcf,
-      vcf_index = NormPass.normalized_vcf_index,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      cache_dir = vep_cache,
-      cadd_snv = cadd_snv,
-      cadd_snv_index = cadd_snv_index,
-      cadd_indels = cadd_indels,
-      cadd_indels_index = cadd_indels_index,
-      revel = revel,
-      revel_index = revel_index,
-      dbnsfp = dbnsfp,
-      dbnsfp_index = dbnsfp_index,
-      dbnsfp_fields = dbnsfp_fields,
-      vep_sift_polyphen = vep_sift_polyphen,
-      extra_args = vep_extra_args,
-      preemptible = preemptible
-  }
-  if (defined(gnomad_af_vcf) && defined(gnomad_af_vcf_index)) {
-    call Tasks.AnnotateGnomadAf {
+  if (!use_prior_small) {
+    call Tasks.NormPass {
       input:
-        vcf = VepAnnotate.vep_vcf,
-        vcf_index = VepAnnotate.vep_index,
-        sites_vcf = select_first([gnomad_af_vcf]),
-        sites_vcf_index = select_first([gnomad_af_vcf_index]),
-        annotate_gnomad_af_py = FetchRepoAssets.annotate_gnomad_af_py,
+        vcf = RescueSites.rescued_vcf,
+        vcf_index = RescueSites.rescued_vcf_index,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
         sample_id = sample_id,
         preemptible = preemptible
     }
   }
-  call Tasks.LiftGnomadInfo {
-    input:
-      vcf = select_first([AnnotateGnomadAf.annotated_vcf, VepAnnotate.vep_vcf]),
-      vcf_index = select_first([AnnotateGnomadAf.annotated_vcf_index, VepAnnotate.vep_index]),
-      lift_gnomad_from_csq_py = FetchRepoAssets.lift_gnomad_from_csq_py,
-      sample_id = sample_id,
-      preemptible = preemptible
-  }
-  if (defined(clinvar_plp_vcf) && defined(clinvar_plp_vcf_index)) {
-    call Tasks.AnnotateClinvarPlp as AnnotateClinvarSmall {
+  if (use_prior_small) {
+    call Tasks.PreferOrBuildTabix as PriorSmallIndex {
       input:
-        vcf = LiftGnomadInfo.lifted_vcf,
-        vcf_index = LiftGnomadInfo.lifted_vcf_index,
-        sites_vcf = select_first([clinvar_plp_vcf]),
-        sites_vcf_index = select_first([clinvar_plp_vcf_index]),
-        annotate_clinvar_plp_py = FetchRepoAssets.annotate_clinvar_plp_py,
-        sample_id = sample_id,
-        python_docker = python_docker,
+        vcf = small_vcf_prior_files[0],
+        index_files = small_vcf_prior_index_files,
+        name = sample_id + ".small.vcf.gz.tbi",
         preemptible = preemptible
     }
   }
-  File sample_vep_vcf = select_first([AnnotateClinvarSmall.annotated_vcf, LiftGnomadInfo.lifted_vcf])
-  File sample_vep_vcf_index = select_first([AnnotateClinvarSmall.annotated_vcf_index, LiftGnomadInfo.lifted_vcf_index])
-  call Tasks.ExpansionHunter {
-    input:
-      bam = sample_bam,
-      bam_index = sample_bai,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      catalog = FetchRepoAssets.eh_catalog,
-      sample_id = sample_id,
-      sex = QcGate.sex,
-      qc_gate = QcGate.gate,
-      preemptible = preemptible
+  File sample_small_vcf = select_first(flatten([small_vcf_prior_files, select_all([NormPass.normalized_vcf])]))
+  File sample_small_vcf_index = select_first(flatten([select_all([PriorSmallIndex.out]), select_all([NormPass.normalized_vcf_index])]))
+  if (!use_prior_avi) {
+    call Tasks.AnnotateAvi {
+      input:
+        vcf = sample_small_vcf,
+        annotate_avi_py = FetchRepoAssets.annotate_avi_py,
+        avi_table = avi_table,
+        avi_table_index = avi_table_index,
+        preemptible = preemptible
+    }
   }
-  call Tasks.Gauchian {
-    input:
-      bam = sample_bam,
-      bam_index = sample_bai,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      sample_id = sample_id,
-      qc_gate = QcGate.gate,
-      gauchian_docker = gauchian_docker,
-      preemptible = preemptible
+  Array[File] avi_tsv_files = flatten([avi_tsv_prior_files, select_all([AnnotateAvi.avi_tsv])])
+  File? sample_avi_tsv = if length(avi_tsv_files) > 0 then avi_tsv_files[0] else optional_file_none
+  if (!use_prior_vep) {
+    call Tasks.VepAnnotate {
+      input:
+        vcf = sample_small_vcf,
+        vcf_index = sample_small_vcf_index,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
+        cache_dir = vep_cache,
+        cadd_snv = cadd_snv,
+        cadd_snv_index = cadd_snv_index,
+        cadd_indels = cadd_indels,
+        cadd_indels_index = cadd_indels_index,
+        revel = revel,
+        revel_index = revel_index,
+        dbnsfp = dbnsfp,
+        dbnsfp_index = dbnsfp_index,
+        dbnsfp_fields = dbnsfp_fields,
+        vep_sift_polyphen = vep_sift_polyphen,
+        extra_args = vep_extra_args,
+        preemptible = preemptible
+    }
+    if (defined(gnomad_af_vcf) && defined(gnomad_af_vcf_index)) {
+      call Tasks.AnnotateGnomadAf {
+        input:
+          vcf = VepAnnotate.vep_vcf,
+          vcf_index = VepAnnotate.vep_index,
+          sites_vcf = select_first([gnomad_af_vcf]),
+          sites_vcf_index = select_first([gnomad_af_vcf_index]),
+          annotate_gnomad_af_py = FetchRepoAssets.annotate_gnomad_af_py,
+          sample_id = sample_id,
+          preemptible = preemptible
+      }
+    }
+    call Tasks.LiftGnomadInfo {
+      input:
+        vcf = select_first([AnnotateGnomadAf.annotated_vcf, VepAnnotate.vep_vcf]),
+        vcf_index = select_first([AnnotateGnomadAf.annotated_vcf_index, VepAnnotate.vep_index]),
+        lift_gnomad_from_csq_py = FetchRepoAssets.lift_gnomad_from_csq_py,
+        sample_id = sample_id,
+        preemptible = preemptible
+    }
+    if (defined(clinvar_plp_vcf) && defined(clinvar_plp_vcf_index)) {
+      call Tasks.AnnotateClinvarPlp as AnnotateClinvarSmall {
+        input:
+          vcf = LiftGnomadInfo.lifted_vcf,
+          vcf_index = LiftGnomadInfo.lifted_vcf_index,
+          sites_vcf = select_first([clinvar_plp_vcf]),
+          sites_vcf_index = select_first([clinvar_plp_vcf_index]),
+          annotate_clinvar_plp_py = FetchRepoAssets.annotate_clinvar_plp_py,
+          sample_id = sample_id,
+          python_docker = python_docker,
+          preemptible = preemptible
+      }
+    }
   }
+  if (use_prior_vep) {
+    call Tasks.PreferOrBuildTabix as PriorVepIndex {
+      input:
+        vcf = vep_prior_vcf_files[0],
+        index_files = vep_prior_vcf_index_files,
+        name = sample_id + ".vep.vcf.gz.tbi",
+        preemptible = preemptible
+    }
+  }
+  File sample_vep_vcf = select_first(flatten([vep_prior_vcf_files, select_all([AnnotateClinvarSmall.annotated_vcf]), select_all([LiftGnomadInfo.lifted_vcf])]))
+  File sample_vep_vcf_index = select_first(flatten([select_all([PriorVepIndex.out]), select_all([AnnotateClinvarSmall.annotated_vcf_index]), select_all([LiftGnomadInfo.lifted_vcf_index])]))
+  if (!use_prior_eh) {
+    call Tasks.ExpansionHunter {
+      input:
+        bam = sample_bam,
+        bam_index = sample_bai,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
+        catalog = FetchRepoAssets.eh_catalog,
+        sample_id = sample_id,
+        sex = QcGate.sex,
+        qc_gate = QcGate.gate,
+        preemptible = preemptible
+    }
+  }
+  File sample_expansionhunter_vcf = select_first(flatten([expansionhunter_vcf_prior_files, select_all([ExpansionHunter.vcf])]))
+  if (!use_prior_gauchian) {
+    call Tasks.Gauchian {
+      input:
+        bam = sample_bam,
+        bam_index = sample_bai,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
+        sample_id = sample_id,
+        qc_gate = QcGate.gate,
+        gauchian_docker = gauchian_docker,
+        preemptible = preemptible
+    }
+  }
+  File sample_gauchian_json = select_first(flatten([gauchian_json_prior_files, select_all([Gauchian.json])]))
   # Gate mito / GATK-SV on QC. EnsureBam already emits sample_id.bam / .bam.bai;
   # ReleaseAfterQc hardlinks again so Manta 1.6 does not start before the gate.
   call Tasks.ReleaseAfterQc as ReleaseBam {
@@ -570,55 +723,58 @@ workflow PdSample {
       gate = QcGate.gate,
       name = sample_id + ".bam.bai"
   }
-  call Mitochondria.MitochondriaPipeline as Mito {
-    input:
-      wgs_aligned_input_bam_or_cram = ReleaseBam.released,
-      wgs_aligned_input_bam_or_cram_index = ReleaseBai.released,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      ref_dict = gatk_ref_dict,
-      mt_dict = mt_dict,
-      mt_fasta = mt_fasta,
-      mt_fasta_index = mt_fasta_index,
-      mt_amb = mt_amb,
-      mt_ann = mt_ann,
-      mt_bwt = mt_bwt,
-      mt_pac = mt_pac,
-      mt_sa = mt_sa,
-      blacklisted_sites = blacklisted_sites,
-      blacklisted_sites_index = blacklisted_sites_index,
-      mt_shifted_dict = mt_shifted_dict,
-      mt_shifted_fasta = mt_shifted_fasta,
-      mt_shifted_fasta_index = mt_shifted_fasta_index,
-      mt_shifted_amb = mt_shifted_amb,
-      mt_shifted_ann = mt_shifted_ann,
-      mt_shifted_bwt = mt_shifted_bwt,
-      mt_shifted_pac = mt_shifted_pac,
-      mt_shifted_sa = mt_shifted_sa,
-      shift_back_chain = shift_back_chain,
-      control_region_shifted_reference_interval_list = control_region_shifted_reference_interval_list,
-      non_control_region_interval_list = non_control_region_interval_list,
-      requester_pays_project = requester_pays_project,
-      # SplitMultiAllelicsAndRemoveNonPassSites reads InitialFilter's VCF and
-      # does not take its index. GATK rejects that file when it is block-compressed
-      # ("drivingVariantFile ... Try running IndexFeatureFile"). Leave the
-      # upstream default (uncompressed .vcf plus .idx).
-      compress_output_vcf = false,
-      preemptible_tries = preemptible
+  if (!use_prior_mtdna) {
+    call Mitochondria.MitochondriaPipeline as Mito {
+      input:
+        wgs_aligned_input_bam_or_cram = ReleaseBam.released,
+        wgs_aligned_input_bam_or_cram_index = ReleaseBai.released,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
+        ref_dict = gatk_ref_dict,
+        mt_dict = mt_dict,
+        mt_fasta = mt_fasta,
+        mt_fasta_index = mt_fasta_index,
+        mt_amb = mt_amb,
+        mt_ann = mt_ann,
+        mt_bwt = mt_bwt,
+        mt_pac = mt_pac,
+        mt_sa = mt_sa,
+        blacklisted_sites = blacklisted_sites,
+        blacklisted_sites_index = blacklisted_sites_index,
+        mt_shifted_dict = mt_shifted_dict,
+        mt_shifted_fasta = mt_shifted_fasta,
+        mt_shifted_fasta_index = mt_shifted_fasta_index,
+        mt_shifted_amb = mt_shifted_amb,
+        mt_shifted_ann = mt_shifted_ann,
+        mt_shifted_bwt = mt_shifted_bwt,
+        mt_shifted_pac = mt_shifted_pac,
+        mt_shifted_sa = mt_shifted_sa,
+        shift_back_chain = shift_back_chain,
+        control_region_shifted_reference_interval_list = control_region_shifted_reference_interval_list,
+        non_control_region_interval_list = non_control_region_interval_list,
+        requester_pays_project = requester_pays_project,
+        # SplitMultiAllelicsAndRemoveNonPassSites reads InitialFilter's VCF and
+        # does not take its index. GATK rejects that file when it is block-compressed
+        # ("drivingVariantFile ... Try running IndexFeatureFile"). Leave the
+        # upstream default (uncompressed .vcf plus .idx).
+        compress_output_vcf = false,
+        preemptible_tries = preemptible
+    }
+    call Tasks.AnnotateMtdna {
+      input:
+        vcf = Mito.out_vcf,
+        annotate_mtdna_py = FetchRepoAssets.annotate_mtdna_py,
+        mitimpact_csv = mtdna_mitimpact,
+        sample_id = sample_id,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.AnnotateMtdna {
-    input:
-      vcf = Mito.out_vcf,
-      annotate_mtdna_py = FetchRepoAssets.annotate_mtdna_py,
-      mitimpact_csv = mtdna_mitimpact,
-      sample_id = sample_id,
-      python_docker = python_docker,
-      preemptible = preemptible
-  }
+  File sample_mtdna_vcf = select_first(flatten([mtdna_vcf_prior_files, select_all([AnnotateMtdna.mtdna_vcf])]))
+  String sample_mtdna_annotation = if use_prior_mtdna then "prior" else select_first([AnnotateMtdna.annotation_status])
   # SV precedence: prior sample VCF → joint subset → GATK-SV call (with optional
   # case_* evidence). Blank Terra strings are ignored so the next path runs.
   # scatter+if keeps Array[File] outputs for flatten with the GatkSv if-branch.
-  Boolean use_prior_sv = length(sv_prior_vcf_files) > 0
   if (use_prior_sv) {
     call Tasks.PreferOrBuildTabix as PriorSvIndex {
       input:
@@ -818,7 +974,6 @@ workflow PdSample {
       gate = QcGate.gate,
       name = sample_id + ".sv.vcf.gz.tbi"
   }
-  Boolean use_prior_introme = length(introme_prior_files) > 0
   if (!use_prior_introme) {
   call IntromeWf.Introme as Introme {
     input:
@@ -871,17 +1026,17 @@ workflow PdSample {
       sample_id = sample_id,
       sex = QcGate.sex,
       vep_vcf = sample_vep_vcf,
-      small_vcf = NormPass.normalized_vcf,
+      small_vcf = sample_small_vcf,
       sv_vcf = NameSvVcf.released,
       sv_status = if use_prior_sv then "prior" else if use_joint_sv then "joint" else "called",
-      expansionhunter_vcf = ExpansionHunter.vcf,
-      gauchian_json = Gauchian.json,
-      mtdna_vcf = AnnotateMtdna.mtdna_vcf,
-      mtdna_annotation = AnnotateMtdna.annotation_status,
+      expansionhunter_vcf = sample_expansionhunter_vcf,
+      gauchian_json = sample_gauchian_json,
+      mtdna_vcf = sample_mtdna_vcf,
+      mtdna_annotation = sample_mtdna_annotation,
       introme_tsv = NameIntrome.released,
       introme_status = if use_prior_introme then "prior" else "called",
-      avi_tsv = AnnotateAvi.avi_tsv,
-      avi_requested = defined(avi_table),
+      avi_tsv = sample_avi_tsv,
+      avi_requested = defined(avi_table) || use_prior_avi,
       qc_json = QcGate.qc_json,
       config_yaml = FetchRepoAssets.config_yaml,
       columns_yaml = FetchRepoAssets.columns_yaml,
@@ -893,7 +1048,6 @@ workflow PdSample {
       ref_fasta_index = ref_fasta_index,
       gtf = introme_gtf,
       gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
-      splicevault_tsv = splicevault_tsv,
       prs_weights = prs_weights,
       phenotype_report_files = phenotype_report_files,
       pdvar_docker = pdvar_docker,
@@ -905,9 +1059,15 @@ workflow PdSample {
     Array[File] candidates = Assess.candidates
     File vep_vcf = sample_vep_vcf
     File vep_vcf_index = sample_vep_vcf_index
+    File small_vcf = sample_small_vcf
+    File small_vcf_index = sample_small_vcf_index
     File sv_vcf = NameSvVcf.released
     File sv_vcf_index = NameSvVcfIndex.released
+    File expansionhunter_vcf = sample_expansionhunter_vcf
+    File gauchian_json = sample_gauchian_json
+    File mtdna_vcf = sample_mtdna_vcf
     File introme = NameIntrome.released
+    File? avi_tsv = sample_avi_tsv
     # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
     # File? is unset when the joint-SV path skipped GatkSvSingle. Metrics stay
     # Array[File] (empty on the joint path).

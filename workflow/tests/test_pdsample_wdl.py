@@ -89,6 +89,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "RescueSites.rescued_vcf_index" in text
     assert "task AnnotateClinvarPlp" in sample_tasks
     assert "rescue_nonpass_sites.py" in sample_tasks
+    assert "probe_prior_file.py" in sample_tasks
+    assert "task ProbePriorFile" in sample_tasks
     assert "annotate_clinvar_plp.py" in sample_tasks
     assert "File? cadd_snv" in text
     assert "File? revel" in text
@@ -200,20 +202,25 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File introme_tsv =" not in text
     assert "File introme =" in text
     assert "File introme_vcf =" not in text
-    assert "File expansionhunter_vcf =" not in text
+    assert "File expansionhunter_vcf = sample_expansionhunter_vcf" in text
     assert "File expansionhunter_vcf_index =" not in text
-    assert "File small_vcf =" not in text
-    assert "File small_vcf_index =" not in text
-    assert "File gauchian_json =" not in text
-    assert "File mtdna_vcf =" not in text
+    assert "File small_vcf = sample_small_vcf" in text
+    assert "File small_vcf_index = sample_small_vcf_index" in text
+    assert "File gauchian_json = sample_gauchian_json" in text
+    assert "File mtdna_vcf = sample_mtdna_vcf" in text
     assert "File mtdna_vcf_index =" not in text
+    assert "File panel_csv =" not in text
+    assert "File? avi_tsv = sample_avi_tsv" in text
+    assert "File gba1_pd_browser =" not in text
+    assert "splicevault" not in text.lower()
+    assert "splicevault" not in sample_tasks.lower()
     assert "File sample_introme = select_first(flatten([introme_prior_files, select_all([Introme.introme_tsv])]))" in text
     assert "introme_tsv = NameIntrome.released" in text
-    assert "expansionhunter_vcf = ExpansionHunter.vcf" in text
-    assert "small_vcf = NormPass.normalized_vcf" in text
-    assert "gauchian_json = Gauchian.json" in text
-    assert "mtdna_vcf = AnnotateMtdna.mtdna_vcf" in text
-    assert "mtdna_annotation = AnnotateMtdna.annotation_status" in text
+    assert "expansionhunter_vcf = sample_expansionhunter_vcf" in text
+    assert "small_vcf = sample_small_vcf" in text
+    assert "gauchian_json = sample_gauchian_json" in text
+    assert "mtdna_vcf = sample_mtdna_vcf" in text
+    assert "mtdna_annotation = sample_mtdna_annotation" in text
     assert "call Tasks.AnnotateMtdna" in text
     assert "File? mtdna_mitimpact" in text
     assert "annotate_mtdna.py" in sample_tasks
@@ -543,6 +550,7 @@ def test_fetch_repo_assets_is_volatile_and_uses_assets_git_commit():
     assert "pdvar_git_commit" not in call_block
     assert "pdvar_git_commit = pdvar_git_commit" in text
     assert "gba1_pd_browser = FetchRepoAssets.gba1_pd_browser" in text
+    assert "panel_csv = FetchRepoAssets.panel_csv" in text
     assert example["PdSample.assets_git_commit"] == "main"
     assert terra["PdSample.assets_git_commit"] == "main"
     assert "PdSample.pdvar_git_commit" in example
@@ -609,7 +617,7 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert 'String sv_prior_vcf = ""' in text
     assert 'String sv_prior_vcf_index = ""' in text
     assert "Array[File] sv_prior_vcf_files" in text
-    assert "Boolean use_prior_sv = length(sv_prior_vcf_files) > 0" in text
+    assert "Boolean use_prior_sv = ProbeSvPrior.usable" in text
     assert "call Tasks.PreferOrBuildTabix as PriorSvIndex" in text
     assert 'String sv_joint_vcf = ""' in text
     assert 'String sv_joint_vcf_index = ""' in text
@@ -646,12 +654,72 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert '"PdSample.sv_prior_vcf": "${this.sv_vcf}"' in terra
     assert '"PdSample.sv_prior_vcf_index": "${this.sv_vcf_index}"' in terra
     assert 'String introme_prior = ""' in text
-    assert "Boolean use_prior_introme = length(introme_prior_files) > 0" in text
+    assert "Boolean use_prior_introme = ProbeIntromePrior.usable" in text
     assert "if (!use_prior_introme)" in text
     assert '"PdSample.introme_prior": "${this.introme}"' in terra
+    assert '"PdSample.vep_prior_vcf": "${this.vep_vcf}"' in terra
+    assert '"PdSample.vep_prior_vcf_index": "${this.vep_vcf_index}"' in terra
     assert "File introme = NameIntrome.released" in text
     assert '"PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}"' in terra
     assert '"PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}"' in terra
+
+
+def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
+    """Placeholder this.<name> priors must run the callers, not size() a missing File."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
+    probe = tasks.split("task ProbePriorFile {", 1)[1].split("task ReleaseAfterQc {", 1)[0]
+    assert "String path = \"\"" in probe
+    assert "Int disk_gb = 10" in probe
+    assert "size(" not in probe
+    assert 'kind = "introme"' in text
+    assert 'kind = "vcf"' in text
+    assert 'kind = "json"' in text
+    assert 'kind = "tsv"' in text
+    assert "Boolean use_prior_introme = ProbeIntromePrior.usable" in text
+    assert "Boolean use_prior_vep = ProbeVepPrior.usable" in text
+    assert "Boolean use_prior_small = ProbeSmallPrior.usable" in text
+    assert "Boolean use_prior_sv = ProbeSvPrior.usable" in text
+    assert "Boolean use_prior_eh = ProbeEhPrior.usable" in text
+    assert "Boolean use_prior_gauchian = ProbeGauchianPrior.usable" in text
+    assert "Boolean use_prior_mtdna = ProbeMtdnaPrior.usable" in text
+    assert "Boolean use_prior_avi = ProbeAviPrior.usable" in text
+    assert "Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []" in text
+    assert "Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []" in text
+    assert "Array[File] small_vcf_prior_files = if use_prior_small then [small_vcf_prior] else []" in text
+    assert "Array[File] sv_prior_vcf_files = if use_prior_sv then [sv_prior_vcf] else []" in text
+    assert "if (!use_prior_vep)" in text
+    assert "if (!use_prior_small)" in text
+    assert "if (!use_prior_eh)" in text
+    assert "if (!use_prior_gauchian)" in text
+    assert "if (!use_prior_mtdna)" in text
+    assert "if (!use_prior_avi)" in text
+    assert "if (use_prior_vep)" in text
+    assert "call Tasks.PreferOrBuildTabix as PriorVepIndex" in text
+    assert "call Tasks.VepAnnotate" in text.split("if (!use_prior_vep)", 1)[1]
+    assert "call Tasks.NormPass" in text.split("if (!use_prior_small)", 1)[1]
+    assert "call Tasks.ExpansionHunter" in text.split("if (!use_prior_eh)", 1)[1]
+    assert "call Tasks.Gauchian" in text.split("if (!use_prior_gauchian)", 1)[1]
+    assert "call Tasks.AnnotateAvi" in text.split("if (!use_prior_avi)", 1)[1]
+    assert "call Mitochondria.MitochondriaPipeline" in text.split("if (!use_prior_mtdna)", 1)[1]
+    vep_prior_files = "vep_prior_vcf_files, select_all([AnnotateClinvarSmall.annotated_vcf])"
+    assert vep_prior_files in text
+    assert 'String vep_prior_vcf = ""' in text
+    assert 'String vep_prior_vcf_index = ""' in text
+    assert 'String small_vcf_prior = ""' in text
+    assert 'String expansionhunter_vcf_prior = ""' in text
+    assert 'String gauchian_json_prior = ""' in text
+    assert 'String mtdna_vcf_prior = ""' in text
+    assert 'String avi_tsv_prior = ""' in text
+    assert '"PdSample.small_vcf_prior": "${this.small_vcf}"' in terra
+    assert '"PdSample.expansionhunter_vcf_prior": "${this.expansionhunter_vcf}"' in terra
+    assert '"PdSample.gauchian_json_prior": "${this.gauchian_json}"' in terra
+    assert '"PdSample.mtdna_vcf_prior": "${this.mtdna_vcf}"' in terra
+    assert '"PdSample.avi_tsv_prior": "${this.avi_tsv}"' in terra
+    assert "panel_csv_prior" not in terra
+    assert "gba1_pd_browser_prior" not in terra
+    assert '("workflow/scripts/probe_prior_file.py", "probe_prior_file.py")' in tasks
 
 
 def test_gatksv_evidence_outputs_for_terra():

@@ -164,6 +164,7 @@ pairs = [
     ("workflow/scripts/annotate_gnomad_af.py", "annotate_gnomad_af.py"),
     ("workflow/scripts/annotate_clinvar_plp.py", "annotate_clinvar_plp.py"),
     ("workflow/scripts/rescue_nonpass_sites.py", "rescue_nonpass_sites.py"),
+    ("workflow/scripts/probe_prior_file.py", "probe_prior_file.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
@@ -192,6 +193,7 @@ PY
     File annotate_gnomad_af_py = "annotate_gnomad_af.py"
     File annotate_clinvar_plp_py = "annotate_clinvar_plp.py"
     File rescue_nonpass_sites_py = "rescue_nonpass_sites.py"
+    File probe_prior_file_py = "probe_prior_file.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
     File panel_csv = "panel.csv"
@@ -954,6 +956,38 @@ task Gauchian {
   }
 }
 
+# String-path probe for Terra priors. Input is String (not File) so Cromwell
+# never size()s or localizes a missing/placeholder gs:// object. Fixed disk.
+task ProbePriorFile {
+  input {
+    String path = ""
+    String kind = "any"
+    File probe_prior_file_py
+    Int min_bytes = 1
+    String python_docker = "python:3.11.11-slim-bookworm"
+    Int preemptible = 3
+  }
+  Int disk_gb = 10
+  command <<<
+    set -euo pipefail
+    python3 "~{probe_prior_file_py}" \
+      --path "~{path}" \
+      --kind "~{kind}" \
+      --min-bytes ~{min_bytes} \
+      --out usable.txt
+  >>>
+  output {
+    Boolean usable = read_boolean("usable.txt")
+  }
+  runtime {
+    docker: python_docker
+    preemptible: preemptible
+    memory: "2 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 1
+  }
+}
+
 task ReleaseAfterQc {
   input {
     File payload
@@ -1185,14 +1219,13 @@ task Assess {
     File ref_fasta_index
     File gtf
     File? gba1_pd_browser
-    File? splicevault_tsv
     File? prs_weights
     # Empty when the sample has no report (WDL 1.0 has no None for File?).
     Array[File] phenotype_report_files = []
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
-    String pdvar_git_commit = "d18d01efb2e7605d2e3e0f626e82f6b09fdf4219"
+    String pdvar_git_commit = "9dfc351453451e825c7a3a4caf3f9b760a2133c1"
   }
   Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(gtf, "GiB") + 150)
   command <<<
@@ -1239,7 +1272,6 @@ PY
     export REF_FAI="~{ref_fasta_index}"
     export SPLICE_GTF="~{gtf}"
     export GBA1_PD_BROWSER='~{default="" gba1_pd_browser}'
-    export SPLICEVAULT='~{default="" splicevault_tsv}'
     export PRS_WEIGHTS='~{default="" prs_weights}'
     export AVI_TSV='~{default="" avi_tsv}'
     export PHENOTYPE_REPORT='~{sep="" phenotype_report_files}'
@@ -1282,7 +1314,6 @@ document = {
     "ref_fasta_index": os.environ["REF_FAI"],
     "gtf": os.environ["SPLICE_GTF"],
     "gba1_pd_browser": maybe("GBA1_PD_BROWSER"),
-    "splicevault": maybe("SPLICEVAULT"),
     "prs_weights": maybe("PRS_WEIGHTS"),
     "avi_tsv": maybe("AVI_TSV"),
     "phenotype": phenotype,
