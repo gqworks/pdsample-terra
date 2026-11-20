@@ -19,8 +19,26 @@ import urllib.request
 import zlib
 
 BLANK = frozenset({"", ".", "null", "none", "na", "n/a", "undefined", "nil", "none."})
+PLACEHOLDER_BODIES = BLANK | frozenset({"placeholder", "todo", "tbd", "empty", "empty file"})
 INTROME_MARKER = "introme_score"
 VCF_PREFIXES = ("##fileformat=vcf", "#chrom", "##fileformat=vcf4")
+KIND_CHOICES = (
+    "any",
+    "introme",
+    "introme_tsv",
+    "vcf",
+    "vep",
+    "vep_vcf",
+    "json",
+    "gauchian_json",
+    "csv",
+    "panel_csv",
+    "tsv",
+    "avi_tsv",
+    "splicevault_tsv",
+    "gba1_pd_browser",
+    "table",
+)
 
 
 def normalize_path(path: str) -> str:
@@ -146,6 +164,38 @@ def looks_vcf(data: bytes) -> bool:
     return False
 
 
+def looks_placeholder_body(data: bytes) -> bool:
+    return decode_head(data).strip().lower() in PLACEHOLDER_BODIES
+
+
+def looks_json(data: bytes) -> bool:
+    text = decode_head(data).lstrip("\ufeff").lstrip()
+    return text.startswith("{") or text.startswith("[")
+
+
+def first_data_line(data: bytes) -> str:
+    for line in decode_head(data).splitlines():
+        stripped = line.lstrip("\ufeff").strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        return stripped
+    return ""
+
+
+def looks_csv(data: bytes) -> bool:
+    line = first_data_line(data)
+    return "," in line and "\t" not in line
+
+
+def looks_tsv(data: bytes) -> bool:
+    line = first_data_line(data)
+    return "\t" in line
+
+
+def looks_table(data: bytes) -> bool:
+    return looks_csv(data) or looks_tsv(data)
+
+
 def usable(path: str, kind: str = "any", min_bytes: int = 1) -> bool:
     """True only when the object exists, is non-empty, and matches kind."""
     kind = (kind or "any").strip().lower()
@@ -161,17 +211,27 @@ def usable(path: str, kind: str = "any", min_bytes: int = 1) -> bool:
         head = local_peek(path) if size else b""
     if size is None or size < min_bytes:
         return False
+    if looks_placeholder_body(head):
+        return False
     if kind in {"introme", "introme_tsv"}:
         return looks_introme(head)
     if kind in {"vcf", "vep", "vep_vcf"}:
         return looks_vcf(head)
+    if kind in {"json", "gauchian_json"}:
+        return looks_json(head)
+    if kind in {"csv", "panel_csv"}:
+        return looks_csv(head)
+    if kind in {"tsv", "avi_tsv", "splicevault_tsv", "gba1_pd_browser"}:
+        return looks_tsv(head)
+    if kind == "table":
+        return looks_table(head)
     return True
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--path", default="", help="Terra String prior path (not a WDL File)")
-    parser.add_argument("--kind", default="any", choices=("any", "introme", "introme_tsv", "vcf", "vep", "vep_vcf"))
+    parser.add_argument("--kind", default="any", choices=KIND_CHOICES)
     parser.add_argument("--min-bytes", type=int, default=1)
     parser.add_argument("--out", default="usable.txt")
     args = parser.parse_args(argv)

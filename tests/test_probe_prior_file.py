@@ -42,11 +42,31 @@ def test_real_introme_tsv_is_usable(tmp_path: Path):
     assert probe.usable(str(path), kind="vcf") is False
 
 
-def test_placeholder_text_is_not_introme(tmp_path: Path):
+def test_placeholder_text_is_not_usable(tmp_path: Path):
     path = tmp_path / "this.introme"
     path.write_text("placeholder\n", encoding="utf-8")
     assert probe.usable(str(path), kind="introme") is False
-    assert probe.usable(str(path), kind="any") is True
+    assert probe.usable(str(path), kind="any") is False
+    assert probe.usable(str(path), kind="json") is False
+    assert probe.usable(str(path), kind="tsv") is False
+
+
+def test_json_csv_tsv_kinds(tmp_path: Path):
+    json_path = tmp_path / "sample.gauchian.json"
+    json_path.write_text('{"Sample": "APGS", "CopyNumber": 2}\n', encoding="utf-8")
+    csv_path = tmp_path / "panel.csv"
+    csv_path.write_text("Gene_ID,Symbol,inheritance_primary\nENSG1,GBA1,AD\n", encoding="utf-8")
+    tsv_path = tmp_path / "gba1.tsv"
+    tsv_path.write_text("cdna\tprotein\tpos_hg38\nc.1A>G\tp.M1V\t1\n", encoding="utf-8")
+    avi_path = tmp_path / "avi.tsv"
+    avi_path.write_text("chrom\tpos\tref\talt\tavi_raw\tavi_quantile\tavi_phred\tavi_url\n", encoding="utf-8")
+    assert probe.usable(str(json_path), kind="gauchian_json") is True
+    assert probe.usable(str(json_path), kind="vcf") is False
+    assert probe.usable(str(csv_path), kind="panel_csv") is True
+    assert probe.usable(str(csv_path), kind="tsv") is False
+    assert probe.usable(str(tsv_path), kind="gba1_pd_browser") is True
+    assert probe.usable(str(avi_path), kind="avi_tsv") is True
+    assert probe.usable(str(avi_path), kind="vcf") is False
 
 
 def test_real_vcf_is_usable(tmp_path: Path):
