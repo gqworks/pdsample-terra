@@ -22,6 +22,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `variant_id` | `chrom-pos-ref-alt` with no `chr` prefix |
 | `hgvsc`, `hgvsp` | VEP HGVS for the picked transcript, written next to `variant_id`. Coding change is `transcript:c.` and protein change is `transcript:p.` |
 | `svtype`, `svlen` | Structural-variant type and length. `svlen` is INFO/SVLEN, sign kept, so a spec-compliant deletion is negative. When the tag is missing, the value is `end - pos` |
+| `copy_number`, `expected_cn` | Sample copy number from FORMAT `CN`, else GATK-SV `RD_CN`, and expected copy number (`ECN`). Used by `pesr_caller_qc` and dosage scoring |
 | `consequence`, `zygosity`, `genotype` | VEP consequence and the carried genotype. Male homozygous X small variants are hemizygous |
 | `tier`, `evidence_score`, `evidence_reasons` | Point triage. Tier 1 is the highest score band |
 | `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `AD_gof_intronic` (weak intron in GoF/DN AD gene), `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, `module_not_assessed`, and the other statuses in `src/pdvar/report.py` |
@@ -44,7 +45,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `eigen`, `muttaster`, `muttaster_pred`, `fathmm`, `fathmm_pred` | From dbNSFP when set; 5.4a uses `fathmm-XF_coding_*` (maps to `fathmm` / `fathmm_pred`) |
 | `eigen_high` / `sift_deleterious` / … | Evidence-reason flags when configured score/prediction thresholds hit |
 | `avi_phred`, `avi_raw`, `avi_quantile`, `avi_url` | AlphaGenome AVI for SNVs from the precomputed table when `avi_table` was set. `avi_raw` and `avi_phred` are copied from the table. `avi_quantile` is derived as `1 - 10^(-avi_phred/10)`, so it is only as precise as the published Phred. Phred 20 is the top 1% of genome-wide SNVs. Empty when `avi_table` was unset, the allele is not an SNV, or the table had no row |
-| `introme_score`, `introme_class` | Introme v2 score and high / moderate / low |
+| `introme_score`, `introme_class` | Introme v2 score and high / moderate / low. High is ≥ 0.9 and takes `introme_high` points. Gene-scoped second-hit fallback at 0.7 is moderate |
 | `splice_rule`, `splice_subgroup`, `splice_sav_pct`, `splice_heuristic_n` | Sullivan et al. 2025 donor (Figure 3) or acceptor (Figure 4) splice-disruption call for an SNV in those windows. `splice_rule` is `DD4` / `DA2` and the like, `splice_subgroup` is `standard`, `context`, or `auxiliary`, and the percent and n are the published spliceogenicity. Blank for indels, alleles outside the windows, and when the reference FASTA or GTF was not available. No evidence points |
 | `str_locus`, `str_expanded` | ExpansionHunter locus. `str_expanded` is true when `max(REPCN)` meets the cited `str_loci` floor |
 | `heteroplasmy` | mtDNA allele fraction from FORMAT `AF`. Alleles below 1% are not ingested |

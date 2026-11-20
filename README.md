@@ -70,7 +70,7 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 2. **Reference check.** The alignment header `@SQ` MD5s are compared with the reference dictionary. A missing `chr` prefix fails the check.
 3. **QC.** VerifyBamID2 contamination (`FREEMIX` above 0.02 fails the sample by default), somalier extract plus relate on this sample only (sex; relatedness is not run), and mosdepth on the calling BED. Callers wait on the QC gate.
 4. **Small variants.** GATK 4.6.1.0 HaplotypeCaller in GVCF mode, then GenotypeGVCFs, then GATK hard filters, then `bcftools view -f PASS` and `bcftools norm -m -both`. Intervals default to `workflow/assets/monopdaus-genes.grch38.bed`. Set `wgs_small_variants` true to call the whole genome.
-5. **Structural variants.** Precedence: (1) sample `sv_prior_vcf` / `sv_prior_vcf_index` (Terra: `this.sv_vcf` / `this.sv_vcf_index`) reuses a previous callset and skips calling (`sv_status` `prior`); (2) else workspace `sv_joint_vcf` / optional `sv_joint_vcf_index` — when `sample_id` is in the header, subset and skip GATK-SV (`sv_status` `joint`); when absent, fall back to calling; (3) else `GATKSVPipelineSingleSample` v1.1.1 (`sv_status` `called`), reusing any non-empty `sv_case_*` evidence and calling the rest. Blank Terra prior/joint/case cells are ignored. Reference-panel inputs stay required for the single-sample path. A missing SV VCF is an error in `pdvar`. Optional `introme_prior` (`this.introme`) reuses a previous Introme TSV the same way and skips the Introme subworkflow.
+5. **Structural variants.** Precedence: (1) sample `sv_prior_vcf` / `sv_prior_vcf_index` (Terra: `this.sv_vcf` / `this.sv_vcf_index`) reuses a previous callset and skips calling (`sv_status` `prior`); (2) else workspace `sv_joint_vcf` / optional `sv_joint_vcf_index` — when `sample_id` is in the header, subset and skip GATK-SV (`sv_status` `joint`); when absent, fall back to calling; (3) else `GATKSVPipelineSingleSample` v1.1.1 (`sv_status` `called`), reusing any non-empty `sv_case_*` evidence and calling the rest. Blank Terra prior/joint/case cells are ignored. Reference-panel inputs stay required for the single-sample path. A missing SV VCF is an error in `pdvar`. `pesr_caller_qc` drops raw Manta DEL/DUP that lack a depth genotype; GATK-SV `FORMAT RD_CN` counts as that genotype when `CN` is absent (joint callsets often omit `CN`). Optional `introme_prior` (`this.introme`) reuses a previous Introme TSV the same way and skips the Introme subworkflow.
 6. **STRs.** ExpansionHunter 5.0.0 with the vendored 24-locus catalog `workflow/assets/expansionhunter_pd.hg38.json` (includes FGF14, NOTCH2NLC, BEAN1, LRP12, and FXN).
 7. **GBA1.** Gauchian 1.0.2.
 8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0, then optional MitImpact 4 CSV annotation (`mtdna_mitimpact`) for ClinVar / MITOMAP / gnomAD mtDNA AF / APOGEE2 / MitoTIP / MLC. Ingest keeps alleles with heteroplasmy ≥ 1% and a MITOMAP GenBank frequency entry. High-evidence rows become `mtdna_pathogenic_candidate` in Assess; other carried alleles stay `mtdna_variant` and are not shortlisted.
@@ -100,8 +100,8 @@ flowchart LR
 | --- | --- |
 | VEP + dbNSFP / gnomAD | Small variants: consequence, ClinVar, CADD, REVEL, in-silico preds, AF |
 | AlphaGenome AVI | Optional SNV Phred bands (points + tie-break) |
-| Introme v2 | Splice score on panel alleles already in the callset |
-| GATK-SV | Dosage / LoF SVs on panel gene and exon BEDs |
+| Introme v2 | Splice score on panel alleles already in the callset; uncalled alleles only in `followup_reason` genes (0.9, then 0.7 if that gene has none) |
+| GATK-SV | Dosage / LoF SVs on panel gene and exon BEDs. Depth CN is `CN` else `RD_CN`. Depth-only artifacts stay as unscored `sv_artifact`. SNCA copy-gain scores only gene-scale multiplications |
 | ExpansionHunter | STR loci; `str_expanded` only with a cited pathogenic floor |
 | Gauchian | GBA1 CN / recombinants / catalog SNVs (+ GBA1-PD Browser class bump) |
 | MitochondriaPipeline + MitImpact | mtDNA alleles with heteroplasmy and MITOMAP gates |
@@ -151,7 +151,7 @@ Panel MOI (`AD` / `AR` / `XL` / `RISK` / `UNKNOWN`) plus tier gates decide wheth
 | `not_qualifying` | Below MOI tier (or off-panel) — dropped from `candidates.tsv` unless `followup_reason` is set |
 | `module_not_assessed` | Empty unexplained shortlist stub naming a required module that did not run |
 
-AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or ClinVar P/LP partners, demotes intron-only false solves, tags incomplete AR genes with `followup_reason`, and notes unphased `AR_comphet_candidate` / `AR_hemizygous` pairs. Assess then searches those follow-up genes for low-depth nulls, ClinVar P/LP, depth-only exon SVs, and gene-scoped Introme hits (0.9 first; 0.7 if that gene has none).
+AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or ClinVar P/LP partners, demotes intron-only false solves, tags incomplete AR genes with `followup_reason`, and notes unphased `AR_comphet_candidate` / `AR_hemizygous` pairs. Assess then searches those follow-up genes for low-depth nulls, ClinVar P/LP, depth-only exon SVs, and gene-scoped Introme hits (0.9 first; 0.7 if that gene has none). SNCA copy-gain is scored only for gene-scale multiplications (`PREDICTED_COPY_GAIN` or exon/TSS overlap and span ≥ 10 kb). `HIGH_SR_BACKGROUND` and in-cohort `FREQ_HET` are annotation; cohort SV AF is not a hard filter.
 
 ### 5. Rank and shortlist
 
@@ -162,7 +162,7 @@ AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or Cli
 3. **Coding over intron noise** — intron-only non-P/LP rows are penalised; intron-only `AD_candidate` is bumped out of the top priority band
 4. **Tier**, then **evidence_score**, then **AVI Phred**, then **phenotype_score**
 
-`patient_candidates` keeps the top `max_candidates_per_patient` (default 20) among qualifying rows, then **force-keeps** clinical must-sees that would otherwise fall off: Mendelian / risk / STR / high-evidence mtDNA statuses, ClinVar P/LP, Gauchian rows, scored LoF SVs, and any allele with `followup_reason`. Plain `mtdna_variant` haplogroup rows are never shortlisted.
+`patient_candidates` keeps the top `max_candidates_per_patient` (default 20) among qualifying rows, then **force-keeps** clinical must-sees that would otherwise fall off: Mendelian / risk / STR / high-evidence mtDNA statuses, ClinVar P/LP, Gauchian rows, scored LoF SVs, early-onset recessive-eopd nulls, empty-shortlist module stubs, and any allele with `followup_reason`. Plain `mtdna_variant` haplogroup rows are never shortlisted.
 
 ### 6. Phenotype and sample classification
 
