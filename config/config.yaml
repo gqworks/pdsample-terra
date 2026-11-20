@@ -34,6 +34,10 @@ filters:
   # Set either key to null to disable that rescue path.
   depth_rescue_near_miss_factor: 2.0
   depth_rescue_lof_del_min_depth: 5
+  # Follow-up AR genes (item 4): keep nulls with GQ >= 20 down to this depth,
+  # including rows that failed het allele balance.
+  second_hit_min_depth: 1
+  second_hit_min_gq: 20
   depth_rescue_high_impact_consequences:
     - transcript_ablation
     - splice_acceptor_variant
@@ -116,7 +120,7 @@ scoring:
     apogee_pathogenic: 3
     mitotip_likely_pathogenic: 3
     mlc_high: 1
-    # GBA1-PD Browser class bumps for Gauchian catalog SNVs only (not VEP rows).
+    # GBA1-PD Browser class bumps for Gauchian and VEP GBA1 alleles matched by c. HGVS.
     gba1_pd_severe: 4
     gba1_pd_mild: 2
     gba1_pd_risk: 1
@@ -134,6 +138,10 @@ mtdna:
 splicing:
   introme_high: 0.9
   introme_moderate: 0.6
+  # Gene-scoped second-hit rescue only (followup_reason genes). First pass uses
+  # introme_high. If that gene has no uncalled hit at 0.9, retry at this floor.
+  # Does not change the global first-pass Introme evidence cutoff.
+  introme_second_hit_relaxed: 0.7
   # Introme scores are merged onto sample-callset alleles only (no carrier-table injection).
   # Consequences where Introme is expected to add information beyond SpliceAI
   consider_consequences:
@@ -160,6 +168,11 @@ inheritance:
   # become AD_gof_intronic (demoted). ClinVar P/LP and coding alleles are kept.
   demote_gof_ad_intronic: true
   gof_intronic_mechanisms: [gof, dn]
+  # MAPT exon-10 splice is splice_gof on the panel; skip GoF intron demotion.
+  skip_gof_intronic_mechanisms: [splice_gof]
+  # Browser severe/mild/risk GBA1 alleles qualify as risk_carrier even with ClinVar B/LB.
+  qualify_gba1_pd_class: true
+  gba1_pd_qualify_classes: [severe, mild, risk]
 
 phenotype:
   early_onset_age: 50        # EOPD threshold
@@ -180,15 +193,16 @@ sv:
     - SAMPLE_WGD_OUTLIER
   # Depth-only PASS DELs that stay above DEPTH_LT_5KB (e.g. SOX6 ~10 kb, OPA1 ~10 kb)
   # but lack PE/SR and have weak depth genotypes are often IGV artifacts.
-  # Drop when ALL of: ALGORITHMS=depth only, FORMAT EV has no PE/SR, RD_GQ or OGQ <= max.
+  # Keep as unscored sv_artifact rows when ALL of: ALGORITHMS=depth only, FORMAT EV
+  # has no PE/SR, RD_GQ or OGQ <= max. Second-hit search can still rescue exon overlaps.
   drop_depth_only_artifacts: true
   depth_only_artifact_max_rd_gq: 5
-  # Raw Manta (sv_prior_vcf) lacks FORMAT CN. Multi-Mb PASS DELs then exon-overlap
-  # into false transcript_ablation solves. Applied only when CN is absent so
-  # GATK-SV depth-genotyped records are unchanged. Set pesr_caller_qc: false to disable.
+  # Raw Manta (sv_prior_vcf) lacks FORMAT CN and RD_CN. Multi-Mb PASS DELs then exon-overlap
+  # into false transcript_ablation solves. Applied only when both are absent so
+  # GATK-SV depth-genotyped records (CN or RD_CN) are unchanged. Set pesr_caller_qc: false to disable.
   pesr_caller_qc: true
   max_span_bp: 2000000
-  # DEL/DUP >= this span without FORMAT CN are dropped (depth genotype required).
+  # DEL/DUP >= this span without FORMAT CN or RD_CN are dropped (depth genotype required).
   # Catches junction-only Manta false DELs in the 100 kb–2 Mb band (e.g. 1.66 Mb TWNK).
   require_cn_min_span_bp: 100000
   drop_imprecise: true
@@ -200,6 +214,8 @@ sv:
   dosage_rules:
     - gene: SNCA
       effect: copy_gain
+      min_span_bp: 10000
+      require_copy_gain_or_exon: true
       citation: "Singleton AB et al. Science. 2003;302:841. Chartier-Harlin MC et al. Lancet. 2004;364:1167."
     - gene: PRKN
       effect: lof
@@ -270,15 +286,19 @@ biomarkers:
 
 # Repeat-locus catalogue for PD / parkinsonism / adult ataxia differentials.
 # Keys must match ExpansionHunter INFO/REPID (or VARID) when the locus is in the
-# vendored catalog. FGF14, BEAN1, LRP12, and NOTCH2NLC are PD-relevant but not in
-# workflow/assets/expansionhunter_pd.hg38.json yet; cutoffs are still recorded for
-# triage when those loci are added. pathogenic_min_repeats is STRchive
-# pathogenic_min (https://strchive.org/; v2.28.0) used by _expanded(), except
-# FMR1 which keeps the FXTAS/POI premutation floor (≥55) for PD triage while
-# STRchive pathogenic_* is the FXS full mutation. Full age-of-onset /
-# typical-onset / pathogenic / intermediate ranges are in
-# workflow/assets/expansionhunter_catalog_sources.tsv. Motif purity,
-# interruptions, and biallelic requirement (RFC1, CSTB, FXN) are not modelled.
+# vendored catalog (24 loci, including FGF14, NOTCH2NLC, BEAN1, LRP12, FXN).
+# pathogenic_min_repeats is STRchive pathogenic_min (https://strchive.org/; v2.28.0)
+# used by _expanded(), except FMR1 which keeps the FXTAS/POI premutation floor (≥55)
+# for PD triage while STRchive pathogenic_* is the FXS full mutation. Full
+# age-of-onset / typical-onset / pathogenic / intermediate ranges are in
+# workflow/assets/expansionhunter_catalog_sources.tsv.
+# Recessive STR loci solve only with a biallelic expansion and a confirmed
+# pathogenic motif. Until the motif is parsed, a one-allele RFC1 expansion is
+# partially_explained with followup_reason.
+str_ar_loci: [RFC1, CSTB, FXN]
+str_xl_loci: [FMR1, AR]
+str_pathogenic_motifs:
+  RFC1: [AAGGG]
 str_loci:
   # --- In ExpansionHunter PD catalog (REPID) ---
   ATXN1:
@@ -357,7 +377,6 @@ str_loci:
     gene: CSTB
     pathogenic_min_repeats: 30
     citation: "STRchive EPM1_CSTB (https://strchive.org/loci/epm1_cstb/): pathogenic 30–125; AR — biallelic expansion required; GeneReviews NBK1142"
-  # --- PD-relevant, not yet in vendored EH catalog ---
   NOTCH2NLC:
     gene: NOTCH2NLC
     pathogenic_min_repeats: 66
@@ -369,11 +388,11 @@ str_loci:
   BEAN1:
     gene: BEAN1
     pathogenic_min_repeats: 110
-    citation: "STRchive SCA31_BEAN1 (https://strchive.org/loci/sca31_bean1/): pathogenic 110–760 TGGAA/AATGG; GeneReviews NBK535148; not in vendored EH catalog yet"
+    citation: "STRchive SCA31_BEAN1 (https://strchive.org/loci/sca31_bean1/): pathogenic 110–760 TGGAA/AATGG; GeneReviews NBK535148"
   LRP12:
     gene: LRP12
     pathogenic_min_repeats: 85
-    citation: "STRchive OPDM1_LRP12 (https://strchive.org/loci/opdm1_lrp12/): pathogenic 85–289; GeneReviews NBK535148; not in vendored EH catalog yet"
+    citation: "STRchive OPDM1_LRP12 (https://strchive.org/loci/opdm1_lrp12/): pathogenic 85–289; GeneReviews NBK535148"
   FXN:
     gene: FXN
     pathogenic_min_repeats: 56

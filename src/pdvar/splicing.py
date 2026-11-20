@@ -31,11 +31,13 @@ def apply_introme_evidence(df: pd.DataFrame, spcfg: dict, scfg: dict) -> pd.Data
     consider = set(spcfg["consider_consequences"])
     terms = df["consequence"].fillna("").astype(str).str.split(r"[&,]")
     relevant = terms.map(lambda ts: any(t.strip() in consider for t in ts)).astype(bool)
-    add = (df["introme_class"] == "high") & relevant
+    reasons = df["evidence_reasons"].fillna("").astype(str) if "evidence_reasons" in df.columns else pd.Series("", index=df.index)
+    already = reasons.str.contains("introme_high", regex=False)
+    add = (df["introme_class"] == "high") & relevant & ~already
 
     df["splice_candidate"] = df["introme_class"] != "none"
     df.loc[add, "evidence_score"] += scfg["points"]["introme_high"]
-    df.loc[add, "evidence_reasons"] = (df.loc[add, "evidence_reasons"].fillna("") + ";introme_high").str.strip(";")
+    df.loc[add, "evidence_reasons"] = (reasons.loc[add] + ";introme_high").str.strip(";")
     df["tier"] = assign_tier(df["evidence_score"], scfg["tiers"])
     return df
 

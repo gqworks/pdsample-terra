@@ -33,6 +33,7 @@ STATUS_PRIORITY = {
     # GoF / DN AD genes: intron splice LoF is not the disease mechanism.
     "AD_gof_intronic": 6,
     "not_qualifying": 9,
+    "module_not_assessed": 8,
 }
 
 FOLLOWUP_STATUSES = frozenset({"AR_single_het", "review_conflict"})
@@ -40,7 +41,7 @@ FOLLOWUP_STATUSES = frozenset({"AR_single_het", "review_conflict"})
 # Genomic id, then the c./p. HGVS and SV length, so the report table reads
 # coordinates and annotations together.
 LEAD_COLUMNS = [
-    "rank", "sample_id", "gene", "moi", "inheritance_status",
+    "rank", "sample_id", "gene", "moi", "inheritance_status", "followup_reason",
     "variant_id", "chrom", "pos", "ref", "alt", "end",
     "hgvsc", "hgvsp", "svtype", "svlen",
 ]
@@ -175,7 +176,14 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
     # Introme / intron-only AD_candidate noise is ranked at priority 1 and must
     # not force-keep past the top-N cut (coding / P/LP AD still force-kept).
     intron_ad = status.eq("AD_candidate") & _intronic_rank_penalty(df).eq(1)
-    force_status = force_status & ~intron_ad
+    mechanism = (
+        df["mechanism"].fillna("").astype(str).str.lower()
+        if "mechanism" in df.columns
+        else pd.Series("", index=df.index)
+    )
+    # MAPT exon-10 splice_gof stays visible even though it is intron-like.
+    splice_gof_ad = status.eq("AD_candidate") & mechanism.eq("splice_gof")
+    force_status = (force_status & ~intron_ad) | splice_gof_ad
     plp = clin.eq("P/LP")
     gauchian = hit.eq("gauchian")
     lof_sv = hit.eq("sv") & (mech.eq("lof") | scored)
@@ -200,14 +208,22 @@ def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
     """
     ranked = rank_candidates(df)
     status = ranked["inheritance_status"].fillna("").astype(str)
-    qualifying = ranked[~status.isin(["not_qualifying", "mtdna_variant"])].copy()
+    follow = (
+        ranked["followup_reason"].fillna("").astype(str).str.strip().ne("")
+        if "followup_reason" in ranked.columns
+        else pd.Series(False, index=ranked.index)
+    )
+    reportable = ranked[~status.eq("mtdna_variant") & (~status.eq("not_qualifying") | follow)].copy()
+    if reportable.empty:
+        return reportable
+    # Re-rank after dropping haplogroup mtDNA so rank<=N is among reportable rows.
+    # not_qualifying rows with followup_reason stay available for force-keep.
+    qualifying = reportable[~reportable["inheritance_status"].fillna("").astype(str).eq("not_qualifying")].copy()
     if qualifying.empty:
-        return qualifying
-    # Re-rank after dropping not_qualifying / haplogroup mtDNA so rank<=N is among
-    # reportable rows.
+        qualifying = reportable.copy()
     qualifying["rank"] = qualifying.groupby("sample_id", sort=False).cumcount() + 1
     top = qualifying[qualifying["rank"] <= max_per_patient]
-    must = qualifying[_must_keep_mask(qualifying)]
+    must = reportable[_must_keep_mask(reportable)]
     out = pd.concat([top, must], ignore_index=False).drop_duplicates()
     out = out.sort_values(["sample_id", "rank"], kind="mergesort")
     out["rank"] = out.groupby("sample_id", sort=False).cumcount() + 1

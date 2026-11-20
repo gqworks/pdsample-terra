@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .normalize import apply_gene_aliases, derive_zygosity
+from .normalize import apply_gene_aliases, derive_zygosity, normalize_clinvar
 from .scoring import assign_tier
 from .vcf_stream import IntervalIndex, chrom_bare, ensure_tabix, iter_vcf, parse_info
 
@@ -37,6 +37,8 @@ DEFAULT_DOSAGE_RULES = [
     {
         "gene": "SNCA",
         "effect": "copy_gain",
+        "min_span_bp": 10_000,
+        "require_copy_gain_or_exon": True,
         "citation": "Singleton AB et al. Science. 2003;302:841. Chartier-Harlin MC et al. Lancet. 2004;364:1167.",
     },
     {
@@ -69,6 +71,7 @@ VARIANT_COLUMNS = [
     "copy_number", "expected_cn", "dosage_mechanism", "dosage_event", "dosage_citation",
     "scored_dosage", "predicted_effects", "exons_overlapped", "exon_count", "filter",
     "cn_inferred_gt", "sv_algorithms", "sv_evidence", "rd_gq", "ogq",
+    "high_sr_background", "freq_het", "sv_artifact",
 ]
 
 # Default QC for depth-only IGV artifacts that remain FILTER=PASS.
@@ -77,13 +80,13 @@ DEFAULT_DEPTH_ONLY_ARTIFACT = {
     "max_rd_gq": 5.0,
 }
 
-# Raw Manta (and similar PE/SR) priors lack FORMAT CN / depth genotyping.
+# Raw Manta (and similar PE/SR) priors lack FORMAT CN / RD_CN depth genotyping.
 # Multi-Mb PASS DELs then exon-overlap into false transcript_ablation solves.
 DEFAULT_PESR_CALLER_QC = {
     "enabled": True,
     # Absolute span cap for DEL/DUP when CN is absent (|SVLEN| or END-POS).
     "max_span_bp": 2_000_000,
-    # DEL/DUP at or above this span require FORMAT CN (depth genotype). Raw Manta
+    # DEL/DUP at or above this span require FORMAT CN or RD_CN (depth genotype). Raw Manta
     # junction-only calls in the 100 kb–2 Mb band (e.g. false 1.66 Mb TWNK DEL)
     # otherwise pass SR checks and score as transcript_ablation.
     "require_cn_min_span_bp": 100_000,
@@ -230,9 +233,17 @@ def manta_alt_count(fmt: dict, key: str = "SR") -> int | None:
         return None
 
 
+def depth_copy_number(fmt: dict) -> int | None:
+    """FORMAT ``CN``, else GATK-SV ``RD_CN``. Raw Manta priors have neither."""
+    cn = _as_int(fmt.get("CN"))
+    if cn is not None:
+        return cn
+    return _as_int(fmt.get("RD_CN"))
+
+
 def lacks_depth_cn(fmt: dict) -> bool:
-    """True when FORMAT lacks ``CN`` (raw Manta-like; GATK-SV genotypes carry CN)."""
-    return _as_int(fmt.get("CN")) is None
+    """True when FORMAT lacks ``CN`` and ``RD_CN`` (raw Manta-like)."""
+    return depth_copy_number(fmt) is None
 
 
 def is_pesr_caller_artifact(
@@ -252,8 +263,9 @@ def is_pesr_caller_artifact(
 ) -> bool:
     """True for raw PE/SR-caller DEL/DUP calls that should not enter triage.
 
-    Applied only when FORMAT ``CN`` is absent. GATK-SV records keep depth CN and
-    skip this path. Rules (any match drops):
+    Applied only when FORMAT ``CN`` and ``RD_CN`` are both absent. GATK-SV
+    records keep depth CN (``CN`` or ``RD_CN``) and skip this path. Rules
+    (any match drops):
 
     - absolute span above ``max_span_bp``
     - span at or above ``require_cn_min_span_bp`` without depth ``CN``
@@ -358,8 +370,17 @@ def _rule_matches(
     n_gene_exons: int,
     cn: int | None,
     ecn: int | None,
+    span_bp: int = 0,
 ) -> bool:
     if rule.get("effect") == "copy_gain":
+        require = bool(rule.get("require_copy_gain_or_exon", True))
+        if require:
+            copy_gain_or_exon = bool(predicted & GAIN_PREDICTED) or n_exons > 0
+            if not copy_gain_or_exon:
+                return False
+        min_span = int(rule.get("min_span_bp") or 0)
+        if min_span and int(span_bp or 0) < min_span:
+            return False
         return event in {"duplication", "triplication_or_higher"} or bool(predicted & GAIN_PREDICTED)
     if rule.get("effect") != "lof":
         return False
@@ -382,20 +403,23 @@ def classify_dosage(
     n_exons: int,
     n_gene_exons: int,
     rules: list[dict] | None = None,
+    span_bp: int = 0,
 ) -> tuple[str, str, bool, str]:
     """Return mechanism, event, whether to score it, and the citation.
 
     ``scored`` is true for configured dosage genes and for exon-disrupting
     deletions. Copy gains are scored only for genes whose rule says ``copy_gain``
-    (SNCA duplication/triplication). LoF SVs use ``null_variant`` plus
-    ``sv_dosage_lof``; copy-gain reuses ``null_variant`` as ``sv_dosage_gain``.
+    (SNCA duplication/triplication) when the call looks like a gene
+    multiplication (PREDICTED_COPY_GAIN / TSS / exon overlap and gene-scale span).
+    LoF SVs use ``null_variant`` plus ``sv_dosage_lof``; copy-gain reuses
+    ``null_variant`` as ``sv_dosage_gain``.
     """
     rules = rules if rules is not None else DEFAULT_DOSAGE_RULES
     event = dosage_event(svtype, cn, ecn, predicted)
     for rule in rules:
         if str(rule.get("gene", "")).upper() != gene:
             continue
-        if _rule_matches(rule, svtype, event, predicted, n_exons, n_gene_exons, cn, ecn):
+        if _rule_matches(rule, svtype, event, predicted, n_exons, n_gene_exons, cn, ecn, span_bp):
             return str(rule["effect"]), event, True, str(rule.get("citation") or "")
     if predicted & LOF_PREDICTED or (svtype == "DEL" and n_exons > 0):
         return "lof", event if event == "deletion" else "deletion", True, "Exon disruption (GATK-SV PREDICTED_* or exon BED overlap)."
@@ -407,11 +431,20 @@ def classify_dosage(
 def _consequence(mechanism: str, scored: bool, n_exons: int) -> str:
     if mechanism == "lof" and scored:
         return "transcript_ablation"
-    if mechanism == "copy_gain":
+    if mechanism == "copy_gain" and scored:
         return "copy_number_gain"
     if n_exons > 0:
         return "structural_variant"
     return "intron_variant"
+
+
+def _clinvar_raw(info: dict) -> str:
+    """ClinVar CLNSIG from a panel-sliced INFO annotation, if present."""
+    for key in ("ClinVar_CLNSIG", "CLNSIG", "clinvar_clnsig"):
+        value = info.get(key)
+        if value and value is not True:
+            return str(value).split("|")[0]
+    return ""
 
 
 def _zygosity(gt: str, cn: int | None, ecn: int | None) -> tuple[str | None, str, bool]:
@@ -576,7 +609,7 @@ def ingest_sv(
             if sample_prefix and not str(sample).startswith(sample_prefix):
                 continue
             gt = fmt.get("GT", "./.")
-            cn = _as_int(fmt.get("CN"))
+            cn = depth_copy_number(fmt)
             ecn = _as_int(fmt.get("ECN"))
             if not _is_carrier(gt, cn, ecn if ecn is not None else 2):
                 continue
@@ -588,17 +621,20 @@ def ingest_sv(
                 gq = _as_float(fmt.get("RD_GQ"))
             allele_index = _allele_index(gt)
             cohort_af = cohort_frequency(info, svtype, allele_index)
-            if artifact_cfg["enabled"] and is_depth_only_artifact(
-                info,
-                fmt,
-                max_rd_gq=artifact_cfg["max_rd_gq"],
-            ):
-                continue
+            span_bp = event_span_bp(info, record["pos"], end, svlen)
+            artifact = bool(
+                artifact_cfg["enabled"]
+                and is_depth_only_artifact(
+                    info,
+                    fmt,
+                    max_rd_gq=artifact_cfg["max_rd_gq"],
+                )
+            )
             if pesr_cfg["enabled"] and is_pesr_caller_artifact(
                 info,
                 fmt,
                 svtype=svtype,
-                span_bp=event_span_bp(info, record["pos"], end, svlen),
+                span_bp=span_bp,
                 zygosity=zyg,
                 max_span_bp=pesr_cfg["max_span_bp"],
                 require_cn_min_span_bp=pesr_cfg["require_cn_min_span_bp"],
@@ -613,13 +649,22 @@ def ingest_sv(
             evidence = str(fmt.get("EV") or "")
             rd_gq = _as_float(fmt.get("RD_GQ"))
             ogq = _as_float(fmt.get("OGQ"))
+            high_sr = info.get("HIGH_SR_BACKGROUND") is True or str(info.get("HIGH_SR_BACKGROUND") or "").upper() in {
+                "TRUE",
+                "YES",
+                "1",
+            }
+            freq_het = _as_float(info.get("FREQ_HET"))
+            clinvar_raw = _clinvar_raw(info)
             for gene in sorted(gene_symbols):
                 predicted = effects.get(gene, set())
                 n_exons = len({(h["chrom"], h["start"], h["end"]) for h in exons_by_gene.get(gene, [])})
                 mechanism, event, scored, citation = classify_dosage(
                     gene, svtype, cn, ecn if ecn is not None else 2, predicted,
-                    n_exons, exon_counts.get(gene, 0), rules,
+                    n_exons, exon_counts.get(gene, 0), rules, span_bp,
                 )
+                if artifact:
+                    mechanism, scored, citation = "other", False, ""
                 rows.append(
                     {
                         "sample_id": str(sample),
@@ -658,7 +703,7 @@ def ingest_sv(
                         "muttaster_pred": "",
                         "fathmm": pd.NA,
                         "fathmm_pred": "",
-                        "clinvar": "",
+                        "clinvar": clinvar_raw,
                         "clinvar_class": "none",
                         "variant_class": "SV",
                         "hit_source": "sv",
@@ -680,10 +725,14 @@ def ingest_sv(
                         "sv_evidence": evidence,
                         "rd_gq": rd_gq if rd_gq is not None else pd.NA,
                         "ogq": ogq if ogq is not None else pd.NA,
+                        "high_sr_background": high_sr,
+                        "freq_het": freq_het if freq_het is not None else pd.NA,
+                        "sv_artifact": artifact,
                     }
                 )
     table = pd.DataFrame(rows) if rows else empty_variant_table()
     if not table.empty:
+        table["clinvar_class"] = normalize_clinvar(table["clinvar"])
         table = derive_zygosity(table)
         # derive_zygosity keeps a provided zygosity. CN-inferred genotypes are already set.
     carriers = table["sample_id"].astype(str).unique().tolist() if not table.empty else []

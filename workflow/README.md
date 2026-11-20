@@ -41,7 +41,7 @@ GATK-SV is a required call. Panel and resource `File` inputs are required `PdSam
 | VEP | `quay.io/biocontainers/ensembl-vep:116.2--pl5321h2a3209d_0` | 116.2 |
 | AlphaGenome AVI (precomputed table) | `python:3.11.11-slim-bookworm` | pip `pysam==0.24.1`, local Tabix lookup |
 | Annotate panel gnomAD AF / Lift gnomAD INFO | `python:3.11.11-slim-bookworm` | `annotate_gnomad_af.py`, `lift_gnomad_from_csq.py` |
-| ExpansionHunter | `quay.io/biocontainers/expansionhunter:5.0.0--hc26b3af_5` | 5.0.0, 19-locus catalog |
+| ExpansionHunter | `quay.io/biocontainers/expansionhunter:5.0.0--hc26b3af_5` | 5.0.0, 24-locus catalog |
 | Gauchian | `python:3.11.11-slim-bookworm` unless `gauchian_docker` is set | pip `gauchian==1.0.2` |
 | mtDNA | images inside vendored MitochondriaPipeline | GATK 4.7.0.0 |
 | AnnotateMtdna (MitImpact) | `python:3.11.11-slim-bookworm` | `annotate_mtdna.py`; unset `mtdna_mitimpact` → `not_assessed` |

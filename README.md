@@ -70,13 +70,13 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 2. **Reference check.** The alignment header `@SQ` MD5s are compared with the reference dictionary. A missing `chr` prefix fails the check.
 3. **QC.** VerifyBamID2 contamination (`FREEMIX` above 0.02 fails the sample by default), somalier extract plus relate on this sample only (sex; relatedness is not run), and mosdepth on the calling BED. Callers wait on the QC gate.
 4. **Small variants.** GATK 4.6.1.0 HaplotypeCaller in GVCF mode, then GenotypeGVCFs, then GATK hard filters, then `bcftools view -f PASS` and `bcftools norm -m -both`. Intervals default to `workflow/assets/monopdaus-genes.grch38.bed`. Set `wgs_small_variants` true to call the whole genome.
-5. **Structural variants.** Precedence: (1) sample `sv_prior_vcf` / `sv_prior_vcf_index` (Terra: `this.sv_vcf` / `this.sv_vcf_index`) reuses a previous callset and skips calling (`sv_status` `prior`); (2) else workspace `sv_joint_vcf` / optional `sv_joint_vcf_index` — when `sample_id` is in the header, subset and skip GATK-SV (`sv_status` `joint`); when absent, fall back to calling; (3) else `GATKSVPipelineSingleSample` v1.1.1 (`sv_status` `called`), reusing any non-empty `sv_case_*` evidence and calling the rest. Blank Terra prior/joint/case cells are ignored. Reference-panel inputs stay required for the single-sample path. A missing SV VCF is an error in `pdvar`.
-6. **STRs.** ExpansionHunter 5.0.0 with the vendored 19-locus catalog `workflow/assets/expansionhunter_pd.hg38.json`.
+5. **Structural variants.** Precedence: (1) sample `sv_prior_vcf` / `sv_prior_vcf_index` (Terra: `this.sv_vcf` / `this.sv_vcf_index`) reuses a previous callset and skips calling (`sv_status` `prior`); (2) else workspace `sv_joint_vcf` / optional `sv_joint_vcf_index` — when `sample_id` is in the header, subset and skip GATK-SV (`sv_status` `joint`); when absent, fall back to calling; (3) else `GATKSVPipelineSingleSample` v1.1.1 (`sv_status` `called`), reusing any non-empty `sv_case_*` evidence and calling the rest. Blank Terra prior/joint/case cells are ignored. Reference-panel inputs stay required for the single-sample path. A missing SV VCF is an error in `pdvar`. `pesr_caller_qc` drops raw Manta DEL/DUP that lack a depth genotype; GATK-SV `FORMAT RD_CN` counts as that genotype when `CN` is absent (joint callsets often omit `CN`). Optional `introme_prior` (`this.introme`) reuses a previous Introme TSV the same way and skips the Introme subworkflow.
+6. **STRs.** ExpansionHunter 5.0.0 with the vendored 24-locus catalog `workflow/assets/expansionhunter_pd.hg38.json` (includes FGF14, NOTCH2NLC, BEAN1, LRP12, and FXN).
 7. **GBA1.** Gauchian 1.0.2.
 8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0, then optional MitImpact 4 CSV annotation (`mtdna_mitimpact`) for ClinVar / MITOMAP / gnomAD mtDNA AF / APOGEE2 / MitoTIP / MLC. Ingest keeps alleles with heteroplasmy ≥ 1% and a MITOMAP GenBank frequency entry. High-evidence rows become `mtdna_pathogenic_candidate` in Assess; other carried alleles stay `mtdna_variant` and are not shortlisted.
-9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and missense/splice gnomAD v4.1 joint AF fallback (cache-native VEP SIFT/PolyPhen off by default). Optional panel-sliced **gnomAD v4.1 joint** sites (`gnomad_af_vcf`) annotate complete panel AF including intron/UTR; rebuild with `workflow/scripts/build_panel_gnomad_af.sh` when the panel BED changes. Optional genome-wide CADD/REVEL plugins remain as a fallback. `AnnotateGnomadAf` + `LiftGnomadInfo` expose `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`.
+9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and missense/splice gnomAD v4.1 joint AF fallback (cache-native VEP SIFT/PolyPhen off by default). Optional panel-sliced **gnomAD v4.1 joint** sites (`gnomad_af_vcf`) annotate complete panel AF including intron/UTR; rebuild with `workflow/scripts/build_panel_gnomad_af.sh` when the panel BED changes. Optional panel-sliced **ClinVar P/LP** sites (`clinvar_plp_vcf`; `workflow/scripts/build_panel_clinvar.sh`) annotate indels and matching SV ids before Assess. Optional genome-wide CADD/REVEL plugins remain as a fallback. `AnnotateGnomadAf` + `LiftGnomadInfo` expose `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`. `RescueSites` restores non-PASS genotypes at those ClinVar P/LP alleles and at GBA1-PD Browser coordinates so VEP still sees them.
 10. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties inside Assess. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
-11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo. Scores are merged onto alleles already in the sample callset; Introme carrier-table alleles absent from that callset are not injected as candidates.
+11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo. Scores are merged onto alleles already in the sample callset. Uncalled Introme alleles are injected only inside genes that already have `followup_reason`: first at ≥ 0.9, and if that gene has none, at ≥ 0.7. The global Introme evidence cutoff stays 0.9. A filled `this.introme` skips the Introme subworkflow (`introme_status` `prior`).
 12. **Assess.** `pdvar` filters, scores, assigns inheritance, ranks, and writes `report.html`, `qc_summary.json`, and `candidates.tsv`. Full protocol: [Variant prioritisation](#variant-prioritisation).
 
 ## Variant prioritisation
@@ -100,8 +100,8 @@ flowchart LR
 | --- | --- |
 | VEP + dbNSFP / gnomAD | Small variants: consequence, ClinVar, CADD, REVEL, in-silico preds, AF |
 | AlphaGenome AVI | Optional SNV Phred bands (points + tie-break) |
-| Introme v2 | Splice score on panel alleles already in the callset |
-| GATK-SV | Dosage / LoF SVs on panel gene and exon BEDs |
+| Introme v2 | Splice score on panel alleles already in the callset; uncalled alleles only in `followup_reason` genes (0.9, then 0.7 if that gene has none) |
+| GATK-SV | Dosage / LoF SVs on panel gene and exon BEDs. Depth CN is `CN` else `RD_CN`. Depth-only artifacts stay as unscored `sv_artifact`. SNCA copy-gain scores only gene-scale multiplications |
 | ExpansionHunter | STR loci; `str_expanded` only with a cited pathogenic floor |
 | Gauchian | GBA1 CN / recombinants / catalog SNVs (+ GBA1-PD Browser class bump) |
 | MitochondriaPipeline + MitImpact | mtDNA alleles with heteroplasmy and MITOMAP gates |
@@ -148,9 +148,10 @@ Panel MOI (`AD` / `AR` / `XL` / `RISK` / `UNKNOWN`) plus tier gates decide wheth
 | `mtdna_pathogenic_candidate` | High-evidence mtDNA; not a nuclear Mendelian solve |
 | `str_expanded` | Expansion at or above a cited pathogenic floor |
 | `AD_gof_intronic`, `AR_intronic_candidate` | Demoted intron / Introme support |
-| `not_qualifying` | Below MOI tier (or off-panel) — dropped from `candidates.tsv` |
+| `not_qualifying` | Below MOI tier (or off-panel) — dropped from `candidates.tsv` unless `followup_reason` is set |
+| `module_not_assessed` | Empty unexplained shortlist stub naming a required module that did not run |
 
-AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or ClinVar P/LP partners, demotes intron-only false solves, and tags incomplete AR genes with `followup_reason` so those alleles stay in `candidates.tsv` for second-hit review.
+AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or ClinVar P/LP partners, demotes intron-only false solves, tags incomplete AR genes with `followup_reason`, and notes unphased `AR_comphet_candidate` / `AR_hemizygous` pairs. Assess then searches those follow-up genes for low-depth nulls, ClinVar P/LP, depth-only exon SVs, and gene-scoped Introme hits (0.9 first; 0.7 if that gene has none). SNCA copy-gain is scored only for gene-scale multiplications (`PREDICTED_COPY_GAIN` or exon/TSS overlap and span ≥ 10 kb). `HIGH_SR_BACKGROUND` and in-cohort `FREQ_HET` are annotation; cohort SV AF is not a hard filter.
 
 ### 5. Rank and shortlist
 
@@ -161,7 +162,7 @@ AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or Cli
 3. **Coding over intron noise** — intron-only non-P/LP rows are penalised; intron-only `AD_candidate` is bumped out of the top priority band
 4. **Tier**, then **evidence_score**, then **AVI Phred**, then **phenotype_score**
 
-`patient_candidates` keeps the top `max_candidates_per_patient` (default 20) among qualifying rows, then **force-keeps** clinical must-sees that would otherwise fall off: Mendelian / risk / STR / high-evidence mtDNA statuses, ClinVar P/LP, Gauchian rows, scored LoF SVs, and any allele with `followup_reason`. Plain `mtdna_variant` haplogroup rows are never shortlisted.
+`patient_candidates` keeps the top `max_candidates_per_patient` (default 20) among qualifying rows, then **force-keeps** clinical must-sees that would otherwise fall off: Mendelian / risk / STR / high-evidence mtDNA statuses, ClinVar P/LP, Gauchian rows, scored LoF SVs, early-onset recessive-eopd nulls, empty-shortlist module stubs, and any allele with `followup_reason`. Plain `mtdna_variant` haplogroup rows are never shortlisted.
 
 ### 6. Phenotype and sample classification
 
@@ -169,8 +170,8 @@ Phenotype concordance writes `clinical_match` and `phenotype_score` (onset range
 
 The report header still classifies the sample from inheritance statuses:
 
-- **solved** — MOI-complete finding outside reduced-penetrance genes (default GBA1, LRRK2)
-- **partially_explained** — risk, reduced-penetrance, single-het AR, or high-evidence mtDNA
+- **solved** — MOI-complete finding outside reduced-penetrance genes (default GBA1, LRRK2), including AD/XL STR expansions and biallelic AR expansions with a confirmed pathogenic motif
+- **partially_explained** — risk, reduced-penetrance, single-het AR, high-evidence mtDNA, intron-only AD (including MAPT `splice_gof` without ClinVar P/LP or a canonical splice), or a one-allele / unconfirmed-motif AR expansion
 - **unexplained** — none of those
 
 Numeric `explained_liability` stays null until cited penetrances are set in config. Incomplete AR genes are tagged with `followup_reason` on the shortlist rows.
@@ -181,15 +182,16 @@ Work top-down by `rank`. Same-gene partners for AR review share `gene` and often
 
 ## Hard filters
 
-These are **GATK callset** filters on the small-variant VCF (before VEP / Assess). Single-sample hard filters are used because VQSR fits tranches on a cohort and this repository does not ship a CNN scoring model. SNP sites fail when `QD < 2.0`, `QUAL < 30.0`, `SOR > 3.0`, `FS > 60.0`, `MQ < 40.0`, `MQRankSum < -12.5`, or `ReadPosRankSum < -8.0`. INDEL sites fail when `QD < 2.0`, `QUAL < 30.0`, `FS > 200.0`, or `ReadPosRankSum < -20.0`. Only `PASS` records continue. Separate panel / AF / depth rules inside Assess are listed under [Keep or drop](#2-keep-or-drop).
+These are **GATK callset** filters on the small-variant VCF (before VEP / Assess). Single-sample hard filters are used because VQSR fits tranches on a cohort and this repository does not ship a CNN scoring model. SNP sites fail when `QD < 2.0`, `QUAL < 30.0`, `SOR > 3.0`, `FS > 60.0`, `MQ < 40.0`, `MQRankSum < -12.5`, or `ReadPosRankSum < -8.0`. INDEL sites fail when `QD < 2.0`, `QUAL < 30.0`, `FS > 200.0`, or `ReadPosRankSum < -20.0`. `NormPass` keeps `PASS` records. `RescueSites` can restore a non-PASS carrier at a panel ClinVar P/LP site or a GBA1-PD Browser coordinate (`INFO/PDVAR_RESCUE`) before that step. Separate panel / AF / depth rules inside Assess are listed under [Keep or drop](#2-keep-or-drop).
 
 ## Outputs written back to the row
 
 | Output | File |
 | --- | --- |
 | `candidates` | Assess array, in order: `report.html` (triage narrative + classification), `qc_summary.json` (module / callset status), `candidates.tsv` (ranked shortlist, including `followup_reason` alleles). Column dictionary: [`docs/data_dictionary.md`](docs/data_dictionary.md) |
-| `vep_vcf` | `{sample_id}.vep.vcf.gz` — VEP VCF after the gnomAD INFO lift |
+| `vep_vcf` | `{sample_id}.vep.vcf.gz` — VEP VCF after the gnomAD INFO lift and optional ClinVar P/LP annotation |
 | `sv_vcf` / `sv_vcf_index` | `{sample_id}.sv.vcf.gz` — GATK-SV call, joint subset, or reused `sv_prior_vcf` (written back for the next run) |
+| `introme` | `{sample_id}.introme.predictions.tsv` — Introme scores, written back as `this.introme` for reuse |
 | `coverage_counts`, `manta_vcf`, `manta_index`, `pesr_disc`, `pesr_disc_index`, `pesr_sd`, `pesr_sd_index`, `pesr_split`, `pesr_split_index`, `scramble_vcf`, `scramble_index`, `scramble_clusters`, `scramble_table`, `wham_vcf`, `wham_index` | GatherSampleEvidence intermediates (`File?`). Set when `GatkSvSingle` runs; unset on the joint-SV path. Reuse as `sv_case_*` inputs on later runs. |
 | `sample_metrics_files` | `Array[File]` of GatherSampleEvidence metrics (manta/wham/SR/PE/counts) when `sv_run_sampleevidence_metrics` is true (default); empty on the joint-SV path |
 

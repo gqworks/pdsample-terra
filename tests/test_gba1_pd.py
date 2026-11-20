@@ -65,9 +65,9 @@ def test_annotate_and_score_gauchian_only(tmp_path):
     assert "gba1_pd_severe" in gauchian_severe["evidence_reasons"]
 
     vep = out[out["hit_source"] == "small_variant"].iloc[0]
-    assert pd.isna(vep["gba1_pd_class"]) or str(vep["gba1_pd_class"]) in {"", "nan", "<NA>"}
-    assert vep["evidence_score"] == 14
-    assert "gba1_pd_severe" not in str(vep["evidence_reasons"])
+    assert vep["gba1_pd_class"] == "severe"
+    assert vep["evidence_score"] == 18  # 14 + gba1_pd_severe(4)
+    assert "gba1_pd_severe" in str(vep["evidence_reasons"])
 
     risk = out[out["hgvsc"] == "c.1093G>A"].iloc[0]
     assert risk["gba1_pd_class"] == "risk"

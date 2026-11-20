@@ -48,7 +48,7 @@ GENCODE v44 GTF (Introme):
   https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz
 
 ExpansionHunter catalog is vendored at workflow/assets/expansionhunter_pd.hg38.json
-(19 loci copied from ExpansionHunter v5.0.0 hg38 variant_catalog.json).
+(24 loci; Illumina ExpansionHunter v5.0.0 hg38 catalog plus FGF14, NOTCH2NLC, BEAN1, LRP12, FXN).
 
 GATK-SV v1.1.1 is required. Public hg38 and 1KG paths are already in
 workflow/terra/PdSample.example.json (resolved from that tag's ref_panel_1kg.json

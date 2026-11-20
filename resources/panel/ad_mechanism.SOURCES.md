@@ -10,6 +10,7 @@ expected to explain autosomal-dominant disease in that gene.
 | `dn` | Dominant-negative missense (or equivalent); splice LoF usually does not recapitulate disease |
 | `lof` | Haploinsufficiency / LoF; splice-disrupting alleles can be relevant |
 | `mixed` | Both GoF and LoF evidence; keep splice relevance (conservative) |
+| `splice_gof` | Pathogenic variation is a splice cassette (MAPT exon 10); skip GoF intron demotion |
 | `unknown` | Insufficient evidence |
 
 Pipeline behaviour: when `inheritance.demote_gof_ad_intronic` is true, weak intron /
@@ -47,7 +48,7 @@ alleles are not demoted. `lof` and `mixed` keep the existing AD intron demotion
 | Gene | Label | Key sources |
 | --- | --- | --- |
 | APP, PSEN1, PSEN2 | gof | GeneReviews Alzheimer Disease Overview |
-| MAPT | gof | GeneReviews MAPT |
+| MAPT | splice_gof | GeneReviews MAPT; exon-10 cassette (+14/+16) is the pathogenic splice, not MAPT haploinsufficiency |
 | GRN | lof | GeneReviews GRN-FTD |
 | PRNP | gof | GeneReviews genetic prion |
 | TBK1 | lof | Freischmidt 2015 Nat Neurosci |

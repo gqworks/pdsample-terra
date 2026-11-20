@@ -162,6 +162,8 @@ pairs = [
     ("workflow/scripts/annotate_mtdna.py", "annotate_mtdna.py"),
     ("workflow/scripts/lift_gnomad_from_csq.py", "lift_gnomad_from_csq.py"),
     ("workflow/scripts/annotate_gnomad_af.py", "annotate_gnomad_af.py"),
+    ("workflow/scripts/annotate_clinvar_plp.py", "annotate_clinvar_plp.py"),
+    ("workflow/scripts/rescue_nonpass_sites.py", "rescue_nonpass_sites.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
@@ -188,6 +190,8 @@ PY
     File annotate_mtdna_py = "annotate_mtdna.py"
     File lift_gnomad_from_csq_py = "lift_gnomad_from_csq.py"
     File annotate_gnomad_af_py = "annotate_gnomad_af.py"
+    File annotate_clinvar_plp_py = "annotate_clinvar_plp.py"
+    File rescue_nonpass_sites_py = "rescue_nonpass_sites.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
     File panel_csv = "panel.csv"
@@ -535,6 +539,55 @@ task GenotypeHardFilter {
   }
 }
 
+# Restore non-PASS genotypes at ClinVar P/LP alleles and GBA1-PD Browser
+# coordinates so NormPass / VEP still see them. Caller-missed alleles stay absent.
+task RescueSites {
+  input {
+    File vcf
+    File vcf_index
+    File rescue_nonpass_sites_py
+    File? clinvar_plp_vcf
+    File? clinvar_plp_vcf_index
+    File? gba1_pd_browser
+    String sample_id
+    String python_docker = "python:3.11.11-slim-bookworm"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(vcf, "GiB") * 3 + 50)
+  command <<<
+    set -euo pipefail
+    apt-get update -qq
+    apt-get install -y -qq tabix >/dev/null
+    clinvar='~{default="" clinvar_plp_vcf}'
+    clinvar_index='~{default="" clinvar_plp_vcf_index}'
+    if [[ -n "$clinvar" && -n "$clinvar_index" && ! -e "${clinvar}.tbi" && -e "$clinvar_index" ]]; then
+      ln -sf "$clinvar_index" "${clinvar}.tbi"
+    fi
+    args=(--in-vcf "~{vcf}" --out-vcf "~{sample_id}.rescued.vcf")
+    if [[ -n "$clinvar" ]]; then
+      args+=(--clinvar-vcf "$clinvar")
+    fi
+    browser='~{default="" gba1_pd_browser}'
+    if [[ -n "$browser" ]]; then
+      args+=(--gba1-browser "$browser")
+    fi
+    python3 "~{rescue_nonpass_sites_py}" "${args[@]}"
+    bgzip -f "~{sample_id}.rescued.vcf"
+    tabix -p vcf "~{sample_id}.rescued.vcf.gz"
+  >>>
+  output {
+    File vcf = "~{sample_id}.rescued.vcf.gz"
+    File vcf_index = "~{sample_id}.rescued.vcf.gz.tbi"
+  }
+  runtime {
+    docker: python_docker
+    preemptible: preemptible
+    memory: "4 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 1
+  }
+}
+
 task NormPass {
   input {
     File vcf
@@ -717,6 +770,48 @@ task AnnotateGnomadAf {
   output {
     File annotated_vcf = "~{sample_id}.gnomad_af.vcf.gz"
     File annotated_vcf_index = "~{sample_id}.gnomad_af.vcf.gz.tbi"
+  }
+  runtime {
+    docker: python_docker
+    preemptible: preemptible
+    memory: "8 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 2
+  }
+}
+
+# Join panel-sliced ClinVar P/LP sites onto the sample VCF (INFO/ClinVar_CLNSIG).
+task AnnotateClinvarPlp {
+  input {
+    File vcf
+    File vcf_index
+    File sites_vcf
+    File sites_vcf_index
+    File annotate_clinvar_plp_py
+    String sample_id
+    String python_docker = "python:3.11.11-slim-bookworm"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(vcf, "GiB") * 3 + size(sites_vcf, "GiB") + size(sites_vcf_index, "GiB") + 50)
+  command <<<
+    set -euo pipefail
+    apt-get update -qq
+    apt-get install -y -qq tabix >/dev/null
+    sites="~{sites_vcf}"
+    sites_index="~{sites_vcf_index}"
+    if [[ ! -e "${sites}.tbi" && -e "$sites_index" ]]; then
+      ln -sf "$sites_index" "${sites}.tbi"
+    fi
+    python3 "~{annotate_clinvar_plp_py}" \
+      --in-vcf "~{vcf}" \
+      --sites-vcf "$sites" \
+      --out-vcf "~{sample_id}.clinvar_plp.vcf"
+    bgzip -f "~{sample_id}.clinvar_plp.vcf"
+    tabix -p vcf "~{sample_id}.clinvar_plp.vcf.gz"
+  >>>
+  output {
+    File annotated_vcf = "~{sample_id}.clinvar_plp.vcf.gz"
+    File annotated_vcf_index = "~{sample_id}.clinvar_plp.vcf.gz.tbi"
   }
   runtime {
     docker: python_docker
@@ -1075,7 +1170,10 @@ task Assess {
     # called | not_assessed from AnnotateMtdna (MitImpact join).
     String mtdna_annotation = "not_assessed"
     File introme_tsv
+    # "called" from Introme; "prior" when reusing this.introme via introme_prior.
+    String introme_status = "called"
     File? avi_tsv
+    Boolean avi_requested = false
     File qc_json
     File config_yaml
     File columns_yaml
@@ -1094,7 +1192,7 @@ task Assess {
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
-    String pdvar_git_commit = "39433c1a6dff29205738eb93a95b451af1c311fd"
+    String pdvar_git_commit = "d18d01efb2e7605d2e3e0f626e82f6b09fdf4219"
   }
   Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(gtf, "GiB") + 150)
   command <<<
@@ -1132,6 +1230,8 @@ PY
     export MTDNA_VCF="~{mtdna_vcf}"
     export MTDNA_ANNOTATION="~{mtdna_annotation}"
     export INTROME_TSV="~{introme_tsv}"
+    export INTROME_STATUS="~{introme_status}"
+    export AVI_REQUESTED="~{avi_requested}"
     export QC_JSON="~{qc_json}"
     export GENE_BED='~{default="" gene_bed}'
     export EXON_BED='~{default="" exon_bed}'
@@ -1174,6 +1274,8 @@ document = {
     "mtdna_vcf": os.environ["MTDNA_VCF"],
     "mtdna_annotation": os.environ.get("MTDNA_ANNOTATION") or "not_assessed",
     "introme_tsv": os.environ["INTROME_TSV"],
+    "introme_status": os.environ.get("INTROME_STATUS") or "called",
+    "avi_requested": os.environ.get("AVI_REQUESTED", "").strip().lower() in {"true", "1", "yes"},
     "gene_bed": maybe("GENE_BED"),
     "exon_bed": maybe("EXON_BED"),
     "ref_fasta": os.environ["REF_FASTA"],

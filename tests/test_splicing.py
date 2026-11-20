@@ -48,3 +48,7 @@ def test_merge_introme_scores_onto_callset_alleles_only(cfg):
     assert len(out) == 1
     assert out.loc[0, "variant_id"] == "1-20660000-A-G"
     assert out.loc[0, "introme_class"] == "high"
+    assert out.loc[0, "evidence_reasons"].count("introme_high") == 1
+    again = splicing.apply_introme_evidence(out, cfg["splicing"], cfg["scoring"])
+    assert again.loc[0, "evidence_score"] == out.loc[0, "evidence_score"]
+    assert again.loc[0, "evidence_reasons"].count("introme_high") == 1

@@ -79,7 +79,13 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File? gnomad_genomes_vcf" not in text
     assert "File? gnomad_af_vcf" in text
     assert "File? gnomad_af_vcf_index" in text
+    assert "File? clinvar_plp_vcf" in text
+    assert "File? clinvar_plp_vcf_index" in text
     assert "File? clinvar_vcf" not in text
+    assert "task RescueSites" in sample_tasks
+    assert "task AnnotateClinvarPlp" in sample_tasks
+    assert "rescue_nonpass_sites.py" in sample_tasks
+    assert "annotate_clinvar_plp.py" in sample_tasks
     assert "File? cadd_snv" in text
     assert "File? revel" in text
     assert "File? dbnsfp" in text
@@ -188,6 +194,7 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File gvcf =" not in text
     assert "File gvcf_index =" not in text
     assert "File introme_tsv =" not in text
+    assert "File introme =" in text
     assert "File introme_vcf =" not in text
     assert "File expansionhunter_vcf =" not in text
     assert "File expansionhunter_vcf_index =" not in text
@@ -196,7 +203,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File gauchian_json =" not in text
     assert "File mtdna_vcf =" not in text
     assert "File mtdna_vcf_index =" not in text
-    assert "introme_tsv = Introme.introme_tsv" in text
+    assert "File sample_introme = select_first(flatten([introme_prior_files, select_all([Introme.introme_tsv])]))" in text
+    assert "introme_tsv = NameIntrome.released" in text
     assert "expansionhunter_vcf = ExpansionHunter.vcf" in text
     assert "small_vcf = NormPass.normalized_vcf" in text
     assert "gauchian_json = Gauchian.json" in text
@@ -206,7 +214,7 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File? mtdna_mitimpact" in text
     assert "annotate_mtdna.py" in sample_tasks
     assert "task AnnotateMtdna" in sample_tasks
-    assert "File vep_vcf = LiftGnomadInfo.lifted_vcf" in text
+    assert "File vep_vcf = sample_vep_vcf" in text
     assert "File sv_vcf = NameSvVcf.released" in text
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert 'Array[File] candidates = [' in tasks
@@ -613,9 +621,10 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert "case_manta_vcf = case_manta_vcf" in text
     assert "File? optional_file_none" in text
     assert (
-        "sample_sv_vcf = select_first(flatten([prior_sv_vcfs, select_all([GatkSvSingle.final_vcf]), SubsetJointSvVcf.vcf]))"
+        "File raw_sv_vcf = select_first(flatten([prior_sv_vcfs, select_all([GatkSvSingle.final_vcf]), SubsetJointSvVcf.vcf]))"
         in text
     )
+    assert "File sample_sv_vcf = select_first([AnnotateClinvarSv.annotated_vcf, raw_sv_vcf])" in text
     assert "Array[File] prior_sv_vcfs = sv_prior_vcf_files" in text
     assert (
         'sv_status = if use_prior_sv then "prior" else if use_joint_sv then "joint" else "called"'
@@ -632,6 +641,11 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert "String sv_status = \"called\"" in tasks
     assert '"PdSample.sv_prior_vcf": "${this.sv_vcf}"' in terra
     assert '"PdSample.sv_prior_vcf_index": "${this.sv_vcf_index}"' in terra
+    assert 'String introme_prior = ""' in text
+    assert "Boolean use_prior_introme = length(introme_prior_files) > 0" in text
+    assert "if (!use_prior_introme)" in text
+    assert '"PdSample.introme_prior": "${this.introme}"' in terra
+    assert "File introme = NameIntrome.released" in text
     assert '"PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}"' in terra
     assert '"PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}"' in terra
 

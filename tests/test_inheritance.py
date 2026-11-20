@@ -174,6 +174,27 @@ def test_dn_ad_intronic_demoted(cfg):
     assert out.loc[0, "inheritance_status"] == "AD_gof_intronic"
 
 
+def test_mapt_splice_gof_skips_intron_demotion(cfg):
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "MAPT",
+                "moi": "AD",
+                "mechanism": "splice_gof",
+                "zygosity": "het",
+                "tier": 2,
+                "introme_class": "high",
+                "evidence_reasons": "introme_high",
+                "consequence": "splice_region_variant",
+                "clinvar_class": "none",
+            }
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, cfg["inheritance"])
+    assert out.loc[0, "inheritance_status"] == "AD_candidate"
+
+
 def test_gof_demotion_can_be_disabled(cfg):
     icfg = {**cfg["inheritance"], "demote_gof_ad_intronic": False}
     rows = pd.DataFrame(
@@ -207,6 +228,28 @@ def test_hets_in_different_samples_not_comphet(cfg):
         ("S2", "PRKN", "AR", "het", 1, "none", "null_variant"),
     ])
     assert set(out["inheritance_status"]) == {"AR_single_het"}
+
+
+def test_gba1_pd_class_qualifies_clinvar_blb(cfg):
+    """Browser risk/severe/mild GBA1 alleles qualify even with ClinVar B/LB."""
+    rows = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "GBA1",
+                "moi": "RISK",
+                "zygosity": "het",
+                "tier": 4,
+                "introme_class": "none",
+                "evidence_reasons": "clinvar_blb",
+                "consequence": "missense_variant",
+                "clinvar_class": "B/LB",
+                "gba1_pd_class": "risk",
+            }
+        ]
+    )
+    out = inheritance.evaluate_inheritance(rows, cfg["inheritance"])
+    assert out.loc[0, "inheritance_status"] == "risk_carrier"
 
 
 def test_clinvar_vus_ad_missense_qualifies_below_tier(cfg):

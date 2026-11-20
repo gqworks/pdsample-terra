@@ -13,7 +13,7 @@ from pdvar.splicing import merge_splicevault, summarize_splice_scores
 def _beds(directory: Path) -> tuple[Path, Path]:
     genes = directory / "genes.bed"
     exons = directory / "exons.bed"
-    genes.write_text("chr4\t800\t2500\tENSG\tSNCA\nchr6\t900\t4000\tENSG\tPRKN\n", encoding="utf-8")
+    genes.write_text("chr4\t800\t25000\tENSG\tSNCA\nchr6\t900\t4000\tENSG\tPRKN\n", encoding="utf-8")
     exons.write_text("chr4\t1000\t2000\tENSG\tSNCA\nchr6\t1000\t1200\tENSG\tPRKN\n", encoding="utf-8")
     return genes, exons
 
@@ -35,6 +35,9 @@ def test_pesr_caller_artifact_helpers():
     manta = {"GT": "0/1", "GQ": "144", "PR": "14,4", "SR": "14,9"}
     assert sv.lacks_depth_cn(manta)
     assert not sv.lacks_depth_cn({"GT": "0/1", "CN": "1", "ECN": "2"})
+    assert not sv.lacks_depth_cn({"GT": "0/1", "RD_CN": "1", "ECN": "2"})
+    assert sv.depth_copy_number({"GT": "0/1", "RD_CN": "1"}) == 1
+    assert sv.depth_copy_number({"CN": "2", "RD_CN": "1"}) == 2
     assert sv.manta_alt_count(manta, "SR") == 9
     assert sv.manta_alt_count({"SR": "3,0"}, "SR") == 0
     assert sv.manta_alt_count({"PR": "14,5"}, "SR") is None
@@ -97,6 +100,22 @@ def test_pesr_caller_artifact_helpers():
         {"GT": "0/1", "CN": "1", "ECN": "2"},
         svtype="DEL",
         span_bp=5_000_000,
+        zygosity="het",
+    )
+    # GATK-SV joint VCFs write RD_CN, not CN. 54 kb PRKN DEL must skip Manta PESR QC.
+    assert not sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL", "ALGORITHMS": "depth,manta"},
+        {"GT": "0/1", "RD_CN": "1", "ECN": "2", "EV": "RD,SR", "SR_GT": "1", "SR_GQ": "67"},
+        svtype="DEL",
+        span_bp=54_475,
+        zygosity="het",
+    )
+    # Same span without CN or RD_CN still drops (no Manta SR=ref,alt)
+    assert sv.is_pesr_caller_artifact(
+        {"SVTYPE": "DEL"},
+        {"GT": "0/1", "EV": "RD,SR", "SR_GT": "1"},
+        svtype="DEL",
+        span_bp=54_475,
         zygosity="het",
     )
 
@@ -165,6 +184,24 @@ def test_sv_drops_raw_manta_spanning_dels(tmp_path):
     assert small["consequence"] == "transcript_ablation"
 
 
+def test_gatk_sv_rd_cn_prkn_del_is_kept():
+    """Joint GATK-SV PRKN exon DEL with RD_CN (no CN) must not be PESR-dropped."""
+    from pdvar.config import PROJECT_ROOT
+
+    vcf = Path(__file__).resolve().parent / "fixtures" / "sv" / "apgs_000502_prkn_del.vcf"
+    genes = PROJECT_ROOT / "resources" / "panel" / "monopdaus-genes.grch38.bed"
+    exons = PROJECT_ROOT / "resources" / "panel" / "monopdaus-exons.grch38.bed"
+    panel = pd.DataFrame({"gene": ["PRKN"], "gene_id": ["ENSG00000185345"]})
+    table, _ = sv.ingest_sv(vcf, genes, exons, panel, snv_samples=["APGS_000502"], auto_index=False)
+    row = table[table["sv_id"].astype(str).str.contains("DEL_chr6_1438")].iloc[0]
+    assert row["gene"] == "PRKN"
+    assert int(row["copy_number"]) == 1
+    assert int(row["exons_overlapped"]) >= 1
+    assert row["consequence"] == "transcript_ablation"
+    assert bool(row["scored_dosage"]) is True
+    assert bool(row["sv_artifact"]) is False
+
+
 def test_sv_dosage_and_not_assessed(tmp_path):
     genes, exons = _beds(tmp_path)
     vcf = tmp_path / "sv.vcf"
@@ -180,7 +217,7 @@ def test_sv_dosage_and_not_assessed(tmp_path):
                 "##FORMAT=<ID=CN,Number=1,Type=Integer,Description=CN>",
                 "##FORMAT=<ID=ECN,Number=1,Type=Integer,Description=ECN>",
                 "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_A\tSAMPLE_C",
-                "chr4\t900\t.\tN\t<DUP>\t.\tPASS\tEND=2200;SVTYPE=DUP;PREDICTED_COPY_GAIN=SNCA\tGT:CN:ECN\t0/0:2:2\t0/1:4:2",
+                "chr4\t900\t.\tN\t<DUP>\t.\tPASS\tEND=20000;SVTYPE=DUP;PREDICTED_COPY_GAIN=SNCA\tGT:CN:ECN\t0/0:2:2\t0/1:4:2",
                 "chr6\t1000\tdel\tN\t<DEL>\t.\tPASS\tEND=1300;SVTYPE=DEL;PREDICTED_LOF=PRKN\tGT:CN:ECN\t./.:1:2\t0/0:2:2",
                 "chr6\t2000\tmulti\tN\t<DEL>\t.\tMULTIALLELIC\tEND=2300;SVTYPE=DEL;PREDICTED_LOF=PRKN\tGT:CN:ECN\t0/1:1:2\t0/0:2:2",
                 "chr6\t1000\tdrop\tN\t<DEL>\t.\tHIGH_NCR\tEND=1300;SVTYPE=DEL;PREDICTED_LOF=PRKN\tGT:CN:ECN\t0/1:1:2\t0/0:2:2",
@@ -203,7 +240,7 @@ def test_sv_dosage_and_not_assessed(tmp_path):
     assert prkn["cn_inferred_gt"] == True  # noqa: E712
     assert prkn["consequence"] == "transcript_ablation"
     assert prkn["svlen"] == 300
-    assert snca["svlen"] == 1300
+    assert snca["svlen"] == 19100
     assert sv.sv_length({"SVLEN": "-250"}, 1000, 1250) == -250
     assert sv.sv_length({}, 1000, 1000) is None
     assert prkn["filter"] == "PASS"
@@ -220,7 +257,7 @@ def test_sv_dosage_and_not_assessed(tmp_path):
 
 
 def test_sv_drops_common_depth_only_artifacts(tmp_path):
-    """PASS depth DELs with no PE/SR and weak RD_GQ/OGQ are dropped regardless of AF."""
+    """PASS depth DELs with no PE/SR and weak RD_GQ/OGQ stay as unscored artifacts."""
     genes = tmp_path / "genes.bed"
     exons = tmp_path / "exons.bed"
     genes.write_text(
@@ -267,10 +304,13 @@ def test_sv_drops_common_depth_only_artifacts(tmp_path):
     panel = pd.DataFrame({"gene": ["SOX6", "PRKN", "OPA1"], "gene_id": ["1", "2", "3"]})
     table, _ = sv.ingest_sv(vcf, genes, exons, panel, snv_samples=["SAMPLE_A"], auto_index=False)
     ids = set(table["sv_id"].astype(str))
-    assert "sox6_art" not in ids
-    assert "opa1_art" not in ids
+    assert "sox6_art" in ids
+    assert "opa1_art" in ids
     assert "pesr" in ids
     assert "strong_depth" in ids
+    sox6 = table[table["sv_id"] == "sox6_art"].iloc[0]
+    assert bool(sox6["sv_artifact"]) is True
+    assert bool(sox6["scored_dosage"]) is False
     kept = table[table["sv_id"] == "strong_depth"].iloc[0]
     assert kept["sv_algorithms"] == "depth"
     assert kept["sv_evidence"] == "RD"
@@ -344,6 +384,151 @@ def test_splicevault_keeps_highest_proportion_without_new_points():
     summary = summarize_splice_scores(pd.DataFrame([{"introme_pangolin_gain": 0.1, "introme_pangolin_loss": 0.4}]))
     assert summary.iloc[0]["pangolin_max"] == 0.4
     assert "alphamissense" in summary.columns
+
+
+def test_snca_tiny_intronic_dup_is_not_scored(tmp_path):
+    genes, exons = _beds(tmp_path)
+    vcf = tmp_path / "sv.vcf"
+    vcf.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                "##INFO=<ID=END,Number=1,Type=Integer,Description=End>",
+                "##INFO=<ID=SVTYPE,Number=1,Type=String,Description=Type>",
+                "##INFO=<ID=PREDICTED_INTRONIC,Number=.,Type=String,Description=Intron>",
+                "##INFO=<ID=HIGH_SR_BACKGROUND,Number=0,Type=Flag,Description=SR>",
+                "##INFO=<ID=FREQ_HET,Number=1,Type=Float,Description=Freq>",
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "##FORMAT=<ID=CN,Number=1,Type=Integer,Description=CN>",
+                "##FORMAT=<ID=ECN,Number=1,Type=Integer,Description=ECN>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_C",
+                "chr4\t1500\ttiny\tN\t<DUP>\t.\tPASS\tEND=1624;SVTYPE=DUP;PREDICTED_INTRONIC=SNCA;HIGH_SR_BACKGROUND;FREQ_HET=0.1\tGT:CN:ECN\t0/1:3:2",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    panel = pd.DataFrame({"gene": ["SNCA"], "gene_id": ["1"]})
+    table, _ = sv.ingest_sv(vcf, genes, exons, panel, snv_samples=["SAMPLE_C"], auto_index=False)
+    row = table.iloc[0]
+    assert row["gene"] == "SNCA"
+    assert bool(row["scored_dosage"]) is False
+    assert row["dosage_mechanism"] == "other"
+    assert row["consequence"] != "copy_number_gain"
+    assert bool(row["high_sr_background"]) is True
+    assert float(row["freq_het"]) == pytest.approx(0.1)
+
+
+def test_snca_tiny_copy_gain_prediction_is_not_scored(tmp_path):
+    genes, exons = _beds(tmp_path)
+    vcf = tmp_path / "sv.vcf"
+    vcf.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                "##INFO=<ID=END,Number=1,Type=Integer,Description=End>",
+                "##INFO=<ID=SVTYPE,Number=1,Type=String,Description=Type>",
+                "##INFO=<ID=PREDICTED_COPY_GAIN,Number=.,Type=String,Description=Gain>",
+                "##INFO=<ID=ClinVar_CLNSIG,Number=1,Type=String,Description=ClinVar>",
+                "##FORMAT=<ID=GT,Number=1,Type=String,Description=GT>",
+                "##FORMAT=<ID=CN,Number=1,Type=Integer,Description=CN>",
+                "##FORMAT=<ID=ECN,Number=1,Type=Integer,Description=ECN>",
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_C",
+                "chr4\t3000\ttinygain\tN\t<DUP>\t.\tPASS\tEND=3124;SVTYPE=DUP;PREDICTED_COPY_GAIN=SNCA\tGT:CN:ECN\t0/1:3:2",
+                "chr4\t900\tplp\tN\t<DUP>\t.\tPASS\tEND=20000;SVTYPE=DUP;PREDICTED_COPY_GAIN=SNCA;ClinVar_CLNSIG=Pathogenic\tGT:CN:ECN\t0/1:4:2",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    panel = pd.DataFrame({"gene": ["SNCA"], "gene_id": ["1"]})
+    table, _ = sv.ingest_sv(vcf, genes, exons, panel, snv_samples=["SAMPLE_C"], auto_index=False)
+    tiny = table[table["sv_id"] == "tinygain"].iloc[0]
+    assert bool(tiny["scored_dosage"]) is False
+    assert tiny["consequence"] != "copy_number_gain"
+    scored = table[table["sv_id"] == "plp"].iloc[0]
+    assert bool(scored["scored_dosage"]) is True
+    assert scored["consequence"] == "copy_number_gain"
+    assert scored["clinvar_class"] == "P/LP"
+
+
+def test_str_expansion_sets_classification():
+    ad = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "FGF14",
+                "str_locus": "FGF14",
+                "inheritance_status": "str_expanded",
+                "str_expanded": True,
+                "str_n_expanded_alleles": 1,
+                "str_motif_pathogenic": True,
+                "variant_id": "fgf14",
+            }
+        ]
+    )
+    out = liability.classify_cohort(ad, ["S1"], cfg={"str_ar_loci": ["RFC1", "CSTB", "FXN"]})
+    assert out.iloc[0]["classification"] == "solved"
+
+    rfc1 = pd.DataFrame(
+        [
+            {
+                "sample_id": "S2",
+                "gene": "RFC1",
+                "str_locus": "RFC1",
+                "inheritance_status": "str_expanded",
+                "str_expanded": True,
+                "str_n_expanded_alleles": 1,
+                "str_motif_pathogenic": False,
+                "variant_id": "rfc1",
+            }
+        ]
+    )
+    out = liability.classify_cohort(rfc1, ["S2"], cfg={"str_ar_loci": ["RFC1", "CSTB", "FXN"]})
+    assert out.iloc[0]["classification"] == "partially_explained"
+
+    biallelic = rfc1.copy()
+    biallelic["sample_id"] = "S3"
+    biallelic["str_n_expanded_alleles"] = 2
+    biallelic["str_motif_pathogenic"] = True
+    out = liability.classify_cohort(biallelic, ["S3"], cfg={"str_ar_loci": ["RFC1", "CSTB", "FXN"]})
+    assert out.iloc[0]["classification"] == "solved"
+
+
+def test_intron_only_ad_is_partial_including_mapt():
+    intron = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "GRN",
+                "inheritance_status": "AD_candidate",
+                "consequence": "intron_variant",
+                "clinvar_class": "none",
+                "mechanism": "lof",
+                "variant_id": "grn-intron",
+            }
+        ]
+    )
+    reduced = {"reduced_penetrance_genes": ["GBA1", "LRRK2"]}
+    out = liability.classify_cohort(intron, ["S1"], cfg=reduced)
+    assert out.iloc[0]["classification"] == "partially_explained"
+
+    mapt = intron.copy()
+    mapt["gene"] = "MAPT"
+    mapt["mechanism"] = "splice_gof"
+    mapt["consequence"] = "splice_region_variant"
+    out = liability.classify_cohort(mapt, ["S1"], cfg=reduced)
+    assert out.iloc[0]["classification"] == "partially_explained"
+
+    donor = mapt.copy()
+    donor["consequence"] = "splice_donor_variant"
+    out = liability.classify_cohort(donor, ["S1"], cfg=reduced)
+    assert out.iloc[0]["classification"] == "solved"
+
+    plp = mapt.copy()
+    plp["clinvar_class"] = "P/LP"
+    out = liability.classify_cohort(plp, ["S1"], cfg=reduced)
+    assert out.iloc[0]["classification"] == "solved"
 
 
 def test_large_vcf_is_not_scanned(tmp_path, monkeypatch):

@@ -1,0 +1,21 @@
+##fileformat=VCFv4.2
+##contig=<ID=chr6,length=170805979>
+##INFO=<ID=END,Number=1,Type=Integer,Description="End position of the structural variant">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Length of the SV">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele frequency">
+##INFO=<ID=ALGORITHMS,Number=.,Type=String,Description="Source algorithms">
+##INFO=<ID=PREDICTED_LOF,Number=.,Type=String,Description="Predicted loss-of-function genes">
+##INFO=<ID=gnomad_v4.1_sv_AF,Number=1,Type=Float,Description="gnomAD v4.1 SV AF">
+##INFO=<ID=TRUTH_RECIPROCAL_OVERLAP,Number=1,Type=Float,Description="Truth overlap">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality">
+##FORMAT=<ID=OGQ,Number=1,Type=Integer,Description="Original genotype quality">
+##FORMAT=<ID=RD_CN,Number=1,Type=Integer,Description="Read-depth copy number">
+##FORMAT=<ID=RD_GQ,Number=1,Type=Integer,Description="Read-depth genotype quality">
+##FORMAT=<ID=ECN,Number=1,Type=Integer,Description="Expected copy number">
+##FORMAT=<ID=EV,Number=1,Type=String,Description="Evidence">
+##FORMAT=<ID=SR_GT,Number=1,Type=Integer,Description="Split-read genotype">
+##FORMAT=<ID=SR_GQ,Number=1,Type=Integer,Description="Split-read genotype quality">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	APGS_000502
+chr6	162230760	apgs_monopdaus_2026.chr6.final_cleanup_DEL_chr6_1438	N	<DEL>	72	PASS	END=162285234;SVTYPE=DEL;SVLEN=54475;AF=0.002294;ALGORITHMS=depth,manta;PREDICTED_LOF=PRKN;gnomad_v4.1_sv_AF=0.000571;TRUTH_RECIPROCAL_OVERLAP=1	GT:GQ:OGQ:RD_CN:RD_GQ:ECN:EV:SR_GT:SR_GQ	0/1:72:35:1:2:2:RD,SR:1:67
