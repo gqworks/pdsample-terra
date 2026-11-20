@@ -236,6 +236,6 @@ bash workflow/scripts/validate_wdl.sh
 
 ## Limits and staging
 
-Prioritisation is triage only (see [Variant prioritisation](#variant-prioritisation)). Penetrance and PRS stay null until cited in `config/config.yaml`. STR floors live under `str_loci` (STRchive-cited; `workflow/assets/expansionhunter_catalog_sources.tsv`). Panel inheritance labels (`resources/panel/monopdaus-gene-inheritance.csv`) and phenotype profiles (`config/gene_phenotypes.yaml`) are starter literature synthesis and need expert review before use beyond triage.
+Prioritisation is triage only (see [Variant prioritisation](#variant-prioritisation)). Penetrance stays null until cited in `config/config.yaml`. STR floors live under `str_loci` (STRchive-cited; `workflow/assets/expansionhunter_catalog_sources.tsv`). Panel inheritance labels (`resources/panel/monopdaus-gene-inheritance.csv`) and phenotype profiles (`config/gene_phenotypes.yaml`) are starter literature synthesis and need expert review before use beyond triage.
 
 Resources to stage: [`workflow/terra/STAGING.md`](workflow/terra/STAGING.md), [`docs/setup_checklist.md`](docs/setup_checklist.md). Tool versions: [`workflow/README.md`](workflow/README.md). Annotation methods: [`docs/methods.md`](docs/methods.md).

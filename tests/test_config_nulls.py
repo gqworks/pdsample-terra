@@ -7,8 +7,8 @@ def test_shipped_config_has_null_penetrance():
     cfg = load_config()
     liability = cfg["liability"]
     assert liability["penetrance"] in ({}, None)
-    assert liability["prs_beta"] is None
-    assert liability["prs_beta_citation"] is None
+    assert "prs_beta" not in liability
+    assert "prs_beta_citation" not in liability
     assert "expression" not in cfg
     assert "cohort_size" not in cfg
     assert "lookup_max_gnomad_af" not in cfg["splicing"]
