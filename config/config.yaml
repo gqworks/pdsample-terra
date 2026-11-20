@@ -227,11 +227,8 @@ liability:
     - GBA1
     - LRRK2
   # Numeric penetrance stays null until a value and a citation are both set.
-  # Optional PRS / sex / age contributions need cited coefficients; weights come from
-  # the Assess ``prs_weights`` File input (see resources/prs/weights_format.tsv).
+  # Optional sex / age contributions need cited coefficients.
   penetrance: {}
-  prs_beta: null
-  prs_beta_citation: null
   sex_coefficient: null
   age_coefficient: null
 

@@ -1219,13 +1219,12 @@ task Assess {
     File ref_fasta_index
     File gtf
     File? gba1_pd_browser
-    File? prs_weights
     # Empty when the sample has no report (WDL 1.0 has no None for File?).
     Array[File] phenotype_report_files = []
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
-    String pdvar_git_commit = "9dfc351453451e825c7a3a4caf3f9b760a2133c1"
+    String pdvar_git_commit = "16ddca28be860676251a8af105285f1b70fe9eb1"
   }
   Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(gtf, "GiB") + 150)
   command <<<
@@ -1272,7 +1271,6 @@ PY
     export REF_FAI="~{ref_fasta_index}"
     export SPLICE_GTF="~{gtf}"
     export GBA1_PD_BROWSER='~{default="" gba1_pd_browser}'
-    export PRS_WEIGHTS='~{default="" prs_weights}'
     export AVI_TSV='~{default="" avi_tsv}'
     export PHENOTYPE_REPORT='~{sep="" phenotype_report_files}'
     export PDVAR_GIT_COMMIT="~{pdvar_git_commit}"
@@ -1314,7 +1312,6 @@ document = {
     "ref_fasta_index": os.environ["REF_FAI"],
     "gtf": os.environ["SPLICE_GTF"],
     "gba1_pd_browser": maybe("GBA1_PD_BROWSER"),
-    "prs_weights": maybe("PRS_WEIGHTS"),
     "avi_tsv": maybe("AVI_TSV"),
     "phenotype": phenotype,
     "qc": qc,

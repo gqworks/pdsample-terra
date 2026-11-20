@@ -6,7 +6,6 @@ import pandas as pd
 import pytest
 
 from pdvar import biomarkers, liability, sv
-from pdvar.config import load_config
 from pdvar.splicing import summarize_splice_scores
 
 
@@ -336,18 +335,6 @@ def test_liability_stays_null_without_citation():
         cfg={"penetrance": {"PRKN": {"biallelic": 0.9, "citation": "Curator note, test only."}}},
     )
     assert cited.iloc[0]["explained_liability"] == pytest.approx(0.9)
-
-
-def test_prs_weights_require_citation(tmp_path):
-    path = tmp_path / "weights.tsv"
-    path.write_text("chrom\tpos\teffect_allele\tweight\tcitation\n1\t10\tA\t0.2\t\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="citation"):
-        liability.load_prs_weights(path)
-    empty = tmp_path / "empty.tsv"
-    empty.write_text("chrom\tpos\teffect_allele\tweight\tcitation\n", encoding="utf-8")
-    assert liability.load_prs_weights(empty) is None
-    shipped = load_config()
-    assert shipped["liability"]["prs_beta"] is None
 
 
 def test_biomarker_multiplier_needs_citation():

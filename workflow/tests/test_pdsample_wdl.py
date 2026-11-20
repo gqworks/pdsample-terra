@@ -214,6 +214,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File gba1_pd_browser =" not in text
     assert "splicevault" not in text.lower()
     assert "splicevault" not in sample_tasks.lower()
+    assert "prs_weights" not in text
+    assert "prs_weights" not in sample_tasks
+    assert "PRS_WEIGHTS" not in sample_tasks
     assert "File sample_introme = select_first(flatten([introme_prior_files, select_all([Introme.introme_tsv])]))" in text
     assert "introme_tsv = NameIntrome.released" in text
     assert "expansionhunter_vcf = sample_expansionhunter_vcf" in text

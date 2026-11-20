@@ -339,26 +339,15 @@ def assess_sample(
             pd.DataFrame(columns=["sample_id", "inheritance_status"]),
             [sample_id],
             pheno_frame,
-            None,
             liability_cfg,
         )
         classification = str(classes.iloc[0]["classification"]) if not classes.empty else "unexplained"
         candidates = _maybe_stubs(candidates, classification)
     else:
-        prs = None
-        weights_path = _exists(sample.get("prs_weights"))
-        if weights_path is not None:
-            weights = liability.load_prs_weights(weights_path)
-            if weights is not None:
-                prs = liability.score_prs(vep_path, weights, None)
-                if prs is not None and not prs.empty and sample_id not in set(prs["sample_id"].astype(str)) and len(prs) == 1:
-                    prs = prs.copy()
-                    prs["sample_id"] = sample_id
         classes = liability.classify_cohort(
             scored,
             [sample_id],
             pheno_frame,
-            prs,
             liability_cfg,
         )
         classification = str(classes.iloc[0]["classification"]) if not classes.empty else "unexplained"
