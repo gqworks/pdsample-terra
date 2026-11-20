@@ -25,7 +25,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `consequence`, `zygosity`, `genotype` | VEP consequence and the carried genotype. Male homozygous X small variants are hemizygous |
 | `tier`, `evidence_score`, `evidence_reasons` | Point triage. Tier 1 is the highest score band |
 | `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `AD_gof_intronic` (weak intron in GoF/DN AD gene), `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, `module_not_assessed`, and the other statuses in `src/pdvar/report.py` |
-| `followup_reason` | Non-empty for alleles in an AR gene that still has only a single heterozygous hit (or a review_conflict), unphased comp-het/hemizygous pairs, rescued second-hit search rows, early-onset recessive nulls, incomplete AR STR expansions, and empty-shortlist module stubs. Used to force-keep those rows |
+| `followup_reason` | Non-empty for alleles in an AR gene that still has only a single heterozygous hit (or a review_conflict), unphased comp-het/hemizygous pairs, rescued second-hit search rows (including Introme 0.7 fallback), early-onset recessive nulls, incomplete AR STR expansions, and empty-shortlist module stubs. Used to force-keep those rows |
 | `str_n_expanded_alleles`, `str_motif`, `str_motif_pathogenic`, `str_moi` | Count of alleles at or above the cited floor, observed motif when parsed, whether that motif is the pathogenic one, and STR inheritance |
 | `high_sr_background`, `freq_het`, `sv_artifact` | GATK-SV HIGH_SR_BACKGROUND flag, in-cohort FREQ_HET, and depth-only artifact tag (unscored; not a hard drop) |
 | `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `mtdna`, or `sv` |

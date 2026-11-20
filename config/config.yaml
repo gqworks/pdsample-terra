@@ -138,6 +138,10 @@ mtdna:
 splicing:
   introme_high: 0.9
   introme_moderate: 0.6
+  # Gene-scoped second-hit rescue only (followup_reason genes). First pass uses
+  # introme_high. If that gene has no uncalled hit at 0.9, retry at this floor.
+  # Does not change the global first-pass Introme evidence cutoff.
+  introme_second_hit_relaxed: 0.7
   # Introme scores are merged onto sample-callset alleles only (no carrier-table injection).
   # Consequences where Introme is expected to add information beyond SpliceAI
   consider_consequences:

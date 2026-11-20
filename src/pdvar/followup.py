@@ -18,6 +18,7 @@ from .inheritance import weak_intronic_mask
 from .scoring import NULL_CONSEQUENCES
 
 EARLY_ONSET_REASON = "early-onset recessive null below the tier floor; review for a second allele"
+INTROME_RELAXED_REASON = "introme second-hit at relaxed 0.7"
 MODULE_STUB_STATUS = "module_not_assessed"
 
 REQUIRED_MODULES = (
@@ -118,8 +119,10 @@ def rescue_second_hits(
     """Pull filter-dropped second-hit candidates in genes that already have followup_reason.
 
     Rescued rows keep ``followup_reason`` and are not auto-promoted to a solve.
-    Introme injection is gene-scoped: high-score alleles in a follow-up gene that
-    the caller missed.
+    Introme injection is gene-scoped and two-stage: uncalled alleles at
+    ``introme_high`` (0.9) first; if that follow-up gene has none, retry at
+    ``introme_second_hit_relaxed`` (0.7). The global first-pass Introme cutoff
+    is unchanged.
     """
     if scored is None or scored.empty or "followup_reason" not in scored.columns:
         return scored
@@ -169,19 +172,29 @@ def rescue_second_hits(
     if introme_variants is not None and not introme_variants.empty:
         spcfg = (cfg or {}).get("splicing") or {}
         high = float(spcfg.get("introme_high", 0.9))
-        score_col = "introme_score" if "introme_score" in introme_variants.columns else None
-        for _, row in introme_variants.iterrows():
-            vid = str(row.get("variant_id") or "")
-            if not vid or vid in scored_ids:
-                continue
-            genes = str(row.get("introme_genes") or row.get("gene") or "")
-            tokens = {part.strip().upper() for part in genes.replace(",", ";").split(";") if part.strip()}
-            if not tokens & follow_genes:
-                continue
-            score = _numeric(row.get(score_col) if score_col else None)
-            if score is None or score < high:
-                continue
-            extras.append(_introme_row(row, tokens & follow_genes, sample_id))
+        relaxed = float(spcfg.get("introme_second_hit_relaxed", 0.7))
+        seen = set(scored_ids)
+        high_rows, high_genes = _introme_hits(
+            introme_variants,
+            follow_genes=follow_genes,
+            seen_ids=seen,
+            threshold=high,
+            sample_id=sample_id,
+            introme_class="high",
+        )
+        extras.extend(high_rows)
+        remaining = follow_genes - high_genes
+        if remaining and relaxed < high:
+            relaxed_rows, _ = _introme_hits(
+                introme_variants,
+                follow_genes=remaining,
+                seen_ids=seen,
+                threshold=relaxed,
+                sample_id=sample_id,
+                introme_class="moderate",
+                rescue_reason=INTROME_RELAXED_REASON,
+            )
+            extras.extend(relaxed_rows)
 
     if not extras:
         return scored
@@ -212,7 +225,56 @@ def rescue_second_hits(
     return pd.concat([scored, extra_df], ignore_index=True, sort=False)
 
 
-def _introme_row(row: pd.Series, genes: set[str], sample_id: str | None) -> pd.Series:
+def _introme_tokens(row: pd.Series) -> set[str]:
+    genes = str(row.get("introme_genes") or row.get("gene") or "")
+    return {part.strip().upper() for part in genes.replace(",", ";").split(";") if part.strip()}
+
+
+def _introme_hits(
+    introme_variants: pd.DataFrame,
+    *,
+    follow_genes: set[str],
+    seen_ids: set[str],
+    threshold: float,
+    sample_id: str | None,
+    introme_class: str,
+    rescue_reason: str = "",
+) -> tuple[list[pd.Series], set[str]]:
+    extras: list[pd.Series] = []
+    genes_hit: set[str] = set()
+    score_col = "introme_score" if "introme_score" in introme_variants.columns else None
+    for _, row in introme_variants.iterrows():
+        vid = str(row.get("variant_id") or "")
+        if not vid or vid in seen_ids:
+            continue
+        tokens = _introme_tokens(row) & follow_genes
+        if not tokens:
+            continue
+        score = _numeric(row.get(score_col) if score_col else None)
+        if score is None or score < threshold:
+            continue
+        extras.append(
+            _introme_row(
+                row,
+                tokens,
+                sample_id,
+                introme_class=introme_class,
+                rescue_reason=rescue_reason,
+            )
+        )
+        seen_ids.add(vid)
+        genes_hit |= tokens
+    return extras, genes_hit
+
+
+def _introme_row(
+    row: pd.Series,
+    genes: set[str],
+    sample_id: str | None,
+    *,
+    introme_class: str = "high",
+    rescue_reason: str = "",
+) -> pd.Series:
     vid = str(row.get("variant_id") or "")
     chrom, pos, ref, alt = "", pd.NA, "", ""
     parts = vid.split("-")
@@ -237,7 +299,8 @@ def _introme_row(row: pd.Series, genes: set[str], sample_id: str | None) -> pd.S
         "hit_source": "small_variant",
         "inheritance_status": "not_qualifying",
         "introme_score": row.get("introme_score"),
-        "introme_class": "high",
+        "introme_class": introme_class,
+        "followup_reason": rescue_reason,
         "zygosity": "het",
         "genotype": "0/1",
     }

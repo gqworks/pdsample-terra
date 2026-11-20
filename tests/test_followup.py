@@ -87,6 +87,99 @@ def test_introme_injection_is_gene_scoped():
     assert "2-99-C-T" not in ids
 
 
+def test_introme_second_hit_keeps_0_9_before_relaxed():
+    scored = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "PINK1",
+                "variant_id": "1-10-A-G",
+                "followup_reason": SINGLE_HET_REASON,
+                "inheritance_status": "AR_single_het",
+                "evidence_score": 8,
+                "tier": 2,
+            }
+        ]
+    )
+    introme = pd.DataFrame(
+        [
+            {"variant_id": "1-99-C-T", "introme_genes": "PINK1", "introme_score": 0.95},
+            {"variant_id": "1-80-C-T", "introme_genes": "PINK1", "introme_score": 0.75},
+        ]
+    )
+    out = followup.rescue_second_hits(
+        scored,
+        scored,
+        introme_variants=introme,
+        cfg={"splicing": {"introme_high": 0.9, "introme_second_hit_relaxed": 0.7}},
+        sample_id="S1",
+    )
+    ids = set(out["variant_id"].astype(str))
+    assert "1-99-C-T" in ids
+    assert "1-80-C-T" not in ids
+    high = out[out["variant_id"] == "1-99-C-T"].iloc[0]
+    assert high["introme_class"] == "high"
+    assert followup.INTROME_RELAXED_REASON not in str(high["followup_reason"])
+
+
+def test_introme_second_hit_falls_back_to_0_7_per_gene():
+    scored = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "PINK1",
+                "variant_id": "1-10-A-G",
+                "followup_reason": SINGLE_HET_REASON,
+                "inheritance_status": "AR_single_het",
+                "evidence_score": 8,
+                "tier": 2,
+            },
+            {
+                "sample_id": "S1",
+                "gene": "PRKN",
+                "variant_id": "6-10-A-G",
+                "followup_reason": SINGLE_HET_REASON,
+                "inheritance_status": "AR_single_het",
+                "evidence_score": 8,
+                "tier": 2,
+            },
+        ]
+    )
+    introme = pd.DataFrame(
+        [
+            {"variant_id": "6-99-C-T", "introme_genes": "PRKN", "introme_score": 0.95},
+            {"variant_id": "1-99-C-T", "introme_genes": "PINK1", "introme_score": 0.75},
+            {"variant_id": "1-80-C-T", "introme_genes": "PINK1", "introme_score": 0.65},
+            {"variant_id": "2-99-C-T", "introme_genes": "SNCA", "introme_score": 0.75},
+        ]
+    )
+    out = followup.rescue_second_hits(
+        scored,
+        scored,
+        introme_variants=introme,
+        cfg={"splicing": {"introme_high": 0.9, "introme_second_hit_relaxed": 0.7}},
+        sample_id="S1",
+    )
+    ids = set(out["variant_id"].astype(str))
+    assert "6-99-C-T" in ids
+    assert "1-99-C-T" in ids
+    assert "1-80-C-T" not in ids
+    assert "2-99-C-T" not in ids
+    relaxed = out[out["variant_id"] == "1-99-C-T"].iloc[0]
+    assert relaxed["introme_class"] == "moderate"
+    assert followup.INTROME_RELAXED_REASON in relaxed["followup_reason"]
+    assert relaxed["inheritance_status"] == "not_qualifying"
+
+
+def test_global_introme_high_cutoff_stays_0_9():
+    from pdvar.config import load_config
+
+    splicing = load_config()["splicing"]
+    assert splicing["introme_high"] == 0.9
+    assert splicing["introme_second_hit_relaxed"] == 0.7
+    assert splicing["introme_second_hit_relaxed"] < splicing["introme_high"]
+
+
 def test_empty_search_phrases_and_early_onset_keep():
     df = pd.DataFrame(
         [
