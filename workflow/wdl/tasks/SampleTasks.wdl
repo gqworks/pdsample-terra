@@ -164,6 +164,7 @@ pairs = [
     ("workflow/scripts/annotate_gnomad_af.py", "annotate_gnomad_af.py"),
     ("workflow/scripts/annotate_clinvar_plp.py", "annotate_clinvar_plp.py"),
     ("workflow/scripts/rescue_nonpass_sites.py", "rescue_nonpass_sites.py"),
+    ("workflow/scripts/probe_prior_file.py", "probe_prior_file.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
@@ -192,6 +193,7 @@ PY
     File annotate_gnomad_af_py = "annotate_gnomad_af.py"
     File annotate_clinvar_plp_py = "annotate_clinvar_plp.py"
     File rescue_nonpass_sites_py = "rescue_nonpass_sites.py"
+    File probe_prior_file_py = "probe_prior_file.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
     File panel_csv = "panel.csv"
@@ -951,6 +953,38 @@ task Gauchian {
     memory: "8 GiB"
     disks: "local-disk ~{disk_gb} HDD"
     cpu: threads
+  }
+}
+
+# String-path probe for Terra priors. Input is String (not File) so Cromwell
+# never size()s or localizes a missing/placeholder gs:// object. Fixed disk.
+task ProbePriorFile {
+  input {
+    String path = ""
+    String kind = "any"
+    File probe_prior_file_py
+    Int min_bytes = 1
+    String python_docker = "python:3.11.11-slim-bookworm"
+    Int preemptible = 3
+  }
+  Int disk_gb = 10
+  command <<<
+    set -euo pipefail
+    python3 "~{probe_prior_file_py}" \
+      --path "~{path}" \
+      --kind "~{kind}" \
+      --min-bytes ~{min_bytes} \
+      --out usable.txt
+  >>>
+  output {
+    Boolean usable = read_boolean("usable.txt")
+  }
+  runtime {
+    docker: python_docker
+    preemptible: preemptible
+    memory: "2 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 1
   }
 }
 

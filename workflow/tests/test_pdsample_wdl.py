@@ -89,6 +89,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "RescueSites.rescued_vcf_index" in text
     assert "task AnnotateClinvarPlp" in sample_tasks
     assert "rescue_nonpass_sites.py" in sample_tasks
+    assert "probe_prior_file.py" in sample_tasks
+    assert "task ProbePriorFile" in sample_tasks
     assert "annotate_clinvar_plp.py" in sample_tasks
     assert "File? cadd_snv" in text
     assert "File? revel" in text
@@ -646,12 +648,39 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert '"PdSample.sv_prior_vcf": "${this.sv_vcf}"' in terra
     assert '"PdSample.sv_prior_vcf_index": "${this.sv_vcf_index}"' in terra
     assert 'String introme_prior = ""' in text
-    assert "Boolean use_prior_introme = length(introme_prior_files) > 0" in text
+    assert "Boolean use_prior_introme = ProbeIntromePrior.usable" in text
     assert "if (!use_prior_introme)" in text
     assert '"PdSample.introme_prior": "${this.introme}"' in terra
+    assert '"PdSample.vep_prior_vcf": "${this.vep_vcf}"' in terra
+    assert '"PdSample.vep_prior_vcf_index": "${this.vep_vcf_index}"' in terra
     assert "File introme = NameIntrome.released" in text
     assert '"PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}"' in terra
     assert '"PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}"' in terra
+
+
+def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
+    """Placeholder this.introme / this.vep_vcf must run the callers, not size() a missing File."""
+    text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    probe = tasks.split("task ProbePriorFile {", 1)[1].split("task ReleaseAfterQc {", 1)[0]
+    assert "String path = \"\"" in probe
+    assert "Int disk_gb = 10" in probe
+    assert "size(" not in probe
+    assert 'kind = "introme"' in text
+    assert 'kind = "vcf"' in text
+    assert "Boolean use_prior_introme = ProbeIntromePrior.usable" in text
+    assert "Boolean use_prior_vep = ProbeVepPrior.usable" in text
+    assert "Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []" in text
+    assert "Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []" in text
+    assert "if (!use_prior_vep)" in text
+    assert "if (use_prior_vep)" in text
+    assert "call Tasks.PreferOrBuildTabix as PriorVepIndex" in text
+    assert "call Tasks.VepAnnotate" in text.split("if (!use_prior_vep)", 1)[1]
+    vep_prior_files = "vep_prior_vcf_files, select_all([AnnotateClinvarSmall.annotated_vcf])"
+    assert vep_prior_files in text
+    assert 'String vep_prior_vcf = ""' in text
+    assert 'String vep_prior_vcf_index = ""' in text
+    assert '("workflow/scripts/probe_prior_file.py", "probe_prior_file.py")' in tasks
 
 
 def test_gatksv_evidence_outputs_for_terra():

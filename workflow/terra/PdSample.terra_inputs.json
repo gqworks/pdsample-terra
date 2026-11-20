@@ -57,6 +57,8 @@
   "PdSample.sv_prior_vcf": "${this.sv_vcf}",
   "PdSample.sv_prior_vcf_index": "${this.sv_vcf_index}",
   "PdSample.introme_prior": "${this.introme}",
+  "PdSample.vep_prior_vcf": "${this.vep_vcf}",
+  "PdSample.vep_prior_vcf_index": "${this.vep_vcf_index}",
   "PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}",
   "PdSample.sv_joint_vcf_index": "${workspace.sv_joint_vcf_index}",
   "PdSample.sv_ref_samples_list": "${workspace.ref_panel_samples_list}",
