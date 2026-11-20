@@ -463,8 +463,8 @@ workflow PdSample {
   }
   call Tasks.NormPass {
     input:
-      vcf = RescueSites.vcf,
-      vcf_index = RescueSites.vcf_index,
+      vcf = RescueSites.rescued_vcf,
+      vcf_index = RescueSites.rescued_vcf_index,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       sample_id = sample_id,
