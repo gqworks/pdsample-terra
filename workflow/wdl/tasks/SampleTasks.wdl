@@ -576,8 +576,8 @@ task RescueSites {
     tabix -p vcf "~{sample_id}.rescued.vcf.gz"
   >>>
   output {
-    File vcf = "~{sample_id}.rescued.vcf.gz"
-    File vcf_index = "~{sample_id}.rescued.vcf.gz.tbi"
+    File rescued_vcf = "~{sample_id}.rescued.vcf.gz"
+    File rescued_vcf_index = "~{sample_id}.rescued.vcf.gz.tbi"
   }
   runtime {
     docker: python_docker

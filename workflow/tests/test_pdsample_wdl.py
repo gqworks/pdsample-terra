@@ -83,6 +83,10 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File? clinvar_plp_vcf_index" in text
     assert "File? clinvar_vcf" not in text
     assert "task RescueSites" in sample_tasks
+    assert "File rescued_vcf =" in sample_tasks.split("task RescueSites {", 1)[1]
+    assert "File rescued_vcf_index =" in sample_tasks.split("task RescueSites {", 1)[1]
+    assert "RescueSites.rescued_vcf" in text
+    assert "RescueSites.rescued_vcf_index" in text
     assert "task AnnotateClinvarPlp" in sample_tasks
     assert "rescue_nonpass_sites.py" in sample_tasks
     assert "annotate_clinvar_plp.py" in sample_tasks
@@ -701,6 +705,101 @@ def test_runtime_disk_gb_is_integer_ceiled():
                 # timeouts under Terra batch load. Dynamic disks must still ceil().
                 if "size(" in stripped:
                     assert "ceil(" in stripped, f"{path}: size()-based disk_gb must use ceil(): {stripped}"
+
+
+_WDL_DECL = re.compile(
+    r"^\s*(?:File|String|Int|Float|Boolean|Array\[[^\]]+\]|Map\[[^\]]+\])\??\s+(\w+)\b"
+)
+
+
+def _wdl_brace_end(text: str, open_idx: int) -> int:
+    depth = 0
+    i = open_idx
+    while i < len(text):
+        if text.startswith("<<<", i):
+            end = text.find(">>>", i + 3)
+            assert end != -1, "unclosed command placeholder"
+            i = end + 3
+            continue
+        char = text[i]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    raise AssertionError("unbalanced braces")
+
+
+def _wdl_section_names(block: str, header: str) -> list[str]:
+    marker = f"{header} {{"
+    idx = block.find(marker)
+    if idx == -1:
+        return []
+    open_idx = block.find("{", idx)
+    close_idx = _wdl_brace_end(block, open_idx)
+    names = []
+    for line in block[open_idx + 1 : close_idx].splitlines():
+        match = _WDL_DECL.match(line)
+        if match:
+            names.append(match.group(1))
+    return names
+
+
+def test_rescue_sites_outputs_do_not_reuse_input_names():
+    """Cromwell rejects RescueSites when output vcf / vcf_index match the inputs."""
+    tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
+    sample = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
+    block = tasks.split("task RescueSites {", 1)[1].split("task NormPass {", 1)[0]
+    inputs = _wdl_section_names(block, "input")
+    outputs = _wdl_section_names(block, "output")
+    assert "vcf" in inputs and "vcf_index" in inputs
+    assert outputs == ["rescued_vcf", "rescued_vcf_index"]
+    overlap = set(inputs) & set(outputs)
+    assert not overlap, overlap
+    assert "vcf = RescueSites.rescued_vcf" in sample
+    assert "vcf_index = RescueSites.rescued_vcf_index" in sample
+
+
+def _strip_wdl_section(block: str, header: str) -> str:
+    marker = f"{header} {{"
+    idx = block.find(marker)
+    if idx == -1:
+        return block
+    open_idx = block.find("{", idx)
+    close_idx = _wdl_brace_end(block, open_idx)
+    return block[:idx] + block[close_idx + 1 :]
+
+
+def test_first_party_wdl_tasks_have_unique_generated_names():
+    """Cromwell treats task inputs, private decls, and outputs as one namespace."""
+    wdl_root = ROOT / "workflow" / "wdl"
+    for path in sorted(wdl_root.rglob("*.wdl")):
+        if "vendor" in path.parts or "stubs" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in re.finditer(r"^task\s+(\w+)\s*\{", text, re.M):
+            name = match.group(1)
+            open_idx = text.find("{", match.start())
+            close_idx = _wdl_brace_end(text, open_idx)
+            block = text[open_idx + 1 : close_idx]
+            names = _wdl_section_names(block, "input") + _wdl_section_names(block, "output")
+            leftover = _strip_wdl_section(block, "input")
+            leftover = _strip_wdl_section(leftover, "output")
+            leftover = _strip_wdl_section(leftover, "runtime")
+            cmd = leftover.find("command")
+            if cmd != -1:
+                leftover = leftover[:cmd]
+            for line in leftover.splitlines():
+                decl = _WDL_DECL.match(line)
+                if decl:
+                    names.append(decl.group(1))
+            seen: dict[str, int] = {}
+            for ident in names:
+                seen[ident] = seen.get(ident, 0) + 1
+            dupes = sorted(ident for ident, count in seen.items() if count > 1)
+            assert not dupes, f"{path.name} task {name}: duplicate generated values {dupes}"
 
 
 def test_introme_tasks_use_fixed_disk_without_size():
