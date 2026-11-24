@@ -2,7 +2,7 @@ import pandas as pd
 
 from pdvar import filters
 
-PANEL = pd.DataFrame({"gene": ["PRKN", "LRRK2"]})
+PANEL = pd.DataFrame({"gene": ["PRKN", "LRRK2"], "moi": ["AR", "AD"]})
 
 
 def _variants(**overrides):
@@ -81,7 +81,8 @@ def test_sv_cohort_af_not_hard_filtered(cfg):
 
 
 def test_sv_panel_af_still_hard_filtered(cfg):
-    row = _lof_del(gnomad_af=2.4e-05, gnomad_popmax_af=3e-05, sv_panel_af=0.05)
+    # PRKN is AR, so the AR ceiling (0.05) applies to sv_panel_af; stay above it.
+    row = _lof_del(gnomad_af=2.4e-05, gnomad_popmax_af=3e-05, sv_panel_af=0.06)
     assert filters.apply_filters(row, PANEL, cfg["filters"]).empty
 
 
@@ -148,9 +149,22 @@ def test_lof_del_does_not_rescue_outside_interval(cfg):
 
 
 def test_clinvar_plp_rescued_from_frequency(cfg):
-    out = filters.apply_filters(_variants(gnomad_af=0.02, clinvar_class="P/LP"), PANEL, cfg["filters"])
+    # Above the AR 0.05 ceiling so ClinVar P/LP is the rescue, not the AR AF branch.
+    out = filters.apply_filters(_variants(gnomad_af=0.2, clinvar_class="P/LP"), PANEL, cfg["filters"])
     assert len(out) == 1
     assert out.loc[0, "clinvar_rescued"]
+
+
+def test_ar_panel_gene_relaxes_af(cfg):
+    assert len(filters.apply_filters(_variants(gnomad_af=0.02, gnomad_popmax_af=0.02), PANEL, cfg["filters"])) == 1
+    assert len(filters.apply_filters(_variants(gnomad_af=0.04, gnomad_popmax_af=0.04), PANEL, cfg["filters"])) == 1
+    assert filters.apply_filters(_variants(gnomad_af=0.2, gnomad_popmax_af=0.2), PANEL, cfg["filters"]).empty
+
+
+def test_ad_panel_gene_keeps_strict_af(cfg):
+    assert filters.apply_filters(
+        _variants(gene="LRRK2", gnomad_af=0.02, gnomad_popmax_af=0.02), PANEL, cfg["filters"]
+    ).empty
 
 
 def test_risk_allele_exception_relaxes_af(cfg):
