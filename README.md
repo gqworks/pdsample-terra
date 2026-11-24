@@ -131,9 +131,13 @@ Additive points from `config/config.yaml` → `evidence_score` → `tier` (1 bes
 | `cadd_high` / `revel_high` / `avi_high` | +3 each | CADD ≥ 25, REVEL ≥ 0.7, AVI Phred ≥ 30 |
 | `cadd_moderate` / `avi_moderate` | +1 each | CADD ≥ 20, AVI Phred ≥ 20 |
 | `absent_gnomad` | +2 | Missing / zero AF (mtDNA uses max AF_hom, AF_het) |
-| MitImpact / GBA1-PD | +1…8 | MITOMAP / APOGEE2 / MitoTIP / MLC; Gauchian PD class bumps |
+| `mitomap_pathogenic` | +8 | MitImpact: MITOMAP confirmed pathogenic / likely pathogenic |
+| `apogee_pathogenic` | +3 | MitImpact: APOGEE2 Pathogenic / Likely-pathogenic |
+| `mitotip_likely_pathogenic` | +3 | MitImpact: MitoTIP quartile Q1 |
+| `mlc_high` | +1 | MitImpact: MLC ≥ 0.5 |
+| `gba1_pd_severe` / `gba1_pd_mild` / `gba1_pd_risk` | +4 / +2 / +1 | GBA1-PD Browser class bump on Gauchian or VEP GBA1 alleles matched by c. HGVS |
 
-Tier cut-offs (first match wins): tier 1 ≥ 10, tier 2 ≥ 6, tier 3 ≥ 3, else tier 4. Extra modules (SV dosage, mtDNA, Introme, GBA1-PD) can add points after the base scorer.
+Tier cut-offs (first match wins): tier 1 ≥ 10, tier 2 ≥ 6, tier 3 ≥ 3, else tier 4. Extra modules (SV dosage, mtDNA MitImpact, Introme, GBA1-PD) can add points after the base scorer; MitImpact and GBA1-PD rules stack with each other and with the base rules above when they apply.
 
 ### 4. Inheritance status
 
