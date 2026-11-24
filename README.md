@@ -111,7 +111,7 @@ flowchart LR
 
 Before scoring, `filters.apply_filters` keeps panel alleles (plus always-keep ClinVar P/LP and ExpansionHunter / Gauchian / mtDNA sources). Defaults:
 
-- gnomAD AF / popmax AF ≤ 0.01 (risk-exception genes relax to 0.05)
+- gnomAD AF / popmax AF ≤ 0.01 (risk-exception and panel AR genes relax to 0.05)
 - depth ≥ 10, GQ ≥ 20, allele balance ≥ 0.2 (with limited depth rescue)
 - consequence on the keep list (coding, splice/intron for Introme rescue, SV/STR/mtDNA terms)
 - off-panel alleles (including TTN truncations) are dropped

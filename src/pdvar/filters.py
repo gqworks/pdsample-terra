@@ -232,6 +232,9 @@ def apply_filters(df: pd.DataFrame, panel: pd.DataFrame, fcfg: dict) -> pd.DataF
     ClinVar P/LP variants are rescued from frequency/consequence filters when
     ``always_keep_clinvar_plp`` is set (they still need to be in the panel and pass QC).
     Panel genes flagged ``risk_allele_exception`` use the relaxed ``risk_exception_*`` AF ceilings.
+    Panel genes with ``moi == "AR"`` (``inheritance_primary`` after normalize) use
+    ``ar_max_gnomad_af`` for gnomAD AF, popmax, and ``sv_panel_af``. Dual AD/AR
+    genes whose primary label is AD stay on the global ceiling.
 
     Depth-only failures can be rescued when a HIGH-impact panel allele is within
     ``depth_rescue_near_miss_factor`` of ``min_depth``, or when the allele sits
@@ -254,6 +257,17 @@ def apply_filters(df: pd.DataFrame, panel: pd.DataFrame, fcfg: dict) -> pd.DataF
         exc = df["gene"].astype(str).str.upper().isin(exc_genes) & frequency_mask(df, relaxed)
         df["risk_exception_rescued"] = exc & ~df["pass_frequency"]
         df["pass_frequency"] |= exc
+
+    if "moi" in panel.columns and fcfg.get("ar_max_gnomad_af") is not None:
+        ar_genes = set(panel.loc[panel["moi"].astype(str).str.upper() == "AR", "gene"].astype(str).str.upper())
+        relaxed = {
+            **fcfg,
+            "max_gnomad_af": fcfg["ar_max_gnomad_af"],
+            "max_gnomad_popmax_af": fcfg["ar_max_gnomad_af"],
+        }
+        ar = df["gene"].astype(str).str.upper().isin(ar_genes) & frequency_mask(df, relaxed)
+        df["ar_af_rescued"] = ar & ~df["pass_frequency"]
+        df["pass_frequency"] |= ar
 
     keep = df["pass_panel"] & df["pass_quality"] & df["pass_frequency"] & df["pass_consequence"]
     sources = fcfg.get("always_keep_sources") or []
