@@ -30,6 +30,7 @@ from . import (
     sv,
 )
 from .avi import merge_avi
+from .sample_summary import build_sample_summary
 from .splice_heuristics import IndexedFasta, annotate_splice_heuristics, prepare_exons
 from .vep import parse_vep
 
@@ -373,7 +374,15 @@ def assess_sample(
         qc["callsets"] = callset_assessment.to_dict(orient="records")
     if not sv_assessment.empty:
         qc["sv"] = sv_assessment.to_dict(orient="records")
-    return report.write_sample_outputs(candidates, classes, qc, outdir, sample_id)
+    summary = build_sample_summary(sample, cfg)
+    qc["sample_summary"] = summary
+    notes["haplogrep"] = str(summary.get("haplogroup_status") or "not_assessed")
+    notes["panel_prs"] = str(summary.get("prs_status") or "not_assessed")
+    notes["apoe"] = str(summary.get("apoe_status") or "not_assessed")
+    notes["mt_2158"] = str(summary.get("mt_2158_status") or "not_assessed")
+    notes["mean_mlc"] = str(summary.get("mlc_status") or "not_assessed")
+    qc["modules"] = notes
+    return report.write_sample_outputs(candidates, classes, qc, outdir, sample_id, summary=summary)
 
 
 def load_sample_json(path: str | Path) -> dict:

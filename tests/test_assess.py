@@ -187,7 +187,7 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert "mitomap_pathogenic" in str(mito["evidence_reasons"])
     assert "RFC1" not in set(candidates["gene"].astype(str))
 
-    assert set(written) >= {"candidates_tsv", "report_html", "qc_json"}
+    assert set(written) >= {"candidates_tsv", "report_html", "qc_json", "sample_summary_tsv"}
     assert "followup_reason" in candidates.columns
 
     qc = json.loads(written["qc_json"].read_text(encoding="utf-8"))
@@ -200,7 +200,11 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert callsets["expansionhunter"] == "STR carrier"
     report = written["report_md"].read_text(encoding="utf-8")
     assert "SYNTHETIC_SAMPLE" in report
+    assert "## Sample summary" in report
     assert "Classification: **solved**." in report
+    summary = qc["sample_summary"]
+    assert summary["mt_2158_genotype"] == "T"
+    assert summary["mean_mlc"] == 0.72
     assert "Explained liability:" in report
     assert "## Phenotype concordance" in report
     assert "Age at onset: 55." in report

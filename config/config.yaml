@@ -12,6 +12,8 @@ inputs:
   # GBA1-PD Browser single-variant extract (Parlar et al. Mov Disord 2023).
   # Joined onto Gauchian catalog SNVs for PD severity class + score bump.
   gba1_pd_browser: resources/gba1/gba1_pd_browser.tsv
+  # Cited PGS000902 / Nalls 2019 weights. panel_prs uses score_in_panel_prs rows only.
+  prs_weights: resources/prs/pgs000902_nalls2019.tsv
 
 # Legacy/alias symbol -> symbol used throughout (applied to VEP symbols and the panel).
 gene_aliases:

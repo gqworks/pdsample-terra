@@ -272,9 +272,9 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
         f"Classification: **{classification}**.",
         f"Explained liability: {explained if explained not in (None, '') else 'null'}. {note}",
         "",
-        "## Modules",
-        "",
     ]
+    lines.extend(_sample_summary_lines(qc.get("sample_summary") or {}))
+    lines.extend(["## Modules", ""])
     modules = qc.get("modules") or {}
     for name, status in modules.items():
         lines.append(f"- {name}: {status}")
@@ -462,18 +462,45 @@ def render_html(markdown: str, candidates: pd.DataFrame) -> str:
     )
 
 
+def _sample_summary_lines(summary: dict) -> list[str]:
+    if not summary:
+        return []
+    prs = summary.get("panel_prs")
+    prs_txt = "null" if prs in (None, "") else str(prs)
+    used = summary.get("prs_sites_used")
+    total = summary.get("prs_sites_total")
+    mlc = summary.get("mean_mlc")
+    mlc_txt = "null" if mlc in (None, "") else str(mlc)
+    return [
+        "## Sample summary",
+        "",
+        f"- APOE genotype: {summary.get('apoe_genotype') or 'null'} ({summary.get('apoe_status') or 'not_assessed'}).",
+        f"- m.2158T>C: {summary.get('mt_2158_genotype') or 'null'} (heteroplasmy {summary.get('mt_2158_heteroplasmy') if summary.get('mt_2158_heteroplasmy') is not None else 'null'}).",
+        f"- Mitochondrial haplogroup: {summary.get('haplogroup') or 'null'} (Haplogrep; quality {summary.get('haplogroup_quality') if summary.get('haplogroup_quality') is not None else 'null'}).",
+        f"- Panel-gene PRS: {prs_txt} (PGS000902 / Nalls 2019; {used}/{total} sites).",
+        f"- Mean MLC excluding haplogroup-defining variants: {mlc_txt} ({summary.get('mlc_haplotag_exclusion')}; n={summary.get('mlc_n_variants')}, excluded={summary.get('mlc_n_excluded_haplotag')}).",
+        "",
+        "These fields are sample-level (Terra `sample_summary`); they are not extra `candidates.tsv` rows.",
+        "",
+    ]
+
+
 def write_sample_outputs(
     candidates: pd.DataFrame,
     liability: pd.DataFrame,
     qc: dict,
     outdir: Path,
     sample_id: str,
+    summary: dict | None = None,
 ) -> dict[str, Path]:
     """Write Assess outputs: ``candidates.tsv``, ``report.html`` / ``report.md``, ``qc_summary.json``.
 
     Liability classification still feeds the report narrative. Follow-up AR
     alleles are rows in ``candidates.tsv`` with ``followup_reason`` set.
+    ``sample_summary.tsv`` is one extra Terra column (not part of ``candidates``).
     """
+    from .sample_summary import SUMMARY_TSV_COLUMNS, summary_to_row
+
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     candidates = order_candidate_columns(candidates if candidates is not None else pd.DataFrame())
@@ -482,10 +509,13 @@ def write_sample_outputs(
         "report_md": outdir / "report.md",
         "report_html": outdir / "report.html",
         "qc_json": outdir / "qc_summary.json",
+        "sample_summary_tsv": outdir / "sample_summary.tsv",
     }
     candidates.to_csv(paths["candidates_tsv"], sep="\t", index=False)
     markdown = render_markdown(sample_id, candidates, liability, qc)
     paths["report_md"].write_text(markdown, encoding="utf-8")
     paths["report_html"].write_text(render_html(markdown, candidates), encoding="utf-8")
     paths["qc_json"].write_text(json.dumps(_jsonable(qc), indent=2) + "\n", encoding="utf-8")
+    row = summary_to_row(summary or qc.get("sample_summary") or {"sample_id": sample_id})
+    pd.DataFrame([row], columns=SUMMARY_TSV_COLUMNS).to_csv(paths["sample_summary_tsv"], sep="\t", index=False)
     return paths

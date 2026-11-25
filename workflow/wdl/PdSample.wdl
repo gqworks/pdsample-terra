@@ -115,6 +115,9 @@ workflow PdSample {
 
     String gauchian_docker = "python:3.11.11-slim-bookworm"
     String pdvar_docker = "python:3.11.11-slim-bookworm"
+    # Haplogrep 3 (Biocontainers). Phylotree rCRS matches hg38 chrM.
+    String haplogrep_docker = "quay.io/biocontainers/haplogrep3:3.2.2--hdfd78af_1"
+    String haplogrep_tree = "phylotree-rcrs@17.2"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # FetchRepoAssets is volatile and uses this ref for scripts/config/panel assets.
     # Default "main" so pushed script fixes are re-fetched; pin a SHA to freeze assets.
@@ -539,6 +542,17 @@ workflow PdSample {
       hard_fail_coverage = hard_fail_coverage,
       python_docker = python_docker
   }
+  call Tasks.CallSummaryLoci {
+    input:
+      bam = sample_bam,
+      bam_index = sample_bai,
+      ref_fasta = ref_fasta,
+      ref_fasta_index = ref_fasta_index,
+      loci_bed = FetchRepoAssets.summary_loci_bed,
+      qc_gate = QcGate.gate,
+      sample_id = sample_id,
+      preemptible = preemptible
+  }
   call Tasks.HaplotypeCaller {
     input:
       bam = sample_bam,
@@ -771,6 +785,14 @@ workflow PdSample {
   }
   File sample_mtdna_vcf = select_first(flatten([mtdna_vcf_prior_files, select_all([AnnotateMtdna.mtdna_vcf])]))
   String sample_mtdna_annotation = if use_prior_mtdna then "prior" else select_first([AnnotateMtdna.annotation_status])
+  call Tasks.Haplogrep {
+    input:
+      vcf = sample_mtdna_vcf,
+      sample_id = sample_id,
+      haplogrep_docker = haplogrep_docker,
+      haplogrep_tree = haplogrep_tree,
+      preemptible = preemptible
+  }
   # SV precedence: prior sample VCF → joint subset → GATK-SV call (with optional
   # case_* evidence). Blank Terra strings are ignored so the next path runs.
   # scatter+if keeps Array[File] outputs for flatten with the GatkSv if-branch.
@@ -1047,6 +1069,9 @@ workflow PdSample {
       ref_fasta_index = ref_fasta_index,
       gtf = introme_gtf,
       gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
+      haplogrep_tsv = Haplogrep.haplogrep_tsv,
+      summary_vcf = CallSummaryLoci.vcf,
+      prs_weights = FetchRepoAssets.prs_weights,
       phenotype_report_files = phenotype_report_files,
       pdvar_docker = pdvar_docker,
       pdvar_git_url = pdvar_git_url,
@@ -1055,6 +1080,7 @@ workflow PdSample {
 
   output {
     Array[File] candidates = Assess.candidates
+    File sample_summary = Assess.sample_summary
     File vep_vcf = sample_vep_vcf
     File vep_vcf_index = sample_vep_vcf_index
     File small_vcf = sample_small_vcf

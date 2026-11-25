@@ -4,13 +4,14 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 
 ## Files
 
-Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `candidates.tsv`.
+Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `candidates.tsv`. A separate Terra column `sample_summary` is the one-row TSV of sample-level genotypes and scores (not extra shortlist rows). The same object is nested in `qc_summary.json` as `sample_summary`.
 
 | File | Contents |
 | --- | --- |
-| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
-| `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module status |
+| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). A Sample summary section lists APOE, m.2158T>C, haplogroup, panel-gene PRS, and mean MLC. The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
+| `qc_summary.json` | Contamination, sex, coverage, reference check, per-module status, and `sample_summary` |
 | `candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles, unphased comp-hets, rescued second hits, and empty-shortlist module stubs are force-kept (after Mendelian solves) and carry `followup_reason` |
+| `sample_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, panel-gene PRS, mean MLC. Terra column `sample_summary` |
 
 ## Candidate columns
 
@@ -54,4 +55,27 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `clinical_match` | `matched`, `unmatched`, `uninformative`, `no_profile`, or `not_assessed`. Risk rows are repeated under Phenotype concordance in the report |
 | `levodopa`, `age_sampling`, `comorbidities` | From the phenotype report when one was supplied. Comorbidities are listed in the report. Levodopa use is a biomarker note |
 
-`qc_summary.json` `modules` records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, VEP, AVI, `splice_heuristics`, and `mtdna_annotation` (MitImpact join). `splice_heuristics` is `called` when the reference FASTA and GENCODE GTF were both available. AVI is `called` only when the Atlas table has at least one score. GATK-SV is `called` when the SV VCF came from `GATKSVPipelineSingleSample` (including fallback when `sample_id` is absent from optional `sv_joint_vcf`), `joint` when it was subset from that joint VCF, or `prior` when `this.sv_vcf` was reused. Introme is `prior` when a real non-empty `this.introme` was reused (empty/placeholder cells call Introme). A real non-empty `this.vep_vcf` skips the VEP annotation chain; Assess still runs. The same `ProbePriorFile` failsafe applies to `this.small_vcf`, `this.sv_vcf`, `this.expansionhunter_vcf`, `this.gauchian_json`, `this.mtdna_vcf`, and `this.avi_tsv`: empty/missing/placeholder/zero-byte cells run that producer. `mtdna_annotation` is `prior` when `this.mtdna_vcf` was reused. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object mirrors that value. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.
+## Sample summary (`sample_summary.tsv` / `qc_summary.json` `sample_summary`)
+
+These fields describe the sample. They are not extra `candidates.tsv` rows.
+
+| Field | Meaning |
+| --- | --- |
+| `apoe_genotype` | Unphased ε2/ε3/ε4 from rs429358 (GRCh38 `chr19:44908684` T>C, ε4) and rs7412 (`chr19:44908822` C>T, ε2). `e2/e4_or_e1/e3` when the two SNPs are both heterozygous (phase unknown). APOE is **not** on the 133-gene Mendelian panel; `CallSummaryLoci` genotypes these two sites from the BAM. Citation: NCBI dbSNP / standard APOE ε2/ε3/ε4 definition |
+| `apoe_rs429358_gt` / `apoe_rs7412_gt` | Sorted allele strings at those sites (`C/T`, `T/T`, …) |
+| `apoe_status` | `called`, `partial` (one SNP missing), or `not_assessed` |
+| `mt_2158_genotype` | m.2158T>C (SHLP2 p.Lys4Arg, rs41349444) from the mt VCF. `T` = reference (variant absent after a successful mito call), `C` = heteroplasmy ≥ 0.95, `T/C` = 0.01–0.95. Hudson et al. *Neurology* 2013; Kim et al. *Mol Psychiatry* 2024 |
+| `mt_2158_heteroplasmy` | FORMAT `AF` at m.2158, or `0` when the allele is absent |
+| `mt_2158_status` | `called` or `not_assessed` |
+| `haplogroup` | Haplogrep 3 best hit on the mt VCF (`phylotree-rcrs@17.2`). Container: `quay.io/biocontainers/haplogrep3:3.2.2--hdfd78af_1`. Phylotree 17 rCRS is bundled in that image; `install-tree` is a no-op fallback |
+| `haplogroup_quality` | Haplogrep quality score |
+| `haplogroup_status` | `called` or `not_assessed` |
+| `panel_prs` | Weighted allele-count sum of PGS Catalog **PGS000902** (Nalls et al. *Lancet Neurol* 2019) rows with `score_in_panel_prs=true` (SNPs inside a panel gene span or within 20 kb). This is a **panel-restricted subset**, not the published 90-SNP PRS. Missing sites are not imputed as hom-ref. Weights: `resources/prs/pgs000902_nalls2019.tsv` |
+| `prs_sites_used` / `prs_sites_missing` / `prs_sites_total` | How complete that panel-restricted score is |
+| `prs_status` | `called` when at least one panel SNP was genotyped; `not_assessed` otherwise |
+| `mean_mlc` | Mean MitImpact `MI_MLC_score` across mt SNVs in the annotated mt VCF, **excluding Haplogrep FoundPolys** (haplogroup-defining / haplotagging variants present in the sample). Lake et al. *Nature* 2024 via MitImpact. There is no static in-repo haplotagging list; exclusion is derived per sample from Haplogrep |
+| `mlc_n_variants` / `mlc_n_excluded_haplotag` | SNVs considered and haplogroup-defining sites dropped |
+| `mlc_haplotag_exclusion` | `haplogrep_found_polys`, `empty_found_polys`, or `not_applied` |
+| `mlc_status` | `called` when at least one scored SNV remains, else `not_assessed` |
+
+`qc_summary.json` `modules` records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, VEP, AVI, `splice_heuristics`, `mtdna_annotation` (MitImpact join), `haplogrep`, `apoe`, `mt_2158`, `panel_prs`, and `mean_mlc`. `splice_heuristics` is `called` when the reference FASTA and GENCODE GTF were both available. AVI is `called` only when the Atlas table has at least one score. GATK-SV is `called` when the SV VCF came from `GATKSVPipelineSingleSample` (including fallback when `sample_id` is absent from optional `sv_joint_vcf`), `joint` when it was subset from that joint VCF, or `prior` when `this.sv_vcf` was reused. Introme is `prior` when a real non-empty `this.introme` was reused (empty/placeholder cells call Introme). A real non-empty `this.vep_vcf` skips the VEP annotation chain; Assess still runs. The same `ProbePriorFile` failsafe applies to `this.small_vcf`, `this.sv_vcf`, `this.expansionhunter_vcf`, `this.gauchian_json`, `this.mtdna_vcf`, and `this.avi_tsv`: empty/missing/placeholder/zero-byte cells run that producer. `mtdna_annotation` is `prior` when `this.mtdna_vcf` was reused. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object mirrors that value. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.

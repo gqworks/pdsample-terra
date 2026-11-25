@@ -55,6 +55,8 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 ## Already in the repo
 
 - Calling BED: `workflow/assets/monopdaus-genes.grch38.bed`
+- Summary loci BED (APOE ε SNPs + panel-gene PGS000902 sites): `workflow/assets/summary_loci.grch38.bed`
+- Panel-gene PRS weights (PGS000902 / Nalls 2019): `resources/prs/pgs000902_nalls2019.tsv`
 - SV overlap BEDs: `resources/panel/monopdaus-genes.grch38.bed`, `resources/panel/monopdaus-exons.grch38.bed`
 - Inheritance table: `resources/panel/monopdaus-gene-inheritance.csv` (MOI plus AD `mechanism` GoF/LoF/DN labels; see `resources/panel/ad_mechanism.SOURCES.md`)
 - ExpansionHunter catalog: `workflow/assets/expansionhunter_pd.hg38.json` (24 loci, including NOTCH2NLC, FGF14, BEAN1, LRP12, and FXN)
@@ -62,4 +64,4 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 - Config: `config/config.yaml`, `config/columns.yaml`, `config/gene_phenotypes.yaml`
 - QC scripts: `workflow/scripts/check_reference.py`, `workflow/scripts/qc_summary.py`
 
-Panel inheritance labels and penetrance stay null or placeholder until you cite them. STR pathogenic repeat floors are populated under `str_loci`. The workflow will still rank variants into the Assess trio (`report.html`, `qc_summary.json`, `candidates.tsv`). Column meanings: [`data_dictionary.md`](data_dictionary.md). Prioritisation protocol: [README § Variant prioritisation](../README.md#variant-prioritisation).
+Panel inheritance labels and penetrance stay null or placeholder until you cite them. STR pathogenic repeat floors are populated under `str_loci`. The workflow will still rank variants into the Assess trio (`report.html`, `qc_summary.json`, `candidates.tsv`) and write `sample_summary.tsv`. Column meanings: [`data_dictionary.md`](data_dictionary.md). Prioritisation protocol: [README § Variant prioritisation](../README.md#variant-prioritisation).

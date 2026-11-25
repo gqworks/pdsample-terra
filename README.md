@@ -1,6 +1,6 @@
 # Per-sample Parkinson's variant assessment
 
-One Terra sample row goes in as a BAM (+ `.bai`) or a CRAM (index optional). `EnsureBam` detects CRAM via magic bytes, converts it to BAM/BAI, then `PdSample` calls every required tool from that BAM, annotates the small-variant VCF, and writes a triage shortlist for that person (`report.html`, `qc_summary.json`, `candidates.tsv`). A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow.
+One Terra sample row goes in as a BAM (+ `.bai`) or a CRAM (index optional). `EnsureBam` detects CRAM via magic bytes, converts it to BAM/BAI, then `PdSample` calls every required tool from that BAM, annotates the small-variant VCF, and writes a triage shortlist for that person (`report.html`, `qc_summary.json`, `candidates.tsv`) plus a sample-level `sample_summary.tsv` (APOE, m.2158T>C, haplogroup, panel-gene PRS, mean MLC). A cohort is a Terra `sample_set`: Terra launches `PdSample` once per row. There is no cohort workflow.
 
 ```mermaid
 flowchart TD
@@ -19,6 +19,8 @@ flowchart TD
   qc --> gba[Gauchian]
   qc --> mito[MitochondriaPipeline]
   mito --> mitoAnn[AnnotateMtdna MitImpact]
+  mitoAnn --> haplo[Haplogrep]
+  qc --> summaryLoci[CallSummaryLoci APOE and panel PRS SNPs]
   qc --> gatksv[GATKSVPipelineSingleSample]
   pheno[Phenotype report txt] --> assess[Assess]
   introme --> assess
@@ -26,8 +28,10 @@ flowchart TD
   eh --> assess
   gba --> assess
   mitoAnn --> assess
+  haplo --> assess
+  summaryLoci --> assess
   gatksv --> assess
-  assess --> row[report.html, qc_summary.json, candidates.tsv]
+  assess --> row[report.html, qc_summary.json, candidates.tsv, sample_summary.tsv]
 ```
 
 Assess turns those callsets into a ranked shortlist. How ranking works is in [Variant prioritisation](#variant-prioritisation). Calling and annotation stages are in [What each stage does](#what-each-stage-does) and [`docs/methods.md`](docs/methods.md).
@@ -73,11 +77,11 @@ A `sample_set` is only a list of those rows. Terra runs `PdSample` per row. Shar
 5. **Structural variants.** Precedence: (1) sample `sv_prior_vcf` / `sv_prior_vcf_index` (Terra: `this.sv_vcf` / `this.sv_vcf_index`) reuses a previous callset and skips calling (`sv_status` `prior`); (2) else workspace `sv_joint_vcf` / optional `sv_joint_vcf_index` — when `sample_id` is in the header, subset and skip GATK-SV (`sv_status` `joint`); when absent, fall back to calling; (3) else `GATKSVPipelineSingleSample` v1.1.1 (`sv_status` `called`), reusing any non-empty `sv_case_*` evidence and calling the rest. Blank Terra prior/joint/case cells are ignored. Reference-panel inputs stay required for the single-sample path. A missing SV VCF is an error in `pdvar`. `pesr_caller_qc` drops raw Manta DEL/DUP that lack a depth genotype; GATK-SV `FORMAT RD_CN` counts as that genotype when `CN` is absent (joint callsets often omit `CN`). Optional `this.<name>` priors reuse a previous intermediate and skip only that file's producer: `vep_vcf`, `small_vcf`, `sv_vcf`, `expansionhunter_vcf`, `gauchian_json`, `mtdna_vcf`, `introme`, `avi_tsv` (each bound in `PdSample.terra_inputs.json`). Empty, missing, placeholder, or zero-byte priors are treated as unset (`ProbePriorFile`; no WDL `size()` on a bad File). Assess still runs.
 6. **STRs.** ExpansionHunter 5.0.0 with the vendored 24-locus catalog `workflow/assets/expansionhunter_pd.hg38.json` (includes FGF14, NOTCH2NLC, BEAN1, LRP12, and FXN).
 7. **GBA1.** Gauchian 1.0.2.
-8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0, then optional MitImpact 4 CSV annotation (`mtdna_mitimpact`) for ClinVar / MITOMAP / gnomAD mtDNA AF / APOGEE2 / MitoTIP / MLC. Ingest keeps alleles with heteroplasmy ≥ 1% and a MITOMAP GenBank frequency entry. High-evidence rows become `mtdna_pathogenic_candidate` in Assess; other carried alleles stay `mtdna_variant` and are not shortlisted.
+8. **mtDNA.** GATK `MitochondriaPipeline` 4.7.0.0, then optional MitImpact 4 CSV annotation (`mtdna_mitimpact`) for ClinVar / MITOMAP / gnomAD mtDNA AF / APOGEE2 / MitoTIP / MLC. **Haplogrep 3** (`quay.io/biocontainers/haplogrep3:3.2.2--hdfd78af_1`, Phylotree rCRS `phylotree-rcrs@17.2`) classifies the mt VCF even when `this.mtdna_vcf` is reused. Ingest keeps alleles with heteroplasmy ≥ 1% and a MITOMAP GenBank frequency entry. High-evidence rows become `mtdna_pathogenic_candidate` in Assess; other carried alleles stay `mtdna_variant` and are not shortlisted. Sample-level haplogroup, m.2158T>C, and mean MLC (excluding Haplogrep FoundPolys) are written to `sample_summary.tsv`, not as extra candidate rows.
 9. **VEP 116.2.** Offline cache, GRCh38, and `--pick`. Academic **dbNSFP 5.4a** (`dbNSFP5.4a_grch38.gz` + `.tbi`) supplies `CADD_phred`, `REVEL_score`, Eigen, MutationTaster, fathmm-XF, SIFT/PolyPhen2, `clinvar_clnsig`, and missense/splice gnomAD v4.1 joint AF fallback (cache-native VEP SIFT/PolyPhen off by default). Optional panel-sliced **gnomAD v4.1 joint** sites (`gnomad_af_vcf`) annotate complete panel AF including intron/UTR; rebuild with `workflow/scripts/build_panel_gnomad_af.sh` when the panel BED changes. Optional panel-sliced **ClinVar P/LP** sites (`clinvar_plp_vcf`; `workflow/scripts/build_panel_clinvar.sh`) annotate indels and matching SV ids before Assess. Optional genome-wide CADD/REVEL plugins remain as a fallback. `AnnotateGnomadAf` + `LiftGnomadInfo` expose `INFO/gnomAD_AF` / `AF_popmax` for Introme and `pdvar`. `RescueSites` restores non-PASS genotypes at those ClinVar P/LP alleles and at GBA1-PD Browser coordinates so VEP still sees them. A real non-empty `this.vep_vcf` (`vep_prior_vcf`) skips VEP, gnomAD AF, the INFO lift, and panel ClinVar P/LP on the small-variant VCF; Assess still runs. Empty / missing / placeholder / zero-byte `this.vep_vcf` runs that chain. The same probe gates `this.small_vcf` (skips `NormPass` only), `this.expansionhunter_vcf`, `this.gauchian_json`, `this.mtdna_vcf` (skips MitochondriaPipeline + AnnotateMtdna), `this.avi_tsv` (skips AnnotateAvi). The panel inheritance CSV and GBA1-PD Browser TSV are shared FetchRepoAssets annotations, not per-sample priors.
 10. **AlphaGenome Atlas AVI.** PASS SNVs are looked up in the precomputed AlphaGenome AVI SNV table (Tabix, GRCh38) when `avi_table` is set. No API key or network call is needed. Phred 30 (top 0.1% of genome-wide SNVs) and Phred 20 (top 1%) add triage points and break rank ties inside Assess. An unset `avi_table` leaves the module `not_assessed`. Indels are not scored. This is a research rank, not a diagnostic call.
 11. **Introme v2.** Native WDL port of CCICB/introme `d6da48bc84abda66f588470f79abcf1244acfb21` (`v2@d6da48b`). Restricted to the panel BED. SpliceAI, MMSplice, Pangolin, SPiP, and Spliceogen run in parallel after VariantInfo. Scores are merged onto alleles already in the sample callset. Uncalled Introme alleles are injected only inside genes that already have `followup_reason`: first at ≥ 0.9, and if that gene has none, at ≥ 0.7. The global Introme evidence cutoff stays 0.9. A real non-empty `this.introme` skips the Introme subworkflow (`introme_status` `prior`). Empty / missing / placeholder / zero-byte `this.introme` calls Introme.
-12. **Assess.** `pdvar` filters, scores, assigns inheritance, ranks, and writes `report.html`, `qc_summary.json`, and `candidates.tsv`. Full protocol: [Variant prioritisation](#variant-prioritisation).
+12. **Assess.** `pdvar` filters, scores, assigns inheritance, ranks, and writes `report.html`, `qc_summary.json`, and `candidates.tsv`, plus `sample_summary.tsv` (APOE ε genotype from rs429358/rs7412, m.2158T>C, Haplogrep haplogroup, panel-gene PGS000902 PRS, mean MLC). Full protocol: [Variant prioritisation](#variant-prioritisation). APOE is **not** added to the 133-gene Mendelian HaplotypeCaller panel (FGF14/NOTCH2NLC stay ExpansionHunter-only). `CallSummaryLoci` mpileup-calls those SNPs from the WGS BAM.
 
 ## Variant prioritisation
 
@@ -192,7 +196,8 @@ These are **GATK callset** filters on the small-variant VCF (before VEP / Assess
 
 | Output | File |
 | --- | --- |
-| `candidates` | Assess array, in order: `report.html` (triage narrative + classification), `qc_summary.json` (module / callset status), `candidates.tsv` (ranked shortlist, including `followup_reason` alleles). Column dictionary: [`docs/data_dictionary.md`](docs/data_dictionary.md) |
+| `candidates` | Assess array, in order: `report.html` (triage narrative + classification + sample summary), `qc_summary.json` (module / callset status, including `sample_summary`), `candidates.tsv` (ranked shortlist, including `followup_reason` alleles). Column dictionary: [`docs/data_dictionary.md`](docs/data_dictionary.md) |
+| `sample_summary` | One-row TSV with APOE genotype, m.2158T>C, Haplogrep haplogroup, panel-gene PRS, and mean MLC (haplogroup-defining variants excluded). Same fields are nested under `qc_summary.json` → `sample_summary`. Not extra shortlist rows. |
 | `vep_vcf` / `vep_vcf_index` | `{sample_id}.vep.vcf.gz` — VEP VCF after the gnomAD INFO lift and optional ClinVar P/LP annotation, written back as `this.vep_vcf` / `this.vep_vcf_index` for reuse |
 | `small_vcf` / `small_vcf_index` | Normalized PASS small-variant VCF (`NormPass`), written back as `this.small_vcf` / `this.small_vcf_index` |
 | `sv_vcf` / `sv_vcf_index` | `{sample_id}.sv.vcf.gz` — GATK-SV call, joint subset, or reused `sv_prior_vcf` (written back for the next run) |
@@ -236,7 +241,7 @@ pytest
 bash workflow/scripts/validate_wdl.sh
 ```
 
-`outdir` receives the same Assess trio Terra writes: `report.html`, `qc_summary.json`, `candidates.tsv` (plus `report.md` for the narrative source).
+`outdir` receives the Assess trio Terra writes in the `candidates` array — `report.html`, `qc_summary.json`, `candidates.tsv` — plus `sample_summary.tsv` (and `report.md` for the narrative source).
 
 ## Limits and staging
 
