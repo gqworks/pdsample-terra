@@ -177,9 +177,32 @@ def test_ranked_candidates_summary_includes_heteroplasmy_and_mitomap_clinical():
     report = render_markdown("S1", candidates, pd.DataFrame(), {"modules": {}})
     section = report.split("## Ranked candidates", 1)[1]
     header = section.strip().splitlines()[0]
-    assert "heteroplasmy" in header
-    assert "mitomap_clinical_info" in header
+    assert header.split("\t") == [
+        "Gene name",
+        "Inheritance status",
+        "CPRA",
+        "consequence",
+        "variant type",
+        "Zygosity",
+        "hgvsc",
+        "hgvsp",
+        "ClinVar",
+        "gnomad AF",
+        "gnomad popmax AF",
+        "introme score",
+        "AVI",
+        "heteroplasmy",
+        "mitomap_clinical_info",
+        "Spliceogenicity",
+        "SV length",
+        "clinical_match",
+        "phenotype score",
+        "tier",
+        "evidence score",
+        "evidence reason",
+    ]
     assert "mitomap_status" not in header
     assert "mitomap_gb_freq" not in header
     assert "0.42" in section
     assert "LHON / Progressive Dystonia" in section
+    assert "M-11778-G-A" in section

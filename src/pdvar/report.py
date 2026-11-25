@@ -48,6 +48,32 @@ LEAD_COLUMNS = [
 ]
 TRAIL_COLUMNS = ["followup_reason"]
 
+# Ranked-candidates summary in report.html / report.md (display label, source column).
+RANKED_SUMMARY_COLUMNS = [
+    ("Gene name", "gene"),
+    ("Inheritance status", "inheritance_status"),
+    ("CPRA", "variant_id"),
+    ("consequence", "consequence"),
+    ("variant type", "variant_class"),
+    ("Zygosity", "zygosity"),
+    ("hgvsc", "hgvsc"),
+    ("hgvsp", "hgvsp"),
+    ("ClinVar", "clinvar_class"),
+    ("gnomad AF", "gnomad_af"),
+    ("gnomad popmax AF", "gnomad_popmax_af"),
+    ("introme score", "introme_score"),
+    ("AVI", "avi_phred"),
+    ("heteroplasmy", "heteroplasmy"),
+    ("mitomap_clinical_info", "mitomap_clinical_info"),
+    ("Spliceogenicity", "splice_sav_pct"),
+    ("SV length", "svlen"),
+    ("clinical_match", "clinical_match"),
+    ("phenotype score", "phenotype_score"),
+    ("tier", "tier"),
+    ("evidence score", "evidence_score"),
+    ("evidence reason", "evidence_reasons"),
+]
+
 
 def _intronic_rank_penalty(df: pd.DataFrame) -> pd.Series:
     """Push intron-only Introme AR labels below coding/SV rows of the same status."""
@@ -267,6 +293,18 @@ def _report_candidates(candidates: pd.DataFrame) -> pd.DataFrame:
     return candidates.loc[~status.eq("not_qualifying")].copy()
 
 
+def _ranked_summary_frame(candidates: pd.DataFrame) -> pd.DataFrame:
+    """Fixed-order ranked summary; missing source columns are left blank."""
+    shown = _report_candidates(candidates)
+    empty = pd.DataFrame(columns=[label for label, _ in RANKED_SUMMARY_COLUMNS])
+    if shown is None or shown.empty:
+        return empty
+    out = pd.DataFrame(index=shown.index)
+    for label, column in RANKED_SUMMARY_COLUMNS:
+        out[label] = shown[column] if column in shown.columns else pd.NA
+    return out.reset_index(drop=True)
+
+
 def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.DataFrame, qc: dict) -> str:
     """Narrative report. This is a triage list, not an ACMG classification.
 
@@ -313,40 +351,11 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
             lines.append(f"- gatk_sv: {row.get('sv_status')}")
     lines.extend(_phenotype_lines(candidates, qc))
     lines.extend(["", "## Ranked candidates", ""])
-    if candidates is None or candidates.empty:
+    summary = _ranked_summary_frame(candidates)
+    if summary.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        # heteroplasmy / MITOMAP clinical disease text are blank on nuclear rows;
-        # they matter for mtdna_pathogenic_candidate shortlist hits.
-        show = [
-            column
-            for column in (
-                "rank",
-                "gene",
-                "inheritance_status",
-                "variant_id",
-                "hgvsc",
-                "hgvsp",
-                "svtype",
-                "svlen",
-                "consequence",
-                "zygosity",
-                "heteroplasmy",
-                "mitomap_clinical_info",
-                "tier",
-                "evidence_score",
-                "splice_rule",
-                "splice_subgroup",
-                "splice_sav_pct",
-                "splice_heuristic_n",
-                "clinical_match",
-                "phenotype_score",
-                "avi_phred",
-                "evidence_reasons",
-            )
-            if column in candidates.columns
-        ]
-        lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
+        lines.append(summary.to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)
 
@@ -536,7 +545,7 @@ def _phenotype_lines(candidates: pd.DataFrame, qc: dict) -> list[str]:
 
 
 def render_html(markdown: str, candidates: pd.DataFrame) -> str:
-    shown = _report_candidates(candidates)
+    shown = _ranked_summary_frame(candidates)
     table = "<p>No ranked candidates.</p>"
     if shown is not None and not shown.empty:
         table = shown.to_html(index=False, border=0, escape=True)
