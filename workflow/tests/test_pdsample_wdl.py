@@ -220,7 +220,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "task CallSummaryLoci" in sample_tasks
     assert "haplogrep3" in sample_tasks
     assert "phylotree-rcrs@17.2" in sample_tasks
-    assert "File sample_summary = Assess.sample_summary" in text
+    assert "File sample_summary" not in text
+    assert "File sample_summary" not in sample_tasks
     assert "summary_vcf = CallSummaryLoci.vcf" in text
     assert "haplogrep_tsv = Haplogrep.haplogrep_tsv" in text
     assert "PRS_WEIGHTS" in sample_tasks
@@ -244,11 +245,11 @@ def test_pdsample_is_the_only_entry_workflow():
     assert '"out/candidates.tsv"' in tasks
     assert '"out/sample_summary.tsv"' in tasks
     assert tasks.count('"out/') == 4
-    candidates_block = tasks[tasks.index("Array[File] candidates") : tasks.index("File sample_summary")]
+    candidates_block = tasks.split("Array[File] candidates", 1)[1].split("runtime {", 1)[0]
     assert '"out/report.html"' in candidates_block
     assert '"out/qc_summary.json"' in candidates_block
     assert '"out/candidates.tsv"' in candidates_block
-    assert '"out/sample_summary.tsv"' not in candidates_block
+    assert '"out/sample_summary.tsv"' in candidates_block
     assert "File sample_json" not in tasks
     assert "File report_md" not in tasks
     assert "PHENOTYPE_REPORT" in tasks

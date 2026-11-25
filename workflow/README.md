@@ -79,8 +79,9 @@ GATK-SV image pins (overridable), from v1.1.1 `inputs/values/dockers.json`:
 | 0 | `report.html` | Per-sample triage narrative (classification / explained liability) plus the ranked table |
 | 1 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module / callset status |
 | 2 | `candidates.tsv` | Ranked shortlist. AR single-het / review-conflict alleles carry `followup_reason` and are force-kept |
+| 3 | `sample_summary.tsv` | One-row sample genotypes/scores (APOE, m.2158T>C, haplogroup, PGS000902 PRS, mean MLC). TSV only; not copied into HTML or QC JSON |
 
-A separate Terra output `sample_summary` (`out/sample_summary.tsv`) holds APOE, m.2158T>C, Haplogrep haplogroup, PGS000902 PRS (all 90 SNPs), and mean MLC excluding that sample's Haplogrep FoundPolys. It is **not** a fourth `candidates` array member. Empty Terra prior cells still go through `ProbePriorFile` (String-path failsafe); this change adds no new sample-table `File?` inputs.
+Empty Terra prior cells still go through `ProbePriorFile` (String-path failsafe); this change adds no new sample-table `File?` inputs.
 
 How `pdvar` filters, scores, assigns inheritance, and ranks is documented in the repository root [`README.md` § Variant prioritisation](../README.md#variant-prioritisation). Column meanings: [`docs/data_dictionary.md`](../docs/data_dictionary.md).
 

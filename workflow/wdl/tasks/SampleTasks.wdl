@@ -1438,9 +1438,9 @@ PY
     Array[File] candidates = [
       "out/report.html",
       "out/qc_summary.json",
-      "out/candidates.tsv"
+      "out/candidates.tsv",
+      "out/sample_summary.tsv"
     ]
-    File sample_summary = "out/sample_summary.tsv"
   }
   runtime {
     docker: pdvar_docker

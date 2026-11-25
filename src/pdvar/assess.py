@@ -375,7 +375,6 @@ def assess_sample(
     if not sv_assessment.empty:
         qc["sv"] = sv_assessment.to_dict(orient="records")
     summary = build_sample_summary(sample, cfg)
-    qc["sample_summary"] = summary
     notes["haplogrep"] = str(summary.get("haplogroup_status") or "not_assessed")
     notes["panel_prs"] = str(summary.get("prs_status") or "not_assessed")
     notes["apoe"] = str(summary.get("apoe_status") or "not_assessed")

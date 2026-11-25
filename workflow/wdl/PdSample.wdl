@@ -1080,7 +1080,6 @@ workflow PdSample {
 
   output {
     Array[File] candidates = Assess.candidates
-    File sample_summary = Assess.sample_summary
     File vep_vcf = sample_vep_vcf
     File vep_vcf_index = sample_vep_vcf_index
     File small_vcf = sample_small_vcf

@@ -4,14 +4,14 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 
 ## Files
 
-Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `candidates.tsv`. A separate Terra column `sample_summary` is the one-row TSV of sample-level genotypes and scores (not extra shortlist rows). The same object is nested in `qc_summary.json` as `sample_summary`.
+Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `candidates.tsv`, `sample_summary.tsv`. Sample-level genotypes and scores are the TSV only (not copied into the HTML report or `qc_summary.json`, and not extra shortlist rows).
 
 | File | Contents |
 | --- | --- |
-| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). A Sample summary section lists APOE, m.2158T>C, haplogroup, PGS000902 PRS, and mean MLC. The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
-| `qc_summary.json` | Contamination, sex, coverage, reference check, per-module status, and `sample_summary` |
+| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
+| `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module status |
 | `candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles, unphased comp-hets, rescued second hits, and empty-shortlist module stubs are force-kept (after Mendelian solves) and carry `followup_reason` |
-| `sample_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, PGS000902 PRS (90 SNPs), mean MLC. Terra column `sample_summary` |
+| `sample_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, PGS000902 PRS (90 SNPs), mean MLC. Fourth member of the Terra `candidates` array |
 
 ## Candidate columns
 
@@ -55,7 +55,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `clinical_match` | `matched`, `unmatched`, `uninformative`, `no_profile`, or `not_assessed`. Risk rows are repeated under Phenotype concordance in the report |
 | `levodopa`, `age_sampling`, `comorbidities` | From the phenotype report when one was supplied. Comorbidities are listed in the report. Levodopa use is a biomarker note |
 
-## Sample summary (`sample_summary.tsv` / `qc_summary.json` `sample_summary`)
+## Sample summary (`sample_summary.tsv`)
 
 These fields describe the sample. They are not extra `candidates.tsv` rows.
 

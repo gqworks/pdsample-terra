@@ -200,9 +200,10 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert callsets["expansionhunter"] == "STR carrier"
     report = written["report_md"].read_text(encoding="utf-8")
     assert "SYNTHETIC_SAMPLE" in report
-    assert "## Sample summary" in report
+    assert "## Sample summary" not in report
+    assert "sample_summary" not in qc
     assert "Classification: **solved**." in report
-    summary = qc["sample_summary"]
+    summary = pd.read_csv(written["sample_summary_tsv"], sep="\t").iloc[0]
     assert summary["mt_2158_genotype"] == "T"
     assert summary["mean_mlc"] == 0.72
     assert "Explained liability:" in report
