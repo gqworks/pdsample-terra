@@ -40,6 +40,24 @@ def test_hgvs_and_svlen_sit_with_genomic_coordinates():
     ]
 
 
+def test_followup_reason_is_last_column():
+    frame = pd.DataFrame(
+        [
+            {
+                "followup_reason": "single heterozygous hit in recessive gene, second allele not found",
+                "rank": 1,
+                "gene": "PRKN",
+                "inheritance_status": "AR_single_het",
+                "variant_id": "6-1-A-G",
+                "consequence": "missense_variant",
+            }
+        ]
+    )
+    ordered = order_candidate_columns(frame)
+    assert list(ordered.columns)[-1] == "followup_reason"
+    assert list(ordered.columns)[:4] == ["rank", "gene", "inheritance_status", "variant_id"]
+
+
 def test_sv_coding_comphet_outranks_intronic_ar_hom_flood():
     rows = [
         {

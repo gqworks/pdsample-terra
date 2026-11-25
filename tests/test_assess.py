@@ -200,6 +200,7 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert written["candidates_tsv"].name == "SYNTHETIC_SAMPLE_candidates.tsv"
     assert written["summary_tsv"].name == "SYNTHETIC_SAMPLE_summary.tsv"
     assert "followup_reason" in candidates.columns
+    assert list(candidates.columns)[-1] == "followup_reason"
 
     qc = json.loads(written["qc_json"].read_text(encoding="utf-8"))
     assert qc["modules"]["avi"] == "not_assessed"

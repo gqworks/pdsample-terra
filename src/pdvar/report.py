@@ -39,12 +39,14 @@ STATUS_PRIORITY = {
 FOLLOWUP_STATUSES = frozenset({"AR_single_het", "review_conflict"})
 
 # Genomic id, then the c./p. HGVS and SV length, so the report table reads
-# coordinates and annotations together.
+# coordinates and annotations together. ``followup_reason`` is a review note
+# and sits last.
 LEAD_COLUMNS = [
-    "rank", "sample_id", "gene", "moi", "inheritance_status", "followup_reason",
+    "rank", "sample_id", "gene", "moi", "inheritance_status",
     "variant_id", "chrom", "pos", "ref", "alt", "end",
     "hgvsc", "hgvsp", "svtype", "svlen",
 ]
+TRAIL_COLUMNS = ["followup_reason"]
 
 
 def _intronic_rank_penalty(df: pd.DataFrame) -> pd.Series:
@@ -191,12 +193,13 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
 
 
 def order_candidate_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Put the genomic id, c./p. HGVS, and SV length at the front of the table."""
+    """Put genomic id / HGVS / SV length first; ``followup_reason`` last."""
     if df is None or df.empty:
         return df
     lead = [column for column in LEAD_COLUMNS if column in df.columns]
-    rest = [column for column in df.columns if column not in lead]
-    return df.loc[:, lead + rest]
+    trail = [column for column in TRAIL_COLUMNS if column in df.columns]
+    rest = [column for column in df.columns if column not in lead and column not in trail]
+    return df.loc[:, lead + rest + trail]
 
 
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
