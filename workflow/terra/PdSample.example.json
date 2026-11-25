@@ -14,7 +14,7 @@
   "PdSample.pdvar_docker": "python:3.11.11-slim-bookworm",
   "PdSample.pdvar_git_url": "https://github.com/gqworks/pdsample-terra.git",
   "PdSample.assets_git_commit": "main",
-  "PdSample.pdvar_git_commit": "ed36693ee1b7b4188910059b190b2219b94e09c2",
+  "PdSample.pdvar_git_commit": "b04d4f2aaa8ea37f29181bc1775c168d48588c1a",
   "PdSample.mt_dict": "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.dict",
   "PdSample.mt_fasta": "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta",
   "PdSample.mt_fasta_index": "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta.fai",
