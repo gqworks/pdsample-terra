@@ -124,7 +124,7 @@ workflow PdSample {
     String assets_git_commit = "main"
     # Pin a SHA so Assess call-cache invalidates when pdvar (src/pdvar) changes.
     # "main" does not change as an input string when the tip of main moves.
-    String pdvar_git_commit = "f4933eac6e451f7debdb873919767ad742fca64f"
+    String pdvar_git_commit = "a4d78ecc5c8f9042293b1a0ce7792f765de6cf87"
     # Optional GP2-style phenotype text. Age at onset, ancestry, and clinical fields
     # are read from this file only (no separate sample-table phenotype columns).
     # String (not File?) so Terra blank sample cells ("") do not become an illegal
