@@ -174,6 +174,7 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     gba_rows = candidates[candidates["gene"] == "GBA1"]
     assert set(gba_rows["clinical_match"]) == {"matched"}
     assert set(gba_rows["phenotype_score"]) == {6}
+    assert gba_rows["clinical_match_reason"].str.contains("Age of onset").all()
     pink = candidates[candidates["gene"] == "PINK1"]
     assert set(pink["clinical_match"]) == {"unmatched"}
     assert "TTN" not in set(candidates["gene"].astype(str))

@@ -196,7 +196,7 @@ def test_ranked_candidates_summary_includes_heteroplasmy_and_mitomap_clinical():
         "Spliceogenicity",
         "SV length",
         "clinical_match",
-        "phenotype score",
+        "clinical match reason",
         "tier",
         "evidence score",
         "evidence reason",

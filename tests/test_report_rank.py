@@ -580,5 +580,7 @@ def test_report_omits_not_qualifying_kept_in_tsv(tmp_path):
     assert "rescued_null" not in written["report_md"].read_text(encoding="utf-8")
     assert ">CPRA</th>" in html_text
     assert ">Spliceogenicity</th>" in html_text
+    assert ">clinical match reason</th>" in html_text
+    assert ">phenotype score</th>" not in html_text
     assert ">followup_reason</th>" not in html_text
     assert ">Gene name</th>" in html_text

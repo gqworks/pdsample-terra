@@ -8,7 +8,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 
 | File | Contents |
 | --- | --- |
-| `{sample_id}_report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`), explained-liability text, QC (sex, FREEMIX, coverage, reference, relatedness, pass/failures), modules, and the ranked table. Ranked candidates (in order): Gene name, Inheritance status, CPRA (`variant_id`), consequence, variant type, Zygosity, hgvsc, hgvsp, ClinVar, gnomad AF, gnomad popmax AF, introme score, AVI (`avi_phred`), heteroplasmy, mitomap_clinical_info, Spliceogenicity (`splice_sav_pct`), SV length, clinical_match, phenotype score, tier, evidence score, evidence reason. Omits `not_qualifying` rows |
+| `{sample_id}_report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`), explained-liability text, QC (sex, FREEMIX, coverage, reference, relatedness, pass/failures), modules, and the ranked table. Ranked candidates (in order): Gene name, Inheritance status, CPRA (`variant_id`), consequence, variant type, Zygosity, hgvsc, hgvsp, ClinVar, gnomad AF, gnomad popmax AF, introme score, AVI (`avi_phred`), heteroplasmy, mitomap_clinical_info, Spliceogenicity (`splice_sav_pct`), SV length, clinical_match, clinical match reason, tier, evidence score, evidence reason. Omits `not_qualifying` rows |
 | `{sample_id}_candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles, unphased comp-hets, rescued second hits (including `not_qualifying`), and empty-shortlist module stubs are force-kept (after Mendelian solves) and carry `followup_reason` |
 | `{sample_id}_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, PGS000902 PRS (90 SNPs), mean MLC, MSS |
 
@@ -51,6 +51,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `age_onset`, `symptoms`, `ethnicity` | Patient fields parsed from the optional `phenotype_report` text when supplied |
 | `onset_match`, `matched_features`, `phenotype_score` | Concordance against `config/gene_phenotypes.yaml`. Onset in range is +2, outside is -2, and each matched feature or enriched ancestry is +1 |
 | `clinical_match` | `matched`, `unmatched`, `uninformative`, `no_profile`, or `not_assessed`. Risk rows are repeated under Phenotype concordance in the report |
+| `clinical_match_reason` | Why that `clinical_match` was assigned: age of onset in/out of the gene profile range, which key/atypical phenotype terms hit, and enriched ancestry. Shown in the HTML ranked table instead of `phenotype_score` |
 | `levodopa`, `age_sampling`, `comorbidities` | From the phenotype report when one was supplied. Comorbidities are listed in the report. Levodopa use is a biomarker note |
 | `followup_reason` | Last column. Non-empty for alleles in an AR gene that still has only a single heterozygous hit (or a review_conflict), unphased comp-het/hemizygous pairs, rescued second-hit search rows (including Introme 0.7 fallback), early-onset recessive nulls, incomplete AR STR expansions, and empty-shortlist module stubs. Used to force-keep those rows |
 

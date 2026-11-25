@@ -68,7 +68,7 @@ RANKED_SUMMARY_COLUMNS = [
     ("Spliceogenicity", "splice_sav_pct"),
     ("SV length", "svlen"),
     ("clinical_match", "clinical_match"),
-    ("phenotype score", "phenotype_score"),
+    ("clinical match reason", "clinical_match_reason"),
     ("tier", "tier"),
     ("evidence score", "evidence_score"),
     ("evidence reason", "evidence_reasons"),
