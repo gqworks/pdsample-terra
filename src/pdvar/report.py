@@ -273,6 +273,7 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
         f"Explained liability: {explained if explained not in (None, '') else 'null'}. {note}",
         "",
     ]
+    lines.extend(_qc_lines(qc))
     lines.extend(["## Modules", ""])
     modules = qc.get("modules") or {}
     for name, status in modules.items():
@@ -331,6 +332,76 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
         lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)
+
+
+_QC_RENDERED_ELSEWHERE = frozenset(
+    {
+        "sample_id",
+        "pass",
+        "failures",
+        "sex",
+        "contamination",
+        "coverage",
+        "reference",
+        "relatedness",
+        "modules",
+        "sv_status",
+        "pdvar_version",
+        "pdvar_git_commit",
+        "callsets",
+        "sv",
+        "phenotype",
+    }
+)
+
+
+def _qc_count(value: object) -> object:
+    if isinstance(value, (list, tuple, set)):
+        return len(value)
+    return value
+
+
+def _qc_lines(qc: dict) -> list[str]:
+    """QC fields unique to qc_summary.json (not already in Modules/Callsets/Phenotype)."""
+    if not qc:
+        return []
+    sex = qc.get("sex") if isinstance(qc.get("sex"), dict) else {}
+    contamination = qc.get("contamination") if isinstance(qc.get("contamination"), dict) else {}
+    coverage = qc.get("coverage") if isinstance(qc.get("coverage"), dict) else {}
+    reference = qc.get("reference") if isinstance(qc.get("reference"), dict) else {}
+    failures = qc.get("failures") or []
+    fail_txt = "; ".join(str(item) for item in failures) if failures else "none"
+    lines = [
+        "## QC",
+        "",
+        f"- pass: {qc.get('pass')}.",
+        f"- failures: {fail_txt}.",
+        (
+            f"- sex: {sex.get('value') or 'unknown'} "
+            f"(source={sex.get('source') or 'unknown'}; "
+            f"somalier={sex.get('somalier') or 'unknown'}; "
+            f"provided={sex.get('provided') or 'unknown'})."
+        ),
+        (
+            f"- contamination: FREEMIX {contamination.get('freemix')} "
+            f"(max {contamination.get('max_freemix')}; pass={contamination.get('pass')})."
+        ),
+        (
+            f"- coverage: mean {coverage.get('mean')} "
+            f"(min {coverage.get('min_mean_coverage')}; pass={coverage.get('pass')})."
+        ),
+        (
+            f"- reference: ok={reference.get('ok')}; "
+            f"BAM contigs={_qc_count(reference.get('bam_contigs'))}; "
+            f"reference contigs={_qc_count(reference.get('reference_contigs'))}."
+        ),
+        f"- relatedness: {qc.get('relatedness') or 'not_run'}.",
+    ]
+    extra = {key: qc[key] for key in qc if key not in _QC_RENDERED_ELSEWHERE}
+    if extra:
+        lines.append(f"- other: {json.dumps(_jsonable(extra), default=str)}.")
+    lines.append("")
+    return lines
 
 
 def _risk_rows(df: pd.DataFrame) -> pd.DataFrame:
@@ -461,6 +532,11 @@ def render_html(markdown: str, candidates: pd.DataFrame) -> str:
     )
 
 
+def _assess_name(sample_id: str, stem: str) -> str:
+    prefix = str(sample_id or "").strip()
+    return f"{prefix}_{stem}" if prefix else stem
+
+
 def write_sample_outputs(
     candidates: pd.DataFrame,
     liability: pd.DataFrame,
@@ -469,12 +545,11 @@ def write_sample_outputs(
     sample_id: str,
     summary: dict | None = None,
 ) -> dict[str, Path]:
-    """Write Assess outputs: ``candidates.tsv``, ``report.html`` / ``report.md``, ``qc_summary.json``.
+    """Write Assess outputs prefixed with ``sample_id``.
 
-    Liability classification still feeds the report narrative. Follow-up AR
-    alleles are rows in ``candidates.tsv`` with ``followup_reason`` set.
-    ``sample_summary.tsv`` is the fourth ``candidates`` array member (TSV only;
-    not copied into the HTML report or ``qc_summary.json``).
+    Terra ``candidates`` is ``{id}_report.html``, ``{id}_candidates.tsv``,
+    ``{id}_summary.tsv``. Unique QC JSON fields are copied into the HTML report.
+    ``qc_summary.json`` / ``report.md`` stay local-only.
     """
     from .sample_summary import SUMMARY_TSV_COLUMNS, summary_to_row
 
@@ -482,11 +557,11 @@ def write_sample_outputs(
     outdir.mkdir(parents=True, exist_ok=True)
     candidates = order_candidate_columns(candidates if candidates is not None else pd.DataFrame())
     paths = {
-        "candidates_tsv": outdir / "candidates.tsv",
-        "report_md": outdir / "report.md",
-        "report_html": outdir / "report.html",
-        "qc_json": outdir / "qc_summary.json",
-        "sample_summary_tsv": outdir / "sample_summary.tsv",
+        "candidates_tsv": outdir / _assess_name(sample_id, "candidates.tsv"),
+        "report_md": outdir / _assess_name(sample_id, "report.md"),
+        "report_html": outdir / _assess_name(sample_id, "report.html"),
+        "qc_json": outdir / _assess_name(sample_id, "qc_summary.json"),
+        "summary_tsv": outdir / _assess_name(sample_id, "summary.tsv"),
     }
     candidates.to_csv(paths["candidates_tsv"], sep="\t", index=False)
     markdown = render_markdown(sample_id, candidates, liability, qc)
@@ -494,5 +569,5 @@ def write_sample_outputs(
     paths["report_html"].write_text(render_html(markdown, candidates), encoding="utf-8")
     paths["qc_json"].write_text(json.dumps(_jsonable(qc), indent=2) + "\n", encoding="utf-8")
     row = summary_to_row(summary or {"sample_id": sample_id})
-    pd.DataFrame([row], columns=SUMMARY_TSV_COLUMNS).to_csv(paths["sample_summary_tsv"], sep="\t", index=False)
+    pd.DataFrame([row], columns=SUMMARY_TSV_COLUMNS).to_csv(paths["summary_tsv"], sep="\t", index=False)
     return paths

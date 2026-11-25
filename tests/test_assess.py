@@ -143,7 +143,15 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
         "mtdna_vcf": str(mt),
         "mtdna_annotation": "called",
         "introme_tsv": str(introme),
-        "qc": {"pass": True},
+        "qc": {
+            "pass": True,
+            "failures": [],
+            "sex": {"value": "female", "source": "provided", "somalier": "female", "provided": "female"},
+            "contamination": {"freemix": 0.001, "max_freemix": 0.02, "pass": True},
+            "coverage": {"mean": 32.1, "min_mean_coverage": 20, "pass": True},
+            "reference": {"ok": True, "bam_contigs": 195, "reference_contigs": 195},
+            "relatedness": "not_run",
+        },
         "phenotype": {
             "age_onset": "55",
             "symptoms": "cognitive impairment, dementia, hallucinations",
@@ -187,7 +195,10 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     assert "mitomap_pathogenic" in str(mito["evidence_reasons"])
     assert "RFC1" not in set(candidates["gene"].astype(str))
 
-    assert set(written) >= {"candidates_tsv", "report_html", "qc_json", "sample_summary_tsv"}
+    assert set(written) >= {"candidates_tsv", "report_html", "qc_json", "summary_tsv"}
+    assert written["report_html"].name == "SYNTHETIC_SAMPLE_report.html"
+    assert written["candidates_tsv"].name == "SYNTHETIC_SAMPLE_candidates.tsv"
+    assert written["summary_tsv"].name == "SYNTHETIC_SAMPLE_summary.tsv"
     assert "followup_reason" in candidates.columns
 
     qc = json.loads(written["qc_json"].read_text(encoding="utf-8"))
@@ -201,9 +212,20 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     report = written["report_md"].read_text(encoding="utf-8")
     assert "SYNTHETIC_SAMPLE" in report
     assert "## Sample summary" not in report
+    assert "## QC" in report
+    assert "pass: True" in report
+    assert "sex: female (source=provided; somalier=female; provided=female)." in report
+    assert "contamination: FREEMIX 0.001 (max 0.02; pass=True)." in report
+    assert "coverage: mean 32.1 (min 20; pass=True)." in report
+    assert "reference: ok=True; BAM contigs=195; reference contigs=195." in report
+    assert "relatedness: not_run." in report
+    html = written["report_html"].read_text(encoding="utf-8")
+    assert "## QC" in html
+    assert "FREEMIX 0.001" in html
+    assert "relatedness: not_run." in html
     assert "sample_summary" not in qc
     assert "Classification: **solved**." in report
-    summary = pd.read_csv(written["sample_summary_tsv"], sep="\t").iloc[0]
+    summary = pd.read_csv(written["summary_tsv"], sep="\t").iloc[0]
     assert summary["mt_2158_genotype"] == "T"
     assert summary["mean_mlc"] == 0.72
     assert "Explained liability:" in report

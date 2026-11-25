@@ -4,14 +4,13 @@ Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` i
 
 ## Files
 
-Terra writes these Assess files into one `candidates` array column, in this order: `report.html`, `qc_summary.json`, `candidates.tsv`, `sample_summary.tsv`. Sample-level genotypes and scores are the TSV only (not copied into the HTML report or `qc_summary.json`, and not extra shortlist rows).
+Terra writes these Assess files into one `candidates` array column, in this order: `{sample_id}_report.html`, `{sample_id}_candidates.tsv`, `{sample_id}_summary.tsv`. Sample-level genotypes and scores are the summary TSV only (not extra shortlist rows). Unique QC JSON fields (sex, contamination, coverage, reference, relatedness, pass/failures) are copied into the HTML report.
 
 | File | Contents |
 | --- | --- |
-| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
-| `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module status |
-| `candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles, unphased comp-hets, rescued second hits, and empty-shortlist module stubs are force-kept (after Mendelian solves) and carry `followup_reason` |
-| `sample_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, PGS000902 PRS (90 SNPs), mean MLC. Fourth member of the Terra `candidates` array |
+| `{sample_id}_report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`), explained-liability text, QC (sex, FREEMIX, coverage, reference, relatedness, pass/failures), modules, and the ranked table. Ranked candidates include `heteroplasmy` and `mitomap_clinical_info` when present |
+| `{sample_id}_candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles, unphased comp-hets, rescued second hits, and empty-shortlist module stubs are force-kept (after Mendelian solves) and carry `followup_reason` |
+| `{sample_id}_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, PGS000902 PRS (90 SNPs), mean MLC |
 
 ## Candidate columns
 
@@ -55,7 +54,22 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `clinical_match` | `matched`, `unmatched`, `uninformative`, `no_profile`, or `not_assessed`. Risk rows are repeated under Phenotype concordance in the report |
 | `levodopa`, `age_sampling`, `comorbidities` | From the phenotype report when one was supplied. Comorbidities are listed in the report. Levodopa use is a biomarker note |
 
-## Sample summary (`sample_summary.tsv`)
+## QC in `{sample_id}_report.html`
+
+These fields used to live only in `qc_summary.json`. They are copied into the HTML report so that file is not a Terra output:
+
+| Field | Meaning |
+| --- | --- |
+| `pass` / `failures` | QcGate hard-fail result. Failures list FREEMIX, coverage, or sex-check messages when those gates trip |
+| `sex` | `value`, `source` (`provided` / `somalier` / `unknown`), `somalier`, and `provided` |
+| `contamination` | VerifyBamID2 `FREEMIX`, the configured max, and whether it passed |
+| `coverage` | mosdepth mean depth, the configured min, and whether it passed |
+| `reference` | Whether BAM/CRAM contigs match the reference, plus contig counts |
+| `relatedness` | Always `not_run` in this per-sample workflow |
+
+Any other QC JSON key that is not already in Modules, Callsets, or Phenotype is printed as `other`.
+
+## Sample summary (`{sample_id}_summary.tsv`)
 
 These fields describe the sample. They are not extra `candidates.tsv` rows.
 
@@ -78,4 +92,4 @@ These fields describe the sample. They are not extra `candidates.tsv` rows.
 | `mlc_haplotag_exclusion` | `haplogrep_found_polys`, `empty_found_polys`, or `not_applied` |
 | `mlc_status` | `called` when at least one scored SNV remains, else `not_assessed` |
 
-`qc_summary.json` `modules` records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, VEP, AVI, `splice_heuristics`, `mtdna_annotation` (MitImpact join), `haplogrep`, `apoe`, `mt_2158`, `panel_prs`, and `mean_mlc`. `splice_heuristics` is `called` when the reference FASTA and GENCODE GTF were both available. AVI is `called` only when the Atlas table has at least one score. GATK-SV is `called` when the SV VCF came from `GATKSVPipelineSingleSample` (including fallback when `sample_id` is absent from optional `sv_joint_vcf`), `joint` when it was subset from that joint VCF, or `prior` when `this.sv_vcf` was reused. Introme is `prior` when a real non-empty `this.introme` was reused (empty/placeholder cells call Introme). A real non-empty `this.vep_vcf` skips the VEP annotation chain; Assess still runs. The same `ProbePriorFile` failsafe applies to `this.small_vcf`, `this.sv_vcf`, `this.expansionhunter_vcf`, `this.gauchian_json`, `this.mtdna_vcf`, and `this.avi_tsv`: empty/missing/placeholder/zero-byte cells run that producer. `mtdna_annotation` is `prior` when `this.mtdna_vcf` was reused. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object mirrors that value. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.
+The HTML report QC/modules section records `called` or `not_assessed` for small variants, ExpansionHunter, Gauchian, mtDNA, Introme, VEP, AVI, `splice_heuristics`, `mtdna_annotation` (MitImpact join), `haplogrep`, `apoe`, `mt_2158`, `panel_prs`, and `mean_mlc`. `splice_heuristics` is `called` when the reference FASTA and GENCODE GTF were both available. AVI is `called` only when the Atlas table has at least one score. GATK-SV is `called` when the SV VCF came from `GATKSVPipelineSingleSample` (including fallback when `sample_id` is absent from optional `sv_joint_vcf`), `joint` when it was subset from that joint VCF, or `prior` when `this.sv_vcf` was reused. Introme is `prior` when a real non-empty `this.introme` was reused (empty/placeholder cells call Introme). A real non-empty `this.vep_vcf` skips the VEP annotation chain; Assess still runs. The same `ProbePriorFile` failsafe applies to `this.small_vcf`, `this.sv_vcf`, `this.expansionhunter_vcf`, `this.gauchian_json`, `this.mtdna_vcf`, and `this.avi_tsv`: empty/missing/placeholder/zero-byte cells run that producer. `mtdna_annotation` is `prior` when `this.mtdna_vcf` was reused. A missing `sv_vcf` raises `FileNotFoundError`. `sv_status` on the QC object mirrors that value. The `sv` array still uses `no SV`, `SV carrier`, or `SV not assessed` for whether that sample is in the VCF header and carries a panel SV. `relatedness` is `not_run`.

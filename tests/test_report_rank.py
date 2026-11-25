@@ -1,6 +1,6 @@
 import pandas as pd
 
-from pdvar.report import order_candidate_columns, patient_candidates, rank_candidates
+from pdvar.report import order_candidate_columns, patient_candidates, rank_candidates, render_markdown
 
 
 def test_hgvs_and_svlen_sit_with_genomic_coordinates():
@@ -490,3 +490,30 @@ def test_clinvar_rank_order_plp_then_vus_coding_then_vus_intron():
     ranked = rank_candidates(pd.DataFrame(rows))
     # Intron AD_candidate gets status_priority 1; coding AD stay at 0.
     assert list(ranked["variant_id"]) == ["plp_missense", "vus_missense", "none_missense", "vus_intron"]
+
+
+def test_report_copies_unique_qc_json_fields():
+    markdown = render_markdown(
+        "APGS1222",
+        pd.DataFrame(),
+        pd.DataFrame(),
+        {
+            "pass": False,
+            "failures": ["FREEMIX 0.05 exceeds 0.02"],
+            "sex": {"value": "male", "source": "somalier", "somalier": "male", "provided": "unknown"},
+            "contamination": {"freemix": 0.05, "max_freemix": 0.02, "pass": False},
+            "coverage": {"mean": 18.2, "min_mean_coverage": 20, "pass": False},
+            "reference": {"ok": True, "bam_contigs": 195, "reference_contigs": 195},
+            "relatedness": "not_run",
+            "modules": {"vep": "called"},
+            "novel_gate": "keep-me",
+        },
+    )
+    assert "## QC" in markdown
+    assert "pass: False." in markdown
+    assert "failures: FREEMIX 0.05 exceeds 0.02." in markdown
+    assert "sex: male (source=somalier; somalier=male; provided=unknown)." in markdown
+    assert "contamination: FREEMIX 0.05 (max 0.02; pass=False)." in markdown
+    assert "coverage: mean 18.2 (min 20; pass=False)." in markdown
+    assert '"novel_gate": "keep-me"' in markdown
+    assert "## Modules" in markdown

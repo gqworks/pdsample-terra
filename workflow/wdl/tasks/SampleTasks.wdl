@@ -1436,10 +1436,9 @@ PY
   >>>
   output {
     Array[File] candidates = [
-      "out/report.html",
-      "out/qc_summary.json",
-      "out/candidates.tsv",
-      "out/sample_summary.tsv"
+      "out/~{sample_id}_report.html",
+      "out/~{sample_id}_candidates.tsv",
+      "out/~{sample_id}_summary.tsv"
     ]
   }
   runtime {

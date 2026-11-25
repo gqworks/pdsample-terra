@@ -76,10 +76,9 @@ GATK-SV image pins (overridable), from v1.1.1 `inputs/values/dockers.json`:
 
 | Index | File | Contents |
 | --- | --- | --- |
-| 0 | `report.html` | Per-sample triage narrative (classification / explained liability) plus the ranked table |
-| 1 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module / callset status |
-| 2 | `candidates.tsv` | Ranked shortlist. AR single-het / review-conflict alleles carry `followup_reason` and are force-kept |
-| 3 | `sample_summary.tsv` | One-row sample genotypes/scores (APOE, m.2158T>C, haplogroup, PGS000902 PRS, mean MLC). TSV only; not copied into HTML or QC JSON |
+| 0 | `{sample_id}_report.html` | Per-sample triage narrative (classification / explained liability / QC) plus the ranked table |
+| 1 | `{sample_id}_candidates.tsv` | Ranked shortlist. AR single-het / review-conflict alleles carry `followup_reason` and are force-kept |
+| 2 | `{sample_id}_summary.tsv` | One-row sample genotypes/scores (APOE, m.2158T>C, haplogroup, PGS000902 PRS, mean MLC) |
 
 Empty Terra prior cells still go through `ProbePriorFile` (String-path failsafe); this change adds no new sample-table `File?` inputs.
 

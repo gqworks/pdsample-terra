@@ -64,4 +64,4 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 - Config: `config/config.yaml`, `config/columns.yaml`, `config/gene_phenotypes.yaml`
 - QC scripts: `workflow/scripts/check_reference.py`, `workflow/scripts/qc_summary.py`
 
-Panel inheritance labels and penetrance stay null or placeholder until you cite them. STR pathogenic repeat floors are populated under `str_loci`. The workflow will still rank variants into the Assess `candidates` array (`report.html`, `qc_summary.json`, `candidates.tsv`, `sample_summary.tsv`). Column meanings: [`data_dictionary.md`](data_dictionary.md). Prioritisation protocol: [README § Variant prioritisation](../README.md#variant-prioritisation).
+Panel inheritance labels and penetrance stay null or placeholder until you cite them. STR pathogenic repeat floors are populated under `str_loci`. The workflow will still rank variants into the Assess `candidates` array (`{sample_id}_report.html`, `{sample_id}_candidates.tsv`, `{sample_id}_summary.tsv`). Column meanings: [`data_dictionary.md`](data_dictionary.md). Prioritisation protocol: [README § Variant prioritisation](../README.md#variant-prioritisation).

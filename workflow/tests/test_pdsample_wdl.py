@@ -240,16 +240,15 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File sv_vcf = NameSvVcf.released" in text
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert 'Array[File] candidates = [' in tasks
-    assert '"out/report.html"' in tasks
-    assert '"out/qc_summary.json"' in tasks
-    assert '"out/candidates.tsv"' in tasks
-    assert '"out/sample_summary.tsv"' in tasks
-    assert tasks.count('"out/') == 4
+    assert '"out/~{sample_id}_report.html"' in tasks
+    assert '"out/~{sample_id}_candidates.tsv"' in tasks
+    assert '"out/~{sample_id}_summary.tsv"' in tasks
+    assert tasks.count('"out/') == 3
     candidates_block = tasks.split("Array[File] candidates", 1)[1].split("runtime {", 1)[0]
-    assert '"out/report.html"' in candidates_block
-    assert '"out/qc_summary.json"' in candidates_block
-    assert '"out/candidates.tsv"' in candidates_block
-    assert '"out/sample_summary.tsv"' in candidates_block
+    assert '"out/~{sample_id}_report.html"' in candidates_block
+    assert '"out/~{sample_id}_candidates.tsv"' in candidates_block
+    assert '"out/~{sample_id}_summary.tsv"' in candidates_block
+    assert "qc_summary.json" not in candidates_block
     assert "File sample_json" not in tasks
     assert "File report_md" not in tasks
     assert "PHENOTYPE_REPORT" in tasks
