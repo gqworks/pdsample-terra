@@ -1,6 +1,13 @@
 import pandas as pd
 
-from pdvar.report import order_candidate_columns, patient_candidates, rank_candidates, render_markdown
+from pdvar.report import (
+    order_candidate_columns,
+    patient_candidates,
+    rank_candidates,
+    render_html,
+    render_markdown,
+    write_sample_outputs,
+)
 
 
 def test_hgvs_and_svlen_sit_with_genomic_coordinates():
@@ -517,3 +524,38 @@ def test_report_copies_unique_qc_json_fields():
     assert "coverage: mean 18.2 (min 20; pass=False)." in markdown
     assert '"novel_gate": "keep-me"' in markdown
     assert "## Modules" in markdown
+
+
+def test_report_omits_not_qualifying_kept_in_tsv(tmp_path):
+    candidates = pd.DataFrame(
+        [
+            {
+                "sample_id": "S1",
+                "gene": "PINK1",
+                "variant_id": "keep_solve",
+                "inheritance_status": "AR_hom",
+                "followup_reason": "",
+                "rank": 1,
+            },
+            {
+                "sample_id": "S1",
+                "gene": "PRKN",
+                "variant_id": "rescued_null",
+                "inheritance_status": "not_qualifying",
+                "followup_reason": "early-onset recessive null",
+                "rank": 2,
+            },
+        ]
+    )
+    markdown = render_markdown("S1", candidates, pd.DataFrame(), {"modules": {}})
+    assert "keep_solve" in markdown
+    assert "rescued_null" not in markdown
+    html = render_html(markdown, candidates)
+    assert "keep_solve" in html
+    assert "rescued_null" not in html
+    written = write_sample_outputs(candidates, pd.DataFrame(), {}, tmp_path, "S1")
+    tsv = written["candidates_tsv"].read_text(encoding="utf-8")
+    assert "rescued_null" in tsv
+    assert "not_qualifying" in tsv
+    assert "rescued_null" not in written["report_html"].read_text(encoding="utf-8")
+    assert "rescued_null" not in written["report_md"].read_text(encoding="utf-8")

@@ -156,7 +156,7 @@ Panel MOI (`AD` / `AR` / `XL` / `RISK` / `UNKNOWN`) plus tier gates decide wheth
 | `mtdna_pathogenic_candidate` | High-evidence mtDNA; not a nuclear Mendelian solve |
 | `str_expanded` | Expansion at or above a cited pathogenic floor |
 | `AD_gof_intronic`, `AR_intronic_candidate` | Demoted intron / Introme support |
-| `not_qualifying` | Below MOI tier (or off-panel) — dropped from `candidates.tsv` unless `followup_reason` is set |
+| `not_qualifying` | Below MOI tier (or off-panel) — dropped from `candidates.tsv` unless `followup_reason` is set. Kept in the TSV for follow-up; omitted from `report.html` |
 | `module_not_assessed` | Empty unexplained shortlist stub naming a required module that did not run |
 
 AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or ClinVar P/LP partners, demotes intron-only false solves, tags incomplete AR genes with `followup_reason`, and notes unphased `AR_comphet_candidate` / `AR_hemizygous` pairs. Assess then searches those follow-up genes for low-depth nulls, ClinVar P/LP, depth-only exon SVs, and gene-scoped Introme hits (0.9 first; 0.7 if that gene has none). SNCA copy-gain is scored only for gene-scale multiplications (`PREDICTED_COPY_GAIN` or exon/TSS overlap and span ≥ 10 kb). `HIGH_SR_BACKGROUND` and in-cohort `FREQ_HET` are annotation; cohort SV AF is not a hard filter.
@@ -170,7 +170,7 @@ AR refine (`compound.refine`) pairs LoF / exon-disrupting SVs with coding or Cli
 3. **Coding over intron noise** — intron-only non-P/LP rows are penalised; intron-only `AD_candidate` is bumped out of the top priority band
 4. **Tier**, then **evidence_score**, then **AVI Phred**, then **phenotype_score**
 
-`patient_candidates` keeps the top `max_candidates_per_patient` (default 20) among qualifying rows, then **force-keeps** clinical must-sees that would otherwise fall off: Mendelian / risk / STR / high-evidence mtDNA statuses, ClinVar P/LP, Gauchian rows, scored LoF SVs, early-onset recessive-eopd nulls, empty-shortlist module stubs, and any allele with `followup_reason`. Plain `mtdna_variant` haplogroup rows are never shortlisted.
+`patient_candidates` keeps the top `max_candidates_per_patient` (default 20) among qualifying rows, then **force-keeps** clinical must-sees that would otherwise fall off: Mendelian / risk / STR / high-evidence mtDNA statuses, ClinVar P/LP, Gauchian rows, scored LoF SVs, early-onset recessive-eopd nulls, empty-shortlist module stubs, and any allele with `followup_reason`. Plain `mtdna_variant` haplogroup rows are never shortlisted. `not_qualifying` force-keeps stay in `candidates.tsv` and are omitted from `report.html`.
 
 ### 6. Phenotype and sample classification
 

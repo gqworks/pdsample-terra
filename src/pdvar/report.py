@@ -254,8 +254,22 @@ def _jsonable(value):
     return str(value)
 
 
+def _report_candidates(candidates: pd.DataFrame) -> pd.DataFrame:
+    """Ranked table for HTML/Markdown. ``not_qualifying`` stays in ``candidates.tsv`` only."""
+    if candidates is None or candidates.empty:
+        return candidates if candidates is not None else pd.DataFrame()
+    if "inheritance_status" not in candidates.columns:
+        return candidates
+    status = candidates["inheritance_status"].fillna("").astype(str)
+    return candidates.loc[~status.eq("not_qualifying")].copy()
+
+
 def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.DataFrame, qc: dict) -> str:
-    """Narrative report. This is a triage list, not an ACMG classification."""
+    """Narrative report. This is a triage list, not an ACMG classification.
+
+    ``not_qualifying`` follow-up alleles stay in ``candidates.tsv`` and are omitted here.
+    """
+    candidates = _report_candidates(candidates)
     classification = "unexplained"
     explained = None
     note = ""
@@ -519,9 +533,10 @@ def _phenotype_lines(candidates: pd.DataFrame, qc: dict) -> list[str]:
 
 
 def render_html(markdown: str, candidates: pd.DataFrame) -> str:
+    shown = _report_candidates(candidates)
     table = "<p>No ranked candidates.</p>"
-    if candidates is not None and not candidates.empty:
-        table = candidates.to_html(index=False, border=0, escape=True)
+    if shown is not None and not shown.empty:
+        table = shown.to_html(index=False, border=0, escape=True)
     body = html.escape(markdown)
     return (
         "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
@@ -549,6 +564,7 @@ def write_sample_outputs(
 
     Terra ``candidates`` is ``{id}_report.html``, ``{id}_candidates.tsv``,
     ``{id}_summary.tsv``. Unique QC JSON fields are copied into the HTML report.
+    ``not_qualifying`` rows stay in the TSV and are omitted from the HTML.
     ``qc_summary.json`` / ``report.md`` stay local-only.
     """
     from .sample_summary import SUMMARY_TSV_COLUMNS, summary_to_row

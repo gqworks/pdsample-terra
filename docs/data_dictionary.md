@@ -1,6 +1,6 @@
 # Data dictionary
 
-Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` is `not_qualifying` unless `followup_reason` is set. How ranking and shortlisting work: [README § Variant prioritisation](../README.md#variant-prioritisation).
+Outputs are one sample. `candidates.tsv` drops rows whose `inheritance_status` is `not_qualifying` unless `followup_reason` is set. `report.html` omits `not_qualifying` rows even when they are in the TSV. How ranking and shortlisting work: [README § Variant prioritisation](../README.md#variant-prioritisation).
 
 ## Files
 
@@ -8,8 +8,8 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 
 | File | Contents |
 | --- | --- |
-| `{sample_id}_report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`), explained-liability text, QC (sex, FREEMIX, coverage, reference, relatedness, pass/failures), modules, and the ranked table. Ranked candidates include `heteroplasmy` and `mitomap_clinical_info` when present |
-| `{sample_id}_candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles, unphased comp-hets, rescued second hits, and empty-shortlist module stubs are force-kept (after Mendelian solves) and carry `followup_reason` |
+| `{sample_id}_report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`), explained-liability text, QC (sex, FREEMIX, coverage, reference, relatedness, pass/failures), modules, and the ranked table. Ranked candidates include `heteroplasmy` and `mitomap_clinical_info` when present. Omits `not_qualifying` rows |
+| `{sample_id}_candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles, unphased comp-hets, rescued second hits (including `not_qualifying`), and empty-shortlist module stubs are force-kept (after Mendelian solves) and carry `followup_reason` |
 | `{sample_id}_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, PGS000902 PRS (90 SNPs), mean MLC, MSS |
 
 ## Candidate columns
