@@ -228,6 +228,7 @@ def test_assess_ranks_one_synthetic_sample(tmp_path):
     summary = pd.read_csv(written["summary_tsv"], sep="\t").iloc[0]
     assert summary["mt_2158_genotype"] == "T"
     assert summary["mean_mlc"] == 0.72
+    assert summary["mss"] == 0.72
     assert "Explained liability:" in report
     assert "## Phenotype concordance" in report
     assert "Age at onset: 55." in report

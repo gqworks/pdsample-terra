@@ -7,8 +7,9 @@ Fields:
 - m.2158T>C (SHLP2 p.Lys4Arg, rs41349444) from the mt VCF.
 - Haplogroup from Haplogrep (Phylotree rCRS).
 - ``panel_prs``: cited PGS000902 90-SNP weighted sum (all rows).
-- Mean MitImpact MLC across mt SNVs, excluding Haplogrep FoundPolys
-  (haplogroup-defining / haplotagging variants present in the sample).
+- Mean MitImpact MLC and MLC score sum (MSS) across mt SNVs, excluding
+  Haplogrep FoundPolys (haplogroup-defining / haplotagging variants present
+  in the sample).
 """
 
 from __future__ import annotations
@@ -44,7 +45,7 @@ HAPLOGREP_CITATION = (
 )
 MLC_CITATION = (
     "Lake NJ et al. Nature 2024;625:593-602. doi:10.1038/s41586-024-08048-x "
-    "(MLC via MitImpact); haplotagging exclusion = Haplogrep FoundPolys"
+    "(MLC and MLC score sum / MSS via MitImpact); haplotagging exclusion = Haplogrep FoundPolys"
 )
 
 _POLY_POS = re.compile(r"(?<![0-9])(\d{1,5})(?![0-9])")
@@ -257,9 +258,10 @@ def mean_mlc(
     haplotag_positions: list[int] | None,
     haplotag_applied: bool,
 ) -> dict:
-    """Mean MitImpact MLC on mt SNVs, excluding Haplogrep FoundPolys when available."""
+    """Mean MitImpact MLC and MLC score sum (MSS) on mt SNVs, excluding FoundPolys."""
     out = {
         "mean_mlc": None,
+        "mss": None,
         "mlc_n_variants": 0,
         "mlc_n_excluded_haplotag": 0,
         "mlc_n_missing_score": 0,
@@ -308,7 +310,9 @@ def mean_mlc(
     else:
         out["mlc_haplotag_exclusion"] = "not_applied"
     if scores:
-        out["mean_mlc"] = round(sum(scores) / len(scores), 6)
+        total = sum(scores)
+        out["mean_mlc"] = round(total / len(scores), 6)
+        out["mss"] = round(total, 6)
         out["mlc_status"] = "called"
     elif n_snv:
         out["mlc_status"] = "not_assessed"
@@ -395,6 +399,7 @@ SUMMARY_TSV_COLUMNS = [
     "prs_sites_total",
     "prs_status",
     "mean_mlc",
+    "mss",
     "mlc_n_variants",
     "mlc_n_excluded_haplotag",
     "mlc_haplotag_exclusion",

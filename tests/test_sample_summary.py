@@ -1,4 +1,4 @@
-"""APOE, m.2158T>C, Haplogrep, panel PRS, and mean MLC sample-summary fields."""
+"""APOE, m.2158T>C, Haplogrep, panel PRS, mean MLC, and MSS sample-summary fields."""
 
 from pathlib import Path
 
@@ -128,10 +128,12 @@ def test_mean_mlc_excludes_haplotag(tmp_path):
     result = mean_mlc(vcf, [73, 2158], haplotag_applied=True)
     assert result["mlc_n_excluded_haplotag"] == 2
     assert result["mean_mlc"] == 0.9
+    assert result["mss"] == 0.9
     assert result["mlc_haplotag_exclusion"] == "haplogrep_found_polys"
     other = mean_mlc(vcf, [1234], haplotag_applied=True)
     assert other["mlc_n_excluded_haplotag"] == 1
     assert other["mean_mlc"] == 0.3
+    assert other["mss"] == 0.6
     unused = mean_mlc(vcf, [73], haplotag_applied=False)
     assert unused["mlc_haplotag_exclusion"] == "not_applied"
     assert unused["mlc_n_excluded_haplotag"] == 0
@@ -258,6 +260,7 @@ def test_build_sample_summary_end_to_end(tmp_path):
     assert summary["prs_sites_total"] == 90
     assert summary["prs_sites_used"] == 1
     assert summary["mean_mlc"] == 0.6
+    assert summary["mss"] == 1.2
     assert summary["mlc_n_excluded_haplotag"] == 1
     assert summary["mlc_haplotag_exclusion"] == "haplogrep_found_polys"
     assert chrom_bare("chrM") == "M"
