@@ -129,6 +129,15 @@ def test_mean_mlc_excludes_haplotag(tmp_path):
     assert result["mlc_n_excluded_haplotag"] == 2
     assert result["mean_mlc"] == 0.9
     assert result["mlc_haplotag_exclusion"] == "haplogrep_found_polys"
+    other = mean_mlc(vcf, [1234], haplotag_applied=True)
+    assert other["mlc_n_excluded_haplotag"] == 1
+    assert other["mean_mlc"] == 0.3
+    unused = mean_mlc(vcf, [73], haplotag_applied=False)
+    assert unused["mlc_haplotag_exclusion"] == "not_applied"
+    assert unused["mlc_n_excluded_haplotag"] == 0
+    empty = mean_mlc(vcf, [], haplotag_applied=True)
+    assert empty["mlc_haplotag_exclusion"] == "empty_found_polys"
+    assert empty["mlc_n_excluded_haplotag"] == 0
 
 
 def test_apoe_not_on_mendelian_panel():
@@ -158,15 +167,24 @@ def test_load_prs_weights_rejects_uncited_rows(tmp_path):
 
 
 def test_panel_prs_weights_are_cited():
-    full = load_prs_weights(ROOT / "resources" / "prs" / "pgs000902_nalls2019.tsv", panel_only=False)
-    table = load_prs_weights(ROOT / "resources" / "prs" / "pgs000902_nalls2019.tsv", panel_only=True)
-    assert full is not None and table is not None
+    weights = ROOT / "resources" / "prs" / "pgs000902_nalls2019.tsv"
+    full = load_prs_weights(weights)
+    panel = load_prs_weights(weights, panel_only=True)
+    assert full is not None and panel is not None
     assert len(full) == 90
-    assert len(table) == 11
-    assert table["citation"].astype(str).str.contains("Nalls").all()
-    assert "GBA1" in set(table["panel_gene"].astype(str))
-    assert "SNCA" in set(table["panel_gene"].astype(str))
-    assert "LRRK2" in set(table["panel_gene"].astype(str))
+    assert len(panel) == 11
+    assert full["citation"].astype(str).str.contains("Nalls").all()
+    assert "GBA1" in set(panel["panel_gene"].astype(str))
+    assert "SNCA" in set(panel["panel_gene"].astype(str))
+    assert "LRRK2" in set(panel["panel_gene"].astype(str))
+    bed_rsids = {
+        line.split("\t")[3]
+        for line in (ROOT / "workflow" / "assets" / "summary_loci.grch38.bed").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    }
+    assert set(full["rsid"].astype(str)) <= bed_rsids
+    assert {"rs429358", "rs7412"} <= bed_rsids
+    assert len(bed_rsids) == 92
 
 
 def test_score_prs_dosage(tmp_path):
@@ -237,6 +255,9 @@ def test_build_sample_summary_end_to_end(tmp_path):
     assert summary["mt_2158_genotype"] == "T/C"
     assert summary["haplogroup"] == "H1"
     assert summary["panel_prs"] == 2.4289
+    assert summary["prs_sites_total"] == 90
+    assert summary["prs_sites_used"] == 1
     assert summary["mean_mlc"] == 0.6
     assert summary["mlc_n_excluded_haplotag"] == 1
+    assert summary["mlc_haplotag_exclusion"] == "haplogrep_found_polys"
     assert chrom_bare("chrM") == "M"

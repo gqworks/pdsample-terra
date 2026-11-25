@@ -1192,9 +1192,9 @@ task AnnotateMtdna {
   }
 }
 
-# All-sites genotypes at APOE ε SNPs and panel-gene PGS000902 SNPs (including
-# SNCA cis tags outside the calling BED). WGS BAM + tiny BED; does not add
-# APOE/FGF14/NOTCH2NLC to the Mendelian HaplotypeCaller panel.
+# All-sites genotypes at APOE ε SNPs and all 90 PGS000902 SNPs (including
+# off-panel GWAS tags). WGS BAM + tiny BED; does not add APOE/FGF14/NOTCH2NLC
+# to the Mendelian HaplotypeCaller panel.
 task CallSummaryLoci {
   input {
     File bam

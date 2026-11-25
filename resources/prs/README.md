@@ -1,7 +1,7 @@
-# Panel-gene Parkinson's PRS weights
+# Parkinson's PRS weights (PGS000902)
 
 `pgs000902_nalls2019.tsv` is the PGS Catalog scoring file **PGS000902** (PRS90_PD)
-harmonized to GRCh38, with a `score_in_panel_prs` flag for the MonoPDAus panel.
+harmonized to GRCh38.
 
 | Field | Value |
 | --- | --- |
@@ -11,12 +11,13 @@ harmonized to GRCh38, with a `score_in_panel_prs` flag for the MonoPDAus panel.
 | Weight type | beta (log-odds) |
 | Variants | 90 genome-wide significant PD SNPs |
 
-`pdvar` scores **`panel_prs`** as the weighted allele-count sum over rows with
-`score_in_panel_prs=true`: SNPs inside a panel gene span, or within 20 kb
-(SNCA cis GWAS tags rs356182 / rs5019538, plus COASY cis rs12951632). That is a
-**panel-restricted subset**, not the published 90-SNP PRS. Off-panel rows stay
-in the file so `wgs_small_variants` can use the same weights; they are not
-imputed as hom-ref on the default panel HaplotypeCaller path.
+`pdvar` scores **`panel_prs`** as the weighted allele-count sum over **all 90
+rows**. `CallSummaryLoci` genotypes those sites (plus APOE ε SNPs) from the WGS
+BAM, including hom-ref. Missing genotypes are not imputed as hom-ref.
+
+`score_in_panel_prs` is annotation only: `true` for SNPs inside a MonoPDAus
+gene span or within 20 kb (SNCA cis tags rs356182 / rs5019538, plus COASY cis
+rs12951632). It does not filter the default score.
 
 Do not resurrect an empty weights stub. Every row carries the citation above.
 The two APOE ε SNPs are **not** in PGS000902; they are genotyped separately.

@@ -8,10 +8,10 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 
 | File | Contents |
 | --- | --- |
-| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). A Sample summary section lists APOE, m.2158T>C, haplogroup, panel-gene PRS, and mean MLC. The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
+| `report.html` | Per-sample triage report. Prints sample classification (`solved` / `partially_explained` / `unexplained`) and explained-liability text (usually null until cited penetrances). A Sample summary section lists APOE, m.2158T>C, haplogroup, PGS000902 PRS, and mean MLC. The Ranked candidates summary includes `heteroplasmy` and `mitomap_clinical_info` when present (pathogenic mtDNA hits) |
 | `qc_summary.json` | Contamination, sex, coverage, reference check, per-module status, and `sample_summary` |
 | `candidates.tsv` | Ranked shortlist for the Terra row. AR single-het / review-conflict follow-up alleles, unphased comp-hets, rescued second hits, and empty-shortlist module stubs are force-kept (after Mendelian solves) and carry `followup_reason` |
-| `sample_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, panel-gene PRS, mean MLC. Terra column `sample_summary` |
+| `sample_summary.tsv` | One row per sample: APOE ε genotype, m.2158T>C, Haplogrep haplogroup, PGS000902 PRS (90 SNPs), mean MLC. Terra column `sample_summary` |
 
 ## Candidate columns
 
@@ -70,10 +70,10 @@ These fields describe the sample. They are not extra `candidates.tsv` rows.
 | `haplogroup` | Haplogrep 3 best hit on the mt VCF (`phylotree-rcrs@17.2`). Container: `quay.io/biocontainers/haplogrep3:3.2.2--hdfd78af_1`. Phylotree 17 rCRS is bundled in that image; `install-tree` is a no-op fallback |
 | `haplogroup_quality` | Haplogrep quality score |
 | `haplogroup_status` | `called` or `not_assessed` |
-| `panel_prs` | Weighted allele-count sum of PGS Catalog **PGS000902** (Nalls et al. *Lancet Neurol* 2019) rows with `score_in_panel_prs=true` (SNPs inside a panel gene span or within 20 kb). This is a **panel-restricted subset**, not the published 90-SNP PRS. Missing sites are not imputed as hom-ref. Weights: `resources/prs/pgs000902_nalls2019.tsv` |
-| `prs_sites_used` / `prs_sites_missing` / `prs_sites_total` | How complete that panel-restricted score is |
-| `prs_status` | `called` when at least one panel SNP was genotyped; `not_assessed` otherwise |
-| `mean_mlc` | Mean MitImpact `MI_MLC_score` across mt SNVs in the annotated mt VCF, **excluding Haplogrep FoundPolys** (haplogroup-defining / haplotagging variants present in the sample). Lake et al. *Nature* 2024 via MitImpact. There is no static in-repo haplotagging list; exclusion is derived per sample from Haplogrep |
+| `panel_prs` | Weighted allele-count sum of **all 90** PGS Catalog **PGS000902** SNPs (Nalls et al. *Lancet Neurol* 2019). `CallSummaryLoci` genotypes every site from the WGS BAM (hom-ref included). Missing sites are not imputed as hom-ref. `score_in_panel_prs` in the weights TSV is annotation only. Weights: `resources/prs/pgs000902_nalls2019.tsv` |
+| `prs_sites_used` / `prs_sites_missing` / `prs_sites_total` | How complete that 90-SNP score is (`prs_sites_total` is 90 when the shipped weights file is used) |
+| `prs_status` | `called` when at least one PGS SNP was genotyped; `not_assessed` otherwise |
+| `mean_mlc` | Mean MitImpact `MI_MLC_score` across mt SNVs in the annotated mt VCF, **excluding this sample's Haplogrep FoundPolys** (haplogroup-defining / haplotagging variants present in that sample). Lake et al. *Nature* 2024 via MitImpact. There is no static in-repo haplotagging list |
 | `mlc_n_variants` / `mlc_n_excluded_haplotag` | SNVs considered and haplogroup-defining sites dropped |
 | `mlc_haplotag_exclusion` | `haplogrep_found_polys`, `empty_found_polys`, or `not_applied` |
 | `mlc_status` | `called` when at least one scored SNV remains, else `not_assessed` |

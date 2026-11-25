@@ -1,9 +1,8 @@
-# Panel-restricted Parkinson's PRS weights from PGS Catalog PGS000902 (PRS90_PD).
+# Parkinson's PRS weights from PGS Catalog PGS000902 (PRS90_PD).
 # Source: Nalls MA et al. Lancet Neurol. 2019;18:1091-1102. doi:10.1016/S1474-4422(19)30320-5
 # Harmonized GRCh38 positions: PGS Catalog PGS000902_hmPOS_GRCh38 (HmPOS_date=2022-07-29).
-# score_in_panel_prs=true for SNPs inside a MonoPDAus gene span or within 20 kb (SNCA cis GWAS tags).
-# Off-panel rows are kept so wgs_small_variants can score the published 90-SNP set; default panel_prs uses the true subset only.
-# Do not treat missing off-panel sites as hom-ref on the default panel HC path.
+# panel_prs scores all 90 rows. score_in_panel_prs marks MonoPDAus gene-body / 20 kb cis SNPs (annotation only).
+# CallSummaryLoci genotypes every site (including hom-ref). Missing genotypes are not imputed as hom-ref.
 chrom	pos	effect_allele	other_allele	weight	rsid	citation	panel_gene	locus_class	score_in_panel_prs
 1	154925709	C	G	0.2812	rs114138760	PGS000902; Nalls MA et al. Lancet Neurol 2019;18:1091-1102. doi:10.1016/S1474-4422(19)30320-5		off_panel	false
 1	155162560	A	G	0.6068	rs35749011	PGS000902; Nalls MA et al. Lancet Neurol 2019;18:1091-1102. doi:10.1016/S1474-4422(19)30320-5		off_panel	false

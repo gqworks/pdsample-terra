@@ -1,8 +1,10 @@
-"""Panel-gene Parkinson's PRS from a cited PGS Catalog weights table.
+"""Parkinson's PRS from a cited PGS Catalog weights table.
 
 Weights are PGS000902 / Nalls 2019 (see ``resources/prs/README.md``). This is
 not the unused empty stub removed in PR 96: every row must carry a citation
-and a numeric weight. ``panel_prs`` sums only ``score_in_panel_prs`` rows.
+and a numeric weight. ``panel_prs`` is the published 90-SNP weighted sum.
+``score_in_panel_prs`` is kept as annotation (panel gene / 20 kb cis) and is
+not used to filter the default score.
 """
 
 from __future__ import annotations
@@ -49,7 +51,7 @@ def default_weights_path(cfg: dict | None = None) -> Path | None:
     return None
 
 
-def load_prs_weights(path: str | Path | None, *, panel_only: bool = True) -> pd.DataFrame | None:
+def load_prs_weights(path: str | Path | None, *, panel_only: bool = False) -> pd.DataFrame | None:
     """Load a cited weights TSV. Empty / missing path returns None."""
     if not path:
         return None

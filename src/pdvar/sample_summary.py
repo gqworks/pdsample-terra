@@ -6,7 +6,7 @@ Fields:
   panel; called from ``summary_vcf``.
 - m.2158T>C (SHLP2 p.Lys4Arg, rs41349444) from the mt VCF.
 - Haplogroup from Haplogrep (Phylotree rCRS).
-- ``panel_prs``: cited PGS000902 weights on panel-gene SNPs.
+- ``panel_prs``: cited PGS000902 90-SNP weighted sum (all rows).
 - Mean MitImpact MLC across mt SNVs, excluding Haplogrep FoundPolys
   (haplogroup-defining / haplotagging variants present in the sample).
 """
@@ -357,7 +357,7 @@ def build_sample_summary(sample: dict, cfg: dict | None = None) -> dict:
     )
 
     weights_path = sample.get("prs_weights") or default_weights_path(cfg)
-    weights = load_prs_weights(weights_path, panel_only=True)
+    weights = load_prs_weights(weights_path, panel_only=False)
     prs = score_prs(weights, genotypes, sample_id)
 
     summary = {

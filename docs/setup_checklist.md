@@ -55,8 +55,8 @@ Docker inputs are not workspace attributes in this method config. Featured-works
 ## Already in the repo
 
 - Calling BED: `workflow/assets/monopdaus-genes.grch38.bed`
-- Summary loci BED (APOE ε SNPs + panel-gene PGS000902 sites): `workflow/assets/summary_loci.grch38.bed`
-- Panel-gene PRS weights (PGS000902 / Nalls 2019): `resources/prs/pgs000902_nalls2019.tsv`
+- Summary loci BED (APOE ε SNPs + all 90 PGS000902 sites): `workflow/assets/summary_loci.grch38.bed`
+- PGS000902 / Nalls 2019 PRS weights (all 90 SNPs scored): `resources/prs/pgs000902_nalls2019.tsv`
 - SV overlap BEDs: `resources/panel/monopdaus-genes.grch38.bed`, `resources/panel/monopdaus-exons.grch38.bed`
 - Inheritance table: `resources/panel/monopdaus-gene-inheritance.csv` (MOI plus AD `mechanism` GoF/LoF/DN labels; see `resources/panel/ad_mechanism.SOURCES.md`)
 - ExpansionHunter catalog: `workflow/assets/expansionhunter_pd.hg38.json` (24 loci, including NOTCH2NLC, FGF14, BEAN1, LRP12, and FXN)
