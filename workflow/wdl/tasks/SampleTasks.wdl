@@ -1323,7 +1323,7 @@ task Assess {
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
-    String pdvar_git_commit = "8a3154ba91a7e26fba2ad3ed83bab5083b7291af"
+    String pdvar_git_commit = "c6d92e881b09ad304e637cf1088700e6b6155601"
   }
   Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(gtf, "GiB") + 150)
   command <<<
