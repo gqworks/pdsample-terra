@@ -214,9 +214,17 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File gba1_pd_browser =" not in text
     assert "splicevault" not in text.lower()
     assert "splicevault" not in sample_tasks.lower()
-    assert "prs_weights" not in text
-    assert "prs_weights" not in sample_tasks
-    assert "PRS_WEIGHTS" not in sample_tasks
+    assert "File? prs_weights" not in text
+    assert "prs_weights = FetchRepoAssets.prs_weights" in text
+    assert "task Haplogrep" in sample_tasks
+    assert "task CallSummaryLoci" in sample_tasks
+    assert "haplogrep3" in sample_tasks
+    assert "phylotree-rcrs@17.2" in sample_tasks
+    assert "File sample_summary" not in text
+    assert "File sample_summary" not in sample_tasks
+    assert "summary_vcf = CallSummaryLoci.vcf" in text
+    assert "haplogrep_tsv = Haplogrep.haplogrep_tsv" in text
+    assert "PRS_WEIGHTS" in sample_tasks
     assert "File sample_introme = select_first(flatten([introme_prior_files, select_all([Introme.introme_tsv])]))" in text
     assert "introme_tsv = NameIntrome.released" in text
     assert "expansionhunter_vcf = sample_expansionhunter_vcf" in text
@@ -232,10 +240,15 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File sv_vcf = NameSvVcf.released" in text
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert 'Array[File] candidates = [' in tasks
-    assert '"out/report.html"' in tasks
-    assert '"out/qc_summary.json"' in tasks
-    assert '"out/candidates.tsv"' in tasks
+    assert '"out/~{sample_id}_report.html"' in tasks
+    assert '"out/~{sample_id}_candidates.tsv"' in tasks
+    assert '"out/~{sample_id}_summary.tsv"' in tasks
     assert tasks.count('"out/') == 3
+    candidates_block = tasks.split("Array[File] candidates", 1)[1].split("runtime {", 1)[0]
+    assert '"out/~{sample_id}_report.html"' in candidates_block
+    assert '"out/~{sample_id}_candidates.tsv"' in candidates_block
+    assert '"out/~{sample_id}_summary.tsv"' in candidates_block
+    assert "qc_summary.json" not in candidates_block
     assert "File sample_json" not in tasks
     assert "File report_md" not in tasks
     assert "PHENOTYPE_REPORT" in tasks
@@ -357,7 +370,7 @@ def test_cp_uses_localized_file_interpolation():
 def test_alignment_readers_accept_picard_bai_names():
     """htslib looks for sample.bam.bai; Picard writes sample.bai."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
-    assert text.count('ln -s "$index" "${align}.bai"') == 5
+    assert text.count('ln -s "$index" "${align}.bai"') == 6
 
 
 def test_requester_pays_flag_is_a_haplotypecaller_argument():
@@ -547,6 +560,10 @@ def test_fetch_repo_assets_is_volatile_and_uses_assets_git_commit():
     assert 'String assets_git_commit = "main"' in text
     assert '("resources/gba1/gba1_pd_browser.tsv", "gba1_pd_browser.tsv")' in fetch_block
     assert "File gba1_pd_browser = \"gba1_pd_browser.tsv\"" in fetch_block
+    assert '("resources/prs/pgs000902_nalls2019.tsv", "prs_weights.tsv")' in fetch_block
+    assert '("workflow/assets/summary_loci.grch38.bed", "summary_loci.bed")' in fetch_block
+    assert 'File prs_weights = "prs_weights.tsv"' in fetch_block
+    assert 'File summary_loci_bed = "summary_loci.bed"' in fetch_block
     call_start = text.index("call Tasks.FetchRepoAssets {")
     call_block = text[call_start : text.index("}", call_start)]
     assert "git_commit = assets_git_commit" in call_block

@@ -45,6 +45,8 @@ GATK-SV is a required call. Panel and resource `File` inputs are required `PdSam
 | Gauchian | `python:3.11.11-slim-bookworm` unless `gauchian_docker` is set | pip `gauchian==1.0.2` |
 | mtDNA | images inside vendored MitochondriaPipeline | GATK 4.7.0.0 |
 | AnnotateMtdna (MitImpact) | `python:3.11.11-slim-bookworm` | `annotate_mtdna.py`; unset `mtdna_mitimpact` → `not_assessed` |
+| Haplogrep 3 | `quay.io/biocontainers/haplogrep3:3.2.2--hdfd78af_1` | Phylotree 17 rCRS is bundled (`phylotree-rcrs@17.2`); `--extend-report` FoundPolys = haplotagging exclusion for mean MLC and MSS |
+| CallSummaryLoci | `quay.io/biocontainers/bcftools:1.24--h118bc1c_4` | APOE ε SNPs + all 90 PGS000902 sites from the BAM (all-sites, including hom-ref) |
 | GATK-SV | pins in `PdSample.wdl` (`sv_*_docker`) | gatk-sv v1.1.1, required |
 | Introme preprocessing | `gabyou/data_prepocessing:v2.0` | upstream tag, including the image-name spelling |
 | VariantInfo | `gabyou/variant_info:v3.2` | v3.2 |
@@ -74,9 +76,11 @@ GATK-SV image pins (overridable), from v1.1.1 `inputs/values/dockers.json`:
 
 | Index | File | Contents |
 | --- | --- | --- |
-| 0 | `report.html` | Per-sample triage narrative (classification / explained liability) plus the ranked table |
-| 1 | `qc_summary.json` | Contamination, sex, coverage, reference check, and per-module / callset status |
-| 2 | `candidates.tsv` | Ranked shortlist. AR single-het / review-conflict alleles carry `followup_reason` and are force-kept |
+| 0 | `{sample_id}_report.html` | Per-sample triage narrative (classification / explained liability / QC) plus the ranked table |
+| 1 | `{sample_id}_candidates.tsv` | Ranked shortlist. AR single-het / review-conflict alleles carry `followup_reason` and are force-kept |
+| 2 | `{sample_id}_summary.tsv` | One-row sample genotypes/scores (APOE, m.2158T>C, haplogroup, PGS000902 PRS, mean MLC, MSS) |
+
+Empty Terra prior cells still go through `ProbePriorFile` (String-path failsafe); this change adds no new sample-table `File?` inputs.
 
 How `pdvar` filters, scores, assigns inheritance, and ranks is documented in the repository root [`README.md` § Variant prioritisation](../README.md#variant-prioritisation). Column meanings: [`docs/data_dictionary.md`](../docs/data_dictionary.md).
 

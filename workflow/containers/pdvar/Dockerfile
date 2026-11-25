@@ -18,4 +18,5 @@ COPY src ./src
 COPY config ./config
 COPY resources/panel ./resources/panel
 COPY resources/gba1 ./resources/gba1
+COPY resources/prs ./resources/prs
 RUN pip install --no-cache-dir .

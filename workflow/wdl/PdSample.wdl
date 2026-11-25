@@ -115,13 +115,16 @@ workflow PdSample {
 
     String gauchian_docker = "python:3.11.11-slim-bookworm"
     String pdvar_docker = "python:3.11.11-slim-bookworm"
+    # Haplogrep 3 (Biocontainers). Phylotree rCRS matches hg38 chrM.
+    String haplogrep_docker = "quay.io/biocontainers/haplogrep3:3.2.2--hdfd78af_1"
+    String haplogrep_tree = "phylotree-rcrs@17.2"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # FetchRepoAssets is volatile and uses this ref for scripts/config/panel assets.
     # Default "main" so pushed script fixes are re-fetched; pin a SHA to freeze assets.
     String assets_git_commit = "main"
     # Pin a SHA so Assess call-cache invalidates when pdvar (src/pdvar) changes.
     # "main" does not change as an input string when the tip of main moves.
-    String pdvar_git_commit = "16ddca28be860676251a8af105285f1b70fe9eb1"
+    String pdvar_git_commit = "c6d92e881b09ad304e637cf1088700e6b6155601"
     # Optional GP2-style phenotype text. Age at onset, ancestry, and clinical fields
     # are read from this file only (no separate sample-table phenotype columns).
     # String (not File?) so Terra blank sample cells ("") do not become an illegal
@@ -539,6 +542,17 @@ workflow PdSample {
       hard_fail_coverage = hard_fail_coverage,
       python_docker = python_docker
   }
+  call Tasks.CallSummaryLoci {
+    input:
+      bam = sample_bam,
+      bam_index = sample_bai,
+      ref_fasta = ref_fasta,
+      ref_fasta_index = ref_fasta_index,
+      loci_bed = FetchRepoAssets.summary_loci_bed,
+      qc_gate = QcGate.gate,
+      sample_id = sample_id,
+      preemptible = preemptible
+  }
   call Tasks.HaplotypeCaller {
     input:
       bam = sample_bam,
@@ -771,6 +785,14 @@ workflow PdSample {
   }
   File sample_mtdna_vcf = select_first(flatten([mtdna_vcf_prior_files, select_all([AnnotateMtdna.mtdna_vcf])]))
   String sample_mtdna_annotation = if use_prior_mtdna then "prior" else select_first([AnnotateMtdna.annotation_status])
+  call Tasks.Haplogrep {
+    input:
+      vcf = sample_mtdna_vcf,
+      sample_id = sample_id,
+      haplogrep_docker = haplogrep_docker,
+      haplogrep_tree = haplogrep_tree,
+      preemptible = preemptible
+  }
   # SV precedence: prior sample VCF → joint subset → GATK-SV call (with optional
   # case_* evidence). Blank Terra strings are ignored so the next path runs.
   # scatter+if keeps Array[File] outputs for flatten with the GatkSv if-branch.
@@ -1047,6 +1069,9 @@ workflow PdSample {
       ref_fasta_index = ref_fasta_index,
       gtf = introme_gtf,
       gba1_pd_browser = FetchRepoAssets.gba1_pd_browser,
+      haplogrep_tsv = Haplogrep.haplogrep_tsv,
+      summary_vcf = CallSummaryLoci.vcf,
+      prs_weights = FetchRepoAssets.prs_weights,
       phenotype_report_files = phenotype_report_files,
       pdvar_docker = pdvar_docker,
       pdvar_git_url = pdvar_git_url,

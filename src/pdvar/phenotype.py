@@ -118,6 +118,70 @@ def _clinical_match(provided: bool, profile: bool, positive: bool, onset_out: bo
     return "uninformative"
 
 
+def _split_terms(value: object) -> list[str]:
+    return [part.strip() for part in str(value or "").split(";") if part.strip()]
+
+
+def _isna(value: object) -> bool:
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return value is None
+
+
+def _fmt_age(value: object) -> int | float | None:
+    if _isna(value):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number != number:
+        return None
+    return int(number) if number.is_integer() else number
+
+
+def clinical_match_reason(
+    *,
+    clinical_match: str,
+    onset_match: object,
+    age_onset: object,
+    matched_features: object,
+    matched_atypical: object,
+    ancestry_enriched: object,
+) -> str:
+    """Plain-language reason: onset in/out of range, and which phenotype terms hit."""
+    status = str(clinical_match or "")
+    if status == "not_assessed":
+        return "phenotype not assessed"
+    if status == "no_profile":
+        return "no gene profile"
+    parts: list[str] = []
+    onset = None if _isna(onset_match) else bool(onset_match)
+    age = _fmt_age(age_onset)
+    if onset is True:
+        parts.append(f"Age of onset {age} in profile range" if age is not None else "Age of onset in profile range")
+    elif onset is False:
+        parts.append(f"Age of onset {age} outside profile range" if age is not None else "Age of onset outside profile range")
+    features = _split_terms(matched_features)
+    if features:
+        parts.append("key features: " + "; ".join(features))
+    atypical = _split_terms(matched_atypical)
+    if atypical:
+        parts.append("atypical features: " + "; ".join(atypical))
+    if _isna(ancestry_enriched):
+        ancestry = False
+    elif isinstance(ancestry_enriched, str):
+        ancestry = ancestry_enriched.strip().lower() in {"true", "1", "yes"}
+    else:
+        ancestry = bool(ancestry_enriched)
+    if ancestry:
+        parts.append("enriched ancestry")
+    if status == "uninformative" and not parts:
+        return "no onset or feature overlap"
+    return "; ".join(parts)
+
+
 def phenotype_concordance(df: pd.DataFrame, pheno: pd.DataFrame, profiles: dict, pcfg: dict) -> pd.DataFrame:
     """Merge patient phenotype and score how well it fits each candidate gene.
 
@@ -169,5 +233,23 @@ def phenotype_concordance(df: pd.DataFrame, pheno: pd.DataFrame, profiles: dict,
     df["clinical_match"] = [
         _clinical_match(bool(has_input), bool(has_profile), bool(hit), bool(outside))
         for has_input, has_profile, hit, outside in zip(provided, profile, positive, onset_out)
+    ]
+    df["clinical_match_reason"] = [
+        clinical_match_reason(
+            clinical_match=match,
+            onset_match=onset,
+            age_onset=onset_age,
+            matched_features=features,
+            matched_atypical=atypical,
+            ancestry_enriched=ancestry,
+        )
+        for match, onset, onset_age, features, atypical, ancestry in zip(
+            df["clinical_match"],
+            df["onset_match"],
+            age,
+            df["matched_features"],
+            df["matched_atypical"],
+            df["ancestry_enriched"],
+        )
     ]
     return df

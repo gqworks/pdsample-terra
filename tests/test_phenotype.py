@@ -62,11 +62,19 @@ def test_string_age_matches_gba1_and_flags_genes_without_a_profile():
     assert bool(gba["ancestry_enriched"]) is True
     assert gba["phenotype_score"] == 5
     assert gba["clinical_match"] == "matched"
+    assert "Age of onset 55 in profile range" in gba["clinical_match_reason"]
+    assert "cognitive impairment" in gba["clinical_match_reason"]
+    assert "dementia" in gba["clinical_match_reason"]
+    assert "enriched ancestry" in gba["clinical_match_reason"]
     assert out.loc["PRKN", "clinical_match"] == "unmatched"
     assert out.loc["PRKN", "phenotype_score"] == -2
+    assert out.loc["PRKN", "clinical_match_reason"] == "Age of onset 55 outside profile range"
     assert bool(out.loc["SMPD1", "ancestry_enriched"]) is True
     assert out.loc["SMPD1", "clinical_match"] == "matched"
+    assert "enriched ancestry" in out.loc["SMPD1", "clinical_match_reason"]
+    assert "cognitive impairment" in out.loc["SMPD1", "clinical_match_reason"]
     assert out.loc["NOTAPANELGENE", "clinical_match"] == "no_profile"
+    assert out.loc["NOTAPANELGENE", "clinical_match_reason"] == "no gene profile"
 
 
 def test_blank_phenotype_is_not_assessed_and_sparse_text_is_uninformative():
@@ -75,12 +83,14 @@ def test_blank_phenotype_is_not_assessed_and_sparse_text_is_uninformative():
         {"sample_id": "S", "sex": "female", "age_onset": "  ", "symptoms": ""},
     )
     assert blank.iloc[0]["clinical_match"] == "not_assessed"
+    assert blank.iloc[0]["clinical_match_reason"] == "phenotype not assessed"
     sparse = _score(
         [{"sample_id": "S", "gene": "GBA1"}],
         {"sample_id": "S", "symptoms": "fatigue"},
     )
     assert sparse.iloc[0]["clinical_match"] == "uninformative"
     assert sparse.iloc[0]["phenotype_score"] == 0
+    assert sparse.iloc[0]["clinical_match_reason"] == "no onset or feature overlap"
 
 
 def test_clean_phenotype_parses_age_and_drops_blanks():

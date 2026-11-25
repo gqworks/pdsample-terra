@@ -167,7 +167,9 @@ pairs = [
     ("workflow/scripts/probe_prior_file.py", "probe_prior_file.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
+    ("workflow/assets/summary_loci.grch38.bed", "summary_loci.bed"),
     ("resources/panel/monopdaus-gene-inheritance.csv", "panel.csv"),
+    ("resources/prs/pgs000902_nalls2019.tsv", "prs_weights.tsv"),
     ("resources/panel/monopdaus-genes.grch38.bed", "genes.bed"),
     ("resources/panel/monopdaus-exons.grch38.bed", "exons.bed"),
     ("resources/gba1/gba1_pd_browser.tsv", "gba1_pd_browser.tsv"),
@@ -196,7 +198,9 @@ PY
     File probe_prior_file_py = "probe_prior_file.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
+    File summary_loci_bed = "summary_loci.bed"
     File panel_csv = "panel.csv"
+    File prs_weights = "prs_weights.tsv"
     File gene_bed = "genes.bed"
     File exon_bed = "exons.bed"
     File gba1_pd_browser = "gba1_pd_browser.tsv"
@@ -1188,6 +1192,98 @@ task AnnotateMtdna {
   }
 }
 
+# All-sites genotypes at APOE ε SNPs and all 90 PGS000902 SNPs (including
+# off-panel GWAS tags). WGS BAM + tiny BED; does not add APOE/FGF14/NOTCH2NLC
+# to the Mendelian HaplotypeCaller panel.
+task CallSummaryLoci {
+  input {
+    File bam
+    File bam_index
+    File ref_fasta
+    File ref_fasta_index
+    File loci_bed
+    File qc_gate
+    String sample_id
+    String bcftools_docker = "quay.io/biocontainers/bcftools:1.24--h118bc1c_4"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + size(ref_fasta, "GiB") + 50)
+  command <<<
+    set -euo pipefail
+    wc -c ~{qc_gate} >/dev/null
+    align="~{bam}"
+    index="~{bam_index}"
+    if [[ "$align" != gs://* && -e "$index" ]]; then
+      [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+      [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
+    fi
+    # No -v: emit hom-ref as well as ALT so APOE ε3/ε3 and PRS 0-dosage sites are genotyped.
+    bcftools mpileup -f "~{ref_fasta}" -T "~{loci_bed}" -q 20 -Q 20 -a FORMAT/DP,FORMAT/AD -Ou "~{bam}" \
+      | bcftools call -m -Ov -o "~{sample_id}.summary.vcf"
+  >>>
+  output {
+    File vcf = "~{sample_id}.summary.vcf"
+  }
+  runtime {
+    docker: bcftools_docker
+    preemptible: preemptible
+    memory: "4 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 1
+  }
+}
+
+# Haplogrep 3 on the MitochondriaPipeline (+ MitImpact) VCF. Phylotree rCRS
+# matches hg38 chrM / rCRS. FoundPolys are haplogroup-defining (haplotagging)
+# sites used to exclude MLC from the sample mean.
+task Haplogrep {
+  input {
+    File vcf
+    String sample_id
+    String haplogrep_docker = "quay.io/biocontainers/haplogrep3:3.2.2--hdfd78af_1"
+    String haplogrep_tree = "phylotree-rcrs@17.2"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(vcf, "GiB") + 20)
+  command <<<
+    set -euo pipefail
+    src="~{vcf}"
+    if gzip -t "$src" 2>/dev/null; then
+      gzip -dc "$src" > raw.vcf
+    else
+      cp "$src" raw.vcf
+    fi
+    # Haplogrep expects rCRS contig MT; MitochondriaPipeline writes chrM.
+    awk '
+      /^##contig=<ID=chrM/ { sub(/ID=chrM/, "ID=MT"); print; next }
+      /^##contig=<ID=chrMT/ { sub(/ID=chrMT/, "ID=MT"); print; next }
+      /^chrM\t/ { sub(/^chrM/, "MT"); print; next }
+      /^chrMT\t/ { sub(/^chrMT/, "MT"); print; next }
+      { print }
+    ' raw.vcf > haplogrep.in.vcf
+    # Phylotree 17 rCRS is bundled in haplogrep3 3.2.2; install-tree is a no-op fallback.
+    haplogrep3 trees || true
+    haplogrep3 install-tree ~{haplogrep_tree} || haplogrep3 install-tree phylotree-rcrs@17.2 || true
+    haplogrep3 classify \
+      --in haplogrep.in.vcf \
+      --out "~{sample_id}.haplogrep.tsv" \
+      --tree ~{haplogrep_tree} \
+      --extend-report \
+      --hetLevel=0.01
+    test -s "~{sample_id}.haplogrep.tsv"
+  >>>
+  output {
+    File haplogrep_tsv = "~{sample_id}.haplogrep.tsv"
+  }
+  runtime {
+    docker: haplogrep_docker
+    preemptible: preemptible
+    memory: "4 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 1
+  }
+}
+
 task Assess {
   input {
     String sample_id
@@ -1219,12 +1315,15 @@ task Assess {
     File ref_fasta_index
     File gtf
     File? gba1_pd_browser
+    File? haplogrep_tsv
+    File? summary_vcf
+    File? prs_weights
     # Empty when the sample has no report (WDL 1.0 has no None for File?).
     Array[File] phenotype_report_files = []
     String pdvar_docker = "python:3.11.11-slim-bookworm"
     String pdvar_git_url = "https://github.com/gqworks/pdsample-terra.git"
     # Pin a commit SHA (not "main") so Cromwell call-cache invalidates when pdvar changes.
-    String pdvar_git_commit = "16ddca28be860676251a8af105285f1b70fe9eb1"
+    String pdvar_git_commit = "c6d92e881b09ad304e637cf1088700e6b6155601"
   }
   Int disk_gb = ceil(size(vep_vcf, "GiB") + size(small_vcf, "GiB") + size(sv_vcf, "GiB") + size(expansionhunter_vcf, "GiB") + size(mtdna_vcf, "GiB") + size(introme_tsv, "GiB") + size(select_first([avi_tsv, vep_vcf]), "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(gtf, "GiB") + 150)
   command <<<
@@ -1272,6 +1371,9 @@ PY
     export SPLICE_GTF="~{gtf}"
     export GBA1_PD_BROWSER='~{default="" gba1_pd_browser}'
     export AVI_TSV='~{default="" avi_tsv}'
+    export HAPLOGREP_TSV='~{default="" haplogrep_tsv}'
+    export SUMMARY_VCF='~{default="" summary_vcf}'
+    export PRS_WEIGHTS='~{default="" prs_weights}'
     export PHENOTYPE_REPORT='~{sep="" phenotype_report_files}'
     export PDVAR_GIT_COMMIT="~{pdvar_git_commit}"
     export PDVAR_VERSION="$(tr -d '\n' < pdvar_version.txt)"
@@ -1313,6 +1415,9 @@ document = {
     "gtf": os.environ["SPLICE_GTF"],
     "gba1_pd_browser": maybe("GBA1_PD_BROWSER"),
     "avi_tsv": maybe("AVI_TSV"),
+    "haplogrep_tsv": maybe("HAPLOGREP_TSV"),
+    "summary_vcf": maybe("SUMMARY_VCF"),
+    "prs_weights": maybe("PRS_WEIGHTS"),
     "phenotype": phenotype,
     "qc": qc,
 }
@@ -1331,9 +1436,9 @@ PY
   >>>
   output {
     Array[File] candidates = [
-      "out/report.html",
-      "out/qc_summary.json",
-      "out/candidates.tsv"
+      "out/~{sample_id}_report.html",
+      "out/~{sample_id}_candidates.tsv",
+      "out/~{sample_id}_summary.tsv"
     ]
   }
   runtime {

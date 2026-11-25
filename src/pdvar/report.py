@@ -39,11 +39,39 @@ STATUS_PRIORITY = {
 FOLLOWUP_STATUSES = frozenset({"AR_single_het", "review_conflict"})
 
 # Genomic id, then the c./p. HGVS and SV length, so the report table reads
-# coordinates and annotations together.
+# coordinates and annotations together. ``followup_reason`` is a review note
+# and sits last.
 LEAD_COLUMNS = [
-    "rank", "sample_id", "gene", "moi", "inheritance_status", "followup_reason",
+    "rank", "sample_id", "gene", "moi", "inheritance_status",
     "variant_id", "chrom", "pos", "ref", "alt", "end",
     "hgvsc", "hgvsp", "svtype", "svlen",
+]
+TRAIL_COLUMNS = ["followup_reason"]
+
+# Ranked-candidates summary in report.html / report.md (display label, source column).
+RANKED_SUMMARY_COLUMNS = [
+    ("Gene name", "gene"),
+    ("Inheritance status", "inheritance_status"),
+    ("CPRA", "variant_id"),
+    ("consequence", "consequence"),
+    ("variant type", "variant_class"),
+    ("Zygosity", "zygosity"),
+    ("hgvsc", "hgvsc"),
+    ("hgvsp", "hgvsp"),
+    ("ClinVar", "clinvar_class"),
+    ("gnomad AF", "gnomad_af"),
+    ("gnomad popmax AF", "gnomad_popmax_af"),
+    ("introme score", "introme_score"),
+    ("AVI", "avi_phred"),
+    ("heteroplasmy", "heteroplasmy"),
+    ("mitomap_clinical_info", "mitomap_clinical_info"),
+    ("Spliceogenicity", "splice_sav_pct"),
+    ("SV length", "svlen"),
+    ("clinical_match", "clinical_match"),
+    ("clinical match reason", "clinical_match_reason"),
+    ("tier", "tier"),
+    ("evidence score", "evidence_score"),
+    ("evidence reason", "evidence_reasons"),
 ]
 
 
@@ -191,12 +219,13 @@ def _must_keep_mask(df: pd.DataFrame) -> pd.Series:
 
 
 def order_candidate_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Put the genomic id, c./p. HGVS, and SV length at the front of the table."""
+    """Put genomic id / HGVS / SV length first; ``followup_reason`` last."""
     if df is None or df.empty:
         return df
     lead = [column for column in LEAD_COLUMNS if column in df.columns]
-    rest = [column for column in df.columns if column not in lead]
-    return df.loc[:, lead + rest]
+    trail = [column for column in TRAIL_COLUMNS if column in df.columns]
+    rest = [column for column in df.columns if column not in lead and column not in trail]
+    return df.loc[:, lead + rest + trail]
 
 
 def patient_candidates(df: pd.DataFrame, max_per_patient: int) -> pd.DataFrame:
@@ -254,8 +283,34 @@ def _jsonable(value):
     return str(value)
 
 
+def _report_candidates(candidates: pd.DataFrame) -> pd.DataFrame:
+    """Ranked table for HTML/Markdown. ``not_qualifying`` stays in ``candidates.tsv`` only."""
+    if candidates is None or candidates.empty:
+        return candidates if candidates is not None else pd.DataFrame()
+    if "inheritance_status" not in candidates.columns:
+        return candidates
+    status = candidates["inheritance_status"].fillna("").astype(str)
+    return candidates.loc[~status.eq("not_qualifying")].copy()
+
+
+def _ranked_summary_frame(candidates: pd.DataFrame) -> pd.DataFrame:
+    """Fixed-order ranked summary; missing source columns are left blank."""
+    shown = _report_candidates(candidates)
+    empty = pd.DataFrame(columns=[label for label, _ in RANKED_SUMMARY_COLUMNS])
+    if shown is None or shown.empty:
+        return empty
+    out = pd.DataFrame(index=shown.index)
+    for label, column in RANKED_SUMMARY_COLUMNS:
+        out[label] = shown[column] if column in shown.columns else pd.NA
+    return out.reset_index(drop=True)
+
+
 def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.DataFrame, qc: dict) -> str:
-    """Narrative report. This is a triage list, not an ACMG classification."""
+    """Narrative report. This is a triage list, not an ACMG classification.
+
+    ``not_qualifying`` follow-up alleles stay in ``candidates.tsv`` and are omitted here.
+    """
+    candidates = _report_candidates(candidates)
     classification = "unexplained"
     explained = None
     note = ""
@@ -272,9 +327,9 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
         f"Classification: **{classification}**.",
         f"Explained liability: {explained if explained not in (None, '') else 'null'}. {note}",
         "",
-        "## Modules",
-        "",
     ]
+    lines.extend(_qc_lines(qc))
+    lines.extend(["## Modules", ""])
     modules = qc.get("modules") or {}
     for name, status in modules.items():
         lines.append(f"- {name}: {status}")
@@ -296,42 +351,83 @@ def render_markdown(sample_id: str, candidates: pd.DataFrame, liability: pd.Data
             lines.append(f"- gatk_sv: {row.get('sv_status')}")
     lines.extend(_phenotype_lines(candidates, qc))
     lines.extend(["", "## Ranked candidates", ""])
-    if candidates is None or candidates.empty:
+    summary = _ranked_summary_frame(candidates)
+    if summary.empty:
         lines.append("No qualifying candidate variants.")
     else:
-        # heteroplasmy / MITOMAP clinical disease text are blank on nuclear rows;
-        # they matter for mtdna_pathogenic_candidate shortlist hits.
-        show = [
-            column
-            for column in (
-                "rank",
-                "gene",
-                "inheritance_status",
-                "variant_id",
-                "hgvsc",
-                "hgvsp",
-                "svtype",
-                "svlen",
-                "consequence",
-                "zygosity",
-                "heteroplasmy",
-                "mitomap_clinical_info",
-                "tier",
-                "evidence_score",
-                "splice_rule",
-                "splice_subgroup",
-                "splice_sav_pct",
-                "splice_heuristic_n",
-                "clinical_match",
-                "phenotype_score",
-                "avi_phred",
-                "evidence_reasons",
-            )
-            if column in candidates.columns
-        ]
-        lines.append(candidates[show].to_csv(sep="\t", index=False).rstrip())
+        lines.append(summary.to_csv(sep="\t", index=False).rstrip())
     lines.append("")
     return "\n".join(lines)
+
+
+_QC_RENDERED_ELSEWHERE = frozenset(
+    {
+        "sample_id",
+        "pass",
+        "failures",
+        "sex",
+        "contamination",
+        "coverage",
+        "reference",
+        "relatedness",
+        "modules",
+        "sv_status",
+        "pdvar_version",
+        "pdvar_git_commit",
+        "callsets",
+        "sv",
+        "phenotype",
+    }
+)
+
+
+def _qc_count(value: object) -> object:
+    if isinstance(value, (list, tuple, set)):
+        return len(value)
+    return value
+
+
+def _qc_lines(qc: dict) -> list[str]:
+    """QC fields unique to qc_summary.json (not already in Modules/Callsets/Phenotype)."""
+    if not qc:
+        return []
+    sex = qc.get("sex") if isinstance(qc.get("sex"), dict) else {}
+    contamination = qc.get("contamination") if isinstance(qc.get("contamination"), dict) else {}
+    coverage = qc.get("coverage") if isinstance(qc.get("coverage"), dict) else {}
+    reference = qc.get("reference") if isinstance(qc.get("reference"), dict) else {}
+    failures = qc.get("failures") or []
+    fail_txt = "; ".join(str(item) for item in failures) if failures else "none"
+    lines = [
+        "## QC",
+        "",
+        f"- pass: {qc.get('pass')}.",
+        f"- failures: {fail_txt}.",
+        (
+            f"- sex: {sex.get('value') or 'unknown'} "
+            f"(source={sex.get('source') or 'unknown'}; "
+            f"somalier={sex.get('somalier') or 'unknown'}; "
+            f"provided={sex.get('provided') or 'unknown'})."
+        ),
+        (
+            f"- contamination: FREEMIX {contamination.get('freemix')} "
+            f"(max {contamination.get('max_freemix')}; pass={contamination.get('pass')})."
+        ),
+        (
+            f"- coverage: mean {coverage.get('mean')} "
+            f"(min {coverage.get('min_mean_coverage')}; pass={coverage.get('pass')})."
+        ),
+        (
+            f"- reference: ok={reference.get('ok')}; "
+            f"BAM contigs={_qc_count(reference.get('bam_contigs'))}; "
+            f"reference contigs={_qc_count(reference.get('reference_contigs'))}."
+        ),
+        f"- relatedness: {qc.get('relatedness') or 'not_run'}.",
+    ]
+    extra = {key: qc[key] for key in qc if key not in _QC_RENDERED_ELSEWHERE}
+    if extra:
+        lines.append(f"- other: {json.dumps(_jsonable(extra), default=str)}.")
+    lines.append("")
+    return lines
 
 
 def _risk_rows(df: pd.DataFrame) -> pd.DataFrame:
@@ -449,9 +545,10 @@ def _phenotype_lines(candidates: pd.DataFrame, qc: dict) -> list[str]:
 
 
 def render_html(markdown: str, candidates: pd.DataFrame) -> str:
+    shown = _ranked_summary_frame(candidates)
     table = "<p>No ranked candidates.</p>"
-    if candidates is not None and not candidates.empty:
-        table = candidates.to_html(index=False, border=0, escape=True)
+    if shown is not None and not shown.empty:
+        table = shown.to_html(index=False, border=0, escape=True)
     body = html.escape(markdown)
     return (
         "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
@@ -462,30 +559,43 @@ def render_html(markdown: str, candidates: pd.DataFrame) -> str:
     )
 
 
+def _assess_name(sample_id: str, stem: str) -> str:
+    prefix = str(sample_id or "").strip()
+    return f"{prefix}_{stem}" if prefix else stem
+
+
 def write_sample_outputs(
     candidates: pd.DataFrame,
     liability: pd.DataFrame,
     qc: dict,
     outdir: Path,
     sample_id: str,
+    summary: dict | None = None,
 ) -> dict[str, Path]:
-    """Write Assess outputs: ``candidates.tsv``, ``report.html`` / ``report.md``, ``qc_summary.json``.
+    """Write Assess outputs prefixed with ``sample_id``.
 
-    Liability classification still feeds the report narrative. Follow-up AR
-    alleles are rows in ``candidates.tsv`` with ``followup_reason`` set.
+    Terra ``candidates`` is ``{id}_report.html``, ``{id}_candidates.tsv``,
+    ``{id}_summary.tsv``. Unique QC JSON fields are copied into the HTML report.
+    ``not_qualifying`` rows stay in the TSV and are omitted from the HTML.
+    ``qc_summary.json`` / ``report.md`` stay local-only.
     """
+    from .sample_summary import SUMMARY_TSV_COLUMNS, summary_to_row
+
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     candidates = order_candidate_columns(candidates if candidates is not None else pd.DataFrame())
     paths = {
-        "candidates_tsv": outdir / "candidates.tsv",
-        "report_md": outdir / "report.md",
-        "report_html": outdir / "report.html",
-        "qc_json": outdir / "qc_summary.json",
+        "candidates_tsv": outdir / _assess_name(sample_id, "candidates.tsv"),
+        "report_md": outdir / _assess_name(sample_id, "report.md"),
+        "report_html": outdir / _assess_name(sample_id, "report.html"),
+        "qc_json": outdir / _assess_name(sample_id, "qc_summary.json"),
+        "summary_tsv": outdir / _assess_name(sample_id, "summary.tsv"),
     }
     candidates.to_csv(paths["candidates_tsv"], sep="\t", index=False)
     markdown = render_markdown(sample_id, candidates, liability, qc)
     paths["report_md"].write_text(markdown, encoding="utf-8")
     paths["report_html"].write_text(render_html(markdown, candidates), encoding="utf-8")
     paths["qc_json"].write_text(json.dumps(_jsonable(qc), indent=2) + "\n", encoding="utf-8")
+    row = summary_to_row(summary or {"sample_id": sample_id})
+    pd.DataFrame([row], columns=SUMMARY_TSV_COLUMNS).to_csv(paths["summary_tsv"], sep="\t", index=False)
     return paths
