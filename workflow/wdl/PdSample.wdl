@@ -329,109 +329,140 @@ workflow PdSample {
       git_commit = assets_git_commit,
       python_docker = python_docker
   }
-  call Tasks.ProbePriorFile as ProbeIntromePrior {
-    input:
-      path = introme_prior,
-      kind = "introme",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  # Blank Terra cells are already unusable (same as ProbePriorFile). Do not
+  # launch a GCP Batch VM for them: a seconds-long job can vanish from the
+  # Batch API before Cromwell's GetJob poll, and Cromwell treats that 404 as
+  # a fatal user error. Non-empty placeholder gs:// paths still need the
+  # probe (String path, no WDL size()). Index probes run only when both the
+  # VCF prior and the index path are non-empty.
+  if (introme_prior != "") {
+    call Tasks.ProbePriorFile as ProbeIntromePrior {
+      input:
+        path = introme_prior,
+        kind = "introme",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeVepPrior {
-    input:
-      path = vep_prior_vcf,
-      kind = "vcf",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (vep_prior_vcf != "") {
+    call Tasks.ProbePriorFile as ProbeVepPrior {
+      input:
+        path = vep_prior_vcf,
+        kind = "vcf",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeVepPriorIndex {
-    input:
-      path = vep_prior_vcf_index,
-      kind = "any",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (vep_prior_vcf != "" && vep_prior_vcf_index != "") {
+    call Tasks.ProbePriorFile as ProbeVepPriorIndex {
+      input:
+        path = vep_prior_vcf_index,
+        kind = "any",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeSmallPrior {
-    input:
-      path = small_vcf_prior,
-      kind = "vcf",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (small_vcf_prior != "") {
+    call Tasks.ProbePriorFile as ProbeSmallPrior {
+      input:
+        path = small_vcf_prior,
+        kind = "vcf",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeSmallPriorIndex {
-    input:
-      path = small_vcf_prior_index,
-      kind = "any",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (small_vcf_prior != "" && small_vcf_prior_index != "") {
+    call Tasks.ProbePriorFile as ProbeSmallPriorIndex {
+      input:
+        path = small_vcf_prior_index,
+        kind = "any",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeSvPrior {
-    input:
-      path = sv_prior_vcf,
-      kind = "vcf",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (sv_prior_vcf != "") {
+    call Tasks.ProbePriorFile as ProbeSvPrior {
+      input:
+        path = sv_prior_vcf,
+        kind = "vcf",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeSvPriorIndex {
-    input:
-      path = sv_prior_vcf_index,
-      kind = "any",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (sv_prior_vcf != "" && sv_prior_vcf_index != "") {
+    call Tasks.ProbePriorFile as ProbeSvPriorIndex {
+      input:
+        path = sv_prior_vcf_index,
+        kind = "any",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeEhPrior {
-    input:
-      path = expansionhunter_vcf_prior,
-      kind = "vcf",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (expansionhunter_vcf_prior != "") {
+    call Tasks.ProbePriorFile as ProbeEhPrior {
+      input:
+        path = expansionhunter_vcf_prior,
+        kind = "vcf",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeGauchianPrior {
-    input:
-      path = gauchian_json_prior,
-      kind = "json",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (gauchian_json_prior != "") {
+    call Tasks.ProbePriorFile as ProbeGauchianPrior {
+      input:
+        path = gauchian_json_prior,
+        kind = "json",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeMtdnaPrior {
-    input:
-      path = mtdna_vcf_prior,
-      kind = "vcf",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (mtdna_vcf_prior != "") {
+    call Tasks.ProbePriorFile as ProbeMtdnaPrior {
+      input:
+        path = mtdna_vcf_prior,
+        kind = "vcf",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  call Tasks.ProbePriorFile as ProbeAviPrior {
-    input:
-      path = avi_tsv_prior,
-      kind = "tsv",
-      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
-      python_docker = python_docker,
-      preemptible = preemptible
+  if (avi_tsv_prior != "") {
+    call Tasks.ProbePriorFile as ProbeAviPrior {
+      input:
+        path = avi_tsv_prior,
+        kind = "tsv",
+        probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+        python_docker = python_docker,
+        preemptible = preemptible
+    }
   }
-  Boolean use_prior_introme = ProbeIntromePrior.usable
-  Boolean use_prior_vep = ProbeVepPrior.usable
-  Boolean use_prior_small = ProbeSmallPrior.usable
-  Boolean use_prior_sv = ProbeSvPrior.usable
-  Boolean use_prior_eh = ProbeEhPrior.usable
-  Boolean use_prior_gauchian = ProbeGauchianPrior.usable
-  Boolean use_prior_mtdna = ProbeMtdnaPrior.usable
-  Boolean use_prior_avi = ProbeAviPrior.usable
+  Boolean use_prior_introme = if defined(ProbeIntromePrior.usable) then select_first([ProbeIntromePrior.usable]) else false
+  Boolean use_prior_vep = if defined(ProbeVepPrior.usable) then select_first([ProbeVepPrior.usable]) else false
+  Boolean use_prior_small = if defined(ProbeSmallPrior.usable) then select_first([ProbeSmallPrior.usable]) else false
+  Boolean use_prior_sv = if defined(ProbeSvPrior.usable) then select_first([ProbeSvPrior.usable]) else false
+  Boolean use_prior_eh = if defined(ProbeEhPrior.usable) then select_first([ProbeEhPrior.usable]) else false
+  Boolean use_prior_gauchian = if defined(ProbeGauchianPrior.usable) then select_first([ProbeGauchianPrior.usable]) else false
+  Boolean use_prior_mtdna = if defined(ProbeMtdnaPrior.usable) then select_first([ProbeMtdnaPrior.usable]) else false
+  Boolean use_prior_avi = if defined(ProbeAviPrior.usable) then select_first([ProbeAviPrior.usable]) else false
+  Boolean use_prior_vep_index = if defined(ProbeVepPriorIndex.usable) then select_first([ProbeVepPriorIndex.usable]) else false
+  Boolean use_prior_small_index = if defined(ProbeSmallPriorIndex.usable) then select_first([ProbeSmallPriorIndex.usable]) else false
+  Boolean use_prior_sv_index = if defined(ProbeSvPriorIndex.usable) then select_first([ProbeSvPriorIndex.usable]) else false
   Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []
   Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []
-  Array[File] vep_prior_vcf_index_files = if ProbeVepPriorIndex.usable then [vep_prior_vcf_index] else []
+  Array[File] vep_prior_vcf_index_files = if use_prior_vep_index then [vep_prior_vcf_index] else []
   Array[File] small_vcf_prior_files = if use_prior_small then [small_vcf_prior] else []
-  Array[File] small_vcf_prior_index_files = if ProbeSmallPriorIndex.usable then [small_vcf_prior_index] else []
+  Array[File] small_vcf_prior_index_files = if use_prior_small_index then [small_vcf_prior_index] else []
   Array[File] sv_prior_vcf_files = if use_prior_sv then [sv_prior_vcf] else []
-  Array[File] sv_prior_vcf_index_files = if ProbeSvPriorIndex.usable then [sv_prior_vcf_index] else []
+  Array[File] sv_prior_vcf_index_files = if use_prior_sv_index then [sv_prior_vcf_index] else []
   Array[File] expansionhunter_vcf_prior_files = if use_prior_eh then [expansionhunter_vcf_prior] else []
   Array[File] gauchian_json_prior_files = if use_prior_gauchian then [gauchian_json_prior] else []
   Array[File] mtdna_vcf_prior_files = if use_prior_mtdna then [mtdna_vcf_prior] else []

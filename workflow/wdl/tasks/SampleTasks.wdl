@@ -958,6 +958,8 @@ task Gauchian {
 
 # String-path probe for Terra priors. Input is String (not File) so Cromwell
 # never size()s or localizes a missing/placeholder gs:// object. Fixed disk.
+# PdSample skips this call when path is ""; a no-op Batch job can 404 on
+# Cromwell's GetJob poll (UserBatchApiException, not retried).
 task ProbePriorFile {
   input {
     String path = ""

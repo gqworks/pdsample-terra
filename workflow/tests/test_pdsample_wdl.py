@@ -620,7 +620,10 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert 'String sv_prior_vcf = ""' in text
     assert 'String sv_prior_vcf_index = ""' in text
     assert "Array[File] sv_prior_vcf_files" in text
-    assert "Boolean use_prior_sv = ProbeSvPrior.usable" in text
+    assert (
+        "Boolean use_prior_sv = if defined(ProbeSvPrior.usable) then select_first([ProbeSvPrior.usable]) else false"
+        in text
+    )
     assert "call Tasks.PreferOrBuildTabix as PriorSvIndex" in text
     assert 'String sv_joint_vcf = ""' in text
     assert 'String sv_joint_vcf_index = ""' in text
@@ -657,7 +660,10 @@ def test_sv_joint_vcf_skips_gatksv_single():
     assert '"PdSample.sv_prior_vcf": "${this.sv_vcf}"' in terra
     assert '"PdSample.sv_prior_vcf_index": "${this.sv_vcf_index}"' in terra
     assert 'String introme_prior = ""' in text
-    assert "Boolean use_prior_introme = ProbeIntromePrior.usable" in text
+    assert (
+        "Boolean use_prior_introme = if defined(ProbeIntromePrior.usable) then select_first([ProbeIntromePrior.usable]) else false"
+        in text
+    )
     assert "if (!use_prior_introme)" in text
     assert '"PdSample.introme_prior": "${this.introme}"' in terra
     assert '"PdSample.vep_prior_vcf": "${this.vep_vcf}"' in terra
@@ -680,14 +686,47 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert 'kind = "vcf"' in text
     assert 'kind = "json"' in text
     assert 'kind = "tsv"' in text
-    assert "Boolean use_prior_introme = ProbeIntromePrior.usable" in text
-    assert "Boolean use_prior_vep = ProbeVepPrior.usable" in text
-    assert "Boolean use_prior_small = ProbeSmallPrior.usable" in text
-    assert "Boolean use_prior_sv = ProbeSvPrior.usable" in text
-    assert "Boolean use_prior_eh = ProbeEhPrior.usable" in text
-    assert "Boolean use_prior_gauchian = ProbeGauchianPrior.usable" in text
-    assert "Boolean use_prior_mtdna = ProbeMtdnaPrior.usable" in text
-    assert "Boolean use_prior_avi = ProbeAviPrior.usable" in text
+    assert (
+        "Boolean use_prior_introme = if defined(ProbeIntromePrior.usable) then select_first([ProbeIntromePrior.usable]) else false"
+        in text
+    )
+    assert (
+        "Boolean use_prior_vep = if defined(ProbeVepPrior.usable) then select_first([ProbeVepPrior.usable]) else false"
+        in text
+    )
+    assert (
+        "Boolean use_prior_small = if defined(ProbeSmallPrior.usable) then select_first([ProbeSmallPrior.usable]) else false"
+        in text
+    )
+    assert (
+        "Boolean use_prior_sv = if defined(ProbeSvPrior.usable) then select_first([ProbeSvPrior.usable]) else false"
+        in text
+    )
+    assert (
+        "Boolean use_prior_eh = if defined(ProbeEhPrior.usable) then select_first([ProbeEhPrior.usable]) else false"
+        in text
+    )
+    assert (
+        "Boolean use_prior_gauchian = if defined(ProbeGauchianPrior.usable) then select_first([ProbeGauchianPrior.usable]) else false"
+        in text
+    )
+    assert (
+        "Boolean use_prior_mtdna = if defined(ProbeMtdnaPrior.usable) then select_first([ProbeMtdnaPrior.usable]) else false"
+        in text
+    )
+    assert (
+        "Boolean use_prior_avi = if defined(ProbeAviPrior.usable) then select_first([ProbeAviPrior.usable]) else false"
+        in text
+    )
+    assert (
+        "Boolean use_prior_small_index = if defined(ProbeSmallPriorIndex.usable) then select_first([ProbeSmallPriorIndex.usable]) else false"
+        in text
+    )
+    assert 'if (small_vcf_prior != "" && small_vcf_prior_index != "")' in text
+    assert 'if (vep_prior_vcf != "" && vep_prior_vcf_index != "")' in text
+    assert 'if (sv_prior_vcf != "" && sv_prior_vcf_index != "")' in text
+    assert 'if (introme_prior != "")' in text
+    assert 'if (small_vcf_prior != "")' in text
     assert "Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []" in text
     assert "Array[File] vep_prior_vcf_files = if use_prior_vep then [vep_prior_vcf] else []" in text
     assert "Array[File] small_vcf_prior_files = if use_prior_small then [small_vcf_prior] else []" in text
