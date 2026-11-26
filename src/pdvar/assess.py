@@ -224,6 +224,7 @@ def assess_sample(
         sample_id,
         expansionhunter=_exists(sample.get("expansionhunter_vcf")),
         gauchian=_exists(sample.get("gauchian_json")),
+        gba1_paralog=_exists(sample.get("gba1_paralog_vcf")),
         mtdna=_exists(sample.get("mtdna_vcf")),
         cfg=cfg,
         gba1_pd_browser=gba1_browser,
@@ -232,6 +233,7 @@ def assess_sample(
     for module, label in (
         ("expansionhunter", "expansionhunter"),
         ("gauchian", "gauchian"),
+        ("gba1_paralog", "gba1_paralog"),
         ("mtdna", "mtdna"),
     ):
         rows = callset_assessment[callset_assessment["module"] == module] if not callset_assessment.empty else callset_assessment

@@ -154,7 +154,7 @@ def annotate_gauchian(df: pd.DataFrame, browser: pd.DataFrame | None) -> pd.Data
         return df
     gene = df["gene"].astype(str).str.upper()
     hit = df["hit_source"].fillna("").astype(str) if "hit_source" in df.columns else pd.Series("", index=df.index)
-    targets = gene.eq("GBA1") & hit.isin(["gauchian", "small_variant", ""])
+    targets = gene.eq("GBA1") & hit.isin(["gauchian", "gba1_paralog", "small_variant", ""])
     if not targets.any():
         return df
     hgvsc = df["hgvsc"] if "hgvsc" in df.columns else pd.Series("", index=df.index)

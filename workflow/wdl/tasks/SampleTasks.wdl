@@ -164,6 +164,7 @@ pairs = [
     ("workflow/scripts/annotate_gnomad_af.py", "annotate_gnomad_af.py"),
     ("workflow/scripts/annotate_clinvar_plp.py", "annotate_clinvar_plp.py"),
     ("workflow/scripts/rescue_nonpass_sites.py", "rescue_nonpass_sites.py"),
+    ("workflow/scripts/gba1_paralog_forcecall.py", "gba1_paralog_forcecall.py"),
     ("workflow/scripts/probe_prior_file.py", "probe_prior_file.py"),
     ("workflow/wdl/vendor/gatk-sv/format_svtk_vcf_for_gatk.py", "format_svtk_vcf_for_gatk.py"),
     ("workflow/assets/monopdaus-genes.grch38.bed", "panel.bed"),
@@ -173,6 +174,8 @@ pairs = [
     ("resources/panel/monopdaus-genes.grch38.bed", "genes.bed"),
     ("resources/panel/monopdaus-exons.grch38.bed", "exons.bed"),
     ("resources/gba1/gba1_pd_browser.tsv", "gba1_pd_browser.tsv"),
+    ("resources/gba1/gba1_homology_discriminators.tsv", "gba1_homology_discriminators.tsv"),
+    ("resources/gba1/gba1_homology_hotspots.tsv", "gba1_homology_hotspots.tsv"),
     ("workflow/assets/expansionhunter_pd.hg38.json", "eh_catalog.json"),
     ("config/config.yaml", "config.yaml"),
     ("config/columns.yaml", "columns.yaml"),
@@ -195,6 +198,7 @@ PY
     File annotate_gnomad_af_py = "annotate_gnomad_af.py"
     File annotate_clinvar_plp_py = "annotate_clinvar_plp.py"
     File rescue_nonpass_sites_py = "rescue_nonpass_sites.py"
+    File gba1_paralog_forcecall_py = "gba1_paralog_forcecall.py"
     File probe_prior_file_py = "probe_prior_file.py"
     File svtk_to_gatk_script = "format_svtk_vcf_for_gatk.py"
     File panel_bed = "panel.bed"
@@ -204,6 +208,8 @@ PY
     File gene_bed = "genes.bed"
     File exon_bed = "exons.bed"
     File gba1_pd_browser = "gba1_pd_browser.tsv"
+    File gba1_homology_discriminators = "gba1_homology_discriminators.tsv"
+    File gba1_homology_hotspots = "gba1_homology_hotspots.tsv"
     File eh_catalog = "eh_catalog.json"
     File config_yaml = "config.yaml"
     File columns_yaml = "columns.yaml"
@@ -1233,6 +1239,52 @@ task CallSummaryLoci {
   }
 }
 
+# Gene-assign reads across GBA1/GBAP1 exon 9–11 and force-call severe hotspots
+# (L444P / A495P / D448H) when HaplotypeCaller / Gauchian miss mis-mapped evidence.
+task Gba1ParalogHotspots {
+  input {
+    File bam
+    File bam_index
+    File gba1_paralog_forcecall_py
+    File discriminators
+    File hotspots
+    File qc_gate
+    String sample_id
+    String python_docker = "python:3.11.11-slim-bookworm"
+    Int preemptible = 3
+  }
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + 40)
+  command <<<
+    set -euo pipefail
+    wc -c ~{qc_gate} >/dev/null
+    align="~{bam}"
+    index="~{bam_index}"
+    if [[ "$align" != gs://* && -e "$index" ]]; then
+      [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
+      [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
+    fi
+    pip install --no-cache-dir "pysam==0.24.1"
+    python3 "~{gba1_paralog_forcecall_py}" \
+      --bam "~{bam}" \
+      --discriminators "~{discriminators}" \
+      --hotspots "~{hotspots}" \
+      --sample-id "~{sample_id}" \
+      --out-vcf "~{sample_id}.gba1_paralog.vcf" \
+      --out-json "~{sample_id}.gba1_paralog.json"
+  >>>
+  output {
+    File vcf = "~{sample_id}.gba1_paralog.vcf"
+    File json = "~{sample_id}.gba1_paralog.json"
+  }
+  runtime {
+    docker: python_docker
+    preemptible: preemptible
+    memory: "8 GiB"
+    disks: "local-disk ~{disk_gb} HDD"
+    cpu: 2
+  }
+}
+
 # Haplogrep 3 on the MitochondriaPipeline (+ MitImpact) VCF. Phylotree rCRS
 # matches hg38 chrM / rCRS. FoundPolys are haplogroup-defining (haplotagging)
 # sites used to exclude MLC from the sample mean.
@@ -1296,6 +1348,7 @@ task Assess {
     String sv_status = "called"
     File expansionhunter_vcf
     File gauchian_json
+    File? gba1_paralog_vcf
     File mtdna_vcf
     # called | not_assessed from AnnotateMtdna (MitImpact join).
     String mtdna_annotation = "not_assessed"
@@ -1358,6 +1411,7 @@ PY
     export SV_STATUS="~{sv_status}"
     export EH_VCF="~{expansionhunter_vcf}"
     export GAUCHIAN_JSON="~{gauchian_json}"
+    export GBA1_PARALOG_VCF='~{default="" gba1_paralog_vcf}'
     export MTDNA_VCF="~{mtdna_vcf}"
     export MTDNA_ANNOTATION="~{mtdna_annotation}"
     export INTROME_TSV="~{introme_tsv}"
@@ -1403,6 +1457,7 @@ document = {
     "sv_status": os.environ.get("SV_STATUS") or "called",
     "expansionhunter_vcf": os.environ["EH_VCF"],
     "gauchian_json": os.environ["GAUCHIAN_JSON"],
+    "gba1_paralog_vcf": maybe("GBA1_PARALOG_VCF"),
     "mtdna_vcf": os.environ["MTDNA_VCF"],
     "mtdna_annotation": os.environ.get("MTDNA_ANNOTATION") or "not_assessed",
     "introme_tsv": os.environ["INTROME_TSV"],

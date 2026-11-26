@@ -142,7 +142,12 @@ def test_atxn8os_above_cutoff_is_expanded(tmp_path, cfg):
 def test_absent_callsets_are_not_assessed():
     table, assessment = callsets.ingest_sample_callsets("SAMPLE_A")
     assert table.empty
-    assert set(assessment["callset_status"]) == {"STR not assessed", "GBA1 not assessed", "mtDNA not assessed"}
+    assert set(assessment["callset_status"]) == {
+        "STR not assessed",
+        "GBA1 not assessed",
+        "GBA1 paralog hotspots not assessed",
+        "mtDNA not assessed",
+    }
 
 
 def test_native_gauchian_json_other_variants(tmp_path, cfg):

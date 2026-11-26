@@ -722,6 +722,17 @@ workflow PdSample {
     }
   }
   File sample_gauchian_json = select_first(flatten([gauchian_json_prior_files, select_all([Gauchian.json])]))
+  call Tasks.Gba1ParalogHotspots {
+    input:
+      bam = sample_bam,
+      bam_index = sample_bai,
+      gba1_paralog_forcecall_py = FetchRepoAssets.gba1_paralog_forcecall_py,
+      discriminators = FetchRepoAssets.gba1_homology_discriminators,
+      hotspots = FetchRepoAssets.gba1_homology_hotspots,
+      qc_gate = QcGate.gate,
+      sample_id = sample_id,
+      preemptible = preemptible
+  }
   # Gate mito / GATK-SV on QC. EnsureBam already emits sample_id.bam / .bam.bai;
   # ReleaseAfterQc hardlinks again so Manta 1.6 does not start before the gate.
   call Tasks.ReleaseAfterQc as ReleaseBam {
@@ -1052,6 +1063,7 @@ workflow PdSample {
       sv_status = if use_prior_sv then "prior" else if use_joint_sv then "joint" else "called",
       expansionhunter_vcf = sample_expansionhunter_vcf,
       gauchian_json = sample_gauchian_json,
+      gba1_paralog_vcf = Gba1ParalogHotspots.vcf,
       mtdna_vcf = sample_mtdna_vcf,
       mtdna_annotation = sample_mtdna_annotation,
       introme_tsv = NameIntrome.released,
@@ -1088,6 +1100,8 @@ workflow PdSample {
     File sv_vcf_index = NameSvVcfIndex.released
     File expansionhunter_vcf = sample_expansionhunter_vcf
     File gauchian_json = sample_gauchian_json
+    File gba1_paralog_vcf = Gba1ParalogHotspots.vcf
+    File gba1_paralog_json = Gba1ParalogHotspots.json
     File mtdna_vcf = sample_mtdna_vcf
     File introme = NameIntrome.released
     File? avi_tsv = sample_avi_tsv

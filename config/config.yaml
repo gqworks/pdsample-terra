@@ -82,6 +82,7 @@ filters:
   always_keep_sources:
     - expansionhunter
     - gauchian
+    - gba1_paralog
     - mtdna
 
 scoring:
