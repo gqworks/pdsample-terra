@@ -95,6 +95,26 @@ def load_hotspots(path: Path) -> list[Hotspot]:
     return rows
 
 
+def discriminators_for_scoring(
+    discriminators: list[Discriminator],
+    hotspots: list[Hotspot],
+) -> list[Discriminator]:
+    """Drop hotspot sites from gene/pseudo assignment voting.
+
+    Pathogenic ALTs at L483P / A495P / D448H are identical to the GBAP1 allele.
+    Counting them as discriminators systematically scores true gene carriers
+    toward ``pseudo``, emptying the gene pileup (MH06245_SYD: AD 27,2 → 0/0).
+    Flanking anchors (and non-hotspot SNPs such as V499=) still vote.
+    """
+    hot_gene = {int(h.pos) for h in hotspots}
+    hot_pseudo = {int(h.pseudo_pos) for h in hotspots}
+    return [
+        d
+        for d in discriminators
+        if int(d.gene_pos) not in hot_gene and int(d.pseudo_pos) not in hot_pseudo
+    ]
+
+
 def score_assignment(
     observed: dict[tuple[str, int], str],
     discriminators: list[Discriminator],
@@ -195,6 +215,9 @@ def forcecall(
     """Pile gene-assigned fragments at hotspots. Returns (site dicts, summary)."""
     import pysam
 
+    scoring_discs = discriminators_for_scoring(discriminators, hotspots)
+    if not scoring_discs:
+        raise ValueError("no discriminators remain after excluding hotspot sites")
     gene_win, pseudo_win = _fragment_windows(discriminators, pad)
     gene_positions = {d.gene_pos for d in discriminators}
     pseudo_positions = {d.pseudo_pos for d in discriminators}
@@ -229,7 +252,7 @@ def forcecall(
                 qname = read.query_name or f"anon:{read.reference_start}"
                 by_qname[qname].append((label, observed))
 
-    # Merge observations per fragment; score assignment.
+    # Merge observations per fragment; score assignment on non-hotspot SNPs only.
     gene_assigned_obs: list[dict[tuple[str, int], str]] = []
     assignment_counts = Counter()
     for _qname, parts in by_qname.items():
@@ -239,8 +262,8 @@ def forcecall(
             locus_hints.append(hint)
             merged.update(obs)
         # Prefer scoring in the coordinate system with more discriminator hits.
-        g_gene, g_pseudo = score_assignment(merged, discriminators, locus="gene")
-        p_gene, p_pseudo = score_assignment(merged, discriminators, locus="pseudo")
+        g_gene, g_pseudo = score_assignment(merged, scoring_discs, locus="gene")
+        p_gene, p_pseudo = score_assignment(merged, scoring_discs, locus="pseudo")
         # Use the stronger of the two views (gene coords vs pseudo coords).
         if (g_gene + g_pseudo) >= (p_gene + p_pseudo):
             gene_s, pseudo_s = g_gene, g_pseudo
@@ -293,6 +316,8 @@ def forcecall(
         "fragments_scored": int(sum(assignment_counts.values())),
         "assignment_counts": dict(assignment_counts),
         "gene_assigned_fragments": int(assignment_counts.get("gene", 0)),
+        "scoring_discriminators": len(scoring_discs),
+        "excluded_hotspot_discriminators": len(discriminators) - len(scoring_discs),
         "sites": [
             {
                 "token": s["token"],

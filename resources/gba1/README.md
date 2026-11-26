@@ -28,4 +28,6 @@ classification.
 Reads overlapping GBA1 or GBAP1 exon 9–11 are reassigned with Gauchian 1.0.2
 discriminating SNPs; gene-assigned fragments are piled at L444P / A495P /
 D448H so mis-mapping to GBAP1 does not silently drop those alleles when
-Gauchian returns a non-carrier.
+Gauchian returns a non-carrier. Hotspot sites themselves are excluded from
+assignment voting — their pathogenic alts match GBAP1 and would otherwise
+score true gene carriers toward the pseudogene.

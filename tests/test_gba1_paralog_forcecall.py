@@ -37,26 +37,57 @@ def test_load_shipped_assets():
 
 def test_assign_locus_from_discriminator_bases():
     discs = _MOD.load_discriminators(DISC)
-    # Gene-like bases at gene coordinates.
+    hotspots = _MOD.load_hotspots(HOT)
+    scoring = _MOD.discriminators_for_scoring(discs, hotspots)
+    assert {d.label for d in scoring} == {"anchor", "V499="}
+    assert len(scoring) == 5
+    # Gene-like bases at gene coordinates (anchors + V499=).
     gene_obs = {
+        ("1", 155234903): "C",
         ("1", 155235203): "C",
-        ("1", 155235217): "C",
-        ("1", 155235252): "A",
-        ("1", 155235727): "C",
+        ("1", 155235379): "A",
+        ("1", 155235412): "G",
+        ("1", 155235918): "A",
     }
-    g, p = _MOD.score_assignment(gene_obs, discs, locus="gene")
+    g, p = _MOD.score_assignment(gene_obs, scoring, locus="gene")
     assert g > p
     assert _MOD.assign_locus(g, p) == "gene"
-    # Pseudogene-like bases seen on a GBAP1-mapped fragment.
+    # Pseudogene-like bases seen on a GBAP1-mapped fragment (anchors + V499=).
     pseudo_obs = {
+        ("1", 155214276): "T",
         ("1", 155214576): "G",
-        ("1", 155214590): "G",
-        ("1", 155214625): "G",
-        ("1", 155215100): "G",
+        ("1", 155214752): "G",
+        ("1", 155214785): "A",
+        ("1", 155215236): "G",
     }
-    g2, p2 = _MOD.score_assignment(pseudo_obs, discs, locus="pseudo")
+    g2, p2 = _MOD.score_assignment(pseudo_obs, scoring, locus="pseudo")
     assert p2 > g2
     assert _MOD.assign_locus(g2, p2) == "pseudo"
+
+
+def test_hotspot_alts_do_not_vote_fragments_toward_pseudo():
+    """RecNciI-like fragment: gene anchors + GBAP1 alleles at L483P/A495P/D448H.
+
+    Before excluding hotspots from scoring, those pathogenic alts tip the
+    fragment to ``pseudo`` and empty the gene pileup (MH06245_SYD pattern).
+    """
+    discs = _MOD.load_discriminators(DISC)
+    hotspots = _MOD.load_hotspots(HOT)
+    scoring = _MOD.discriminators_for_scoring(discs, hotspots)
+    obs = {
+        ("1", 155234903): "C",  # gene anchor
+        ("1", 155235203): "C",  # V499= gene
+        ("1", 155235217): "G",  # A495P pathogenic (= pseudo allele)
+        ("1", 155235252): "G",  # L483P pathogenic (= pseudo allele)
+        ("1", 155235727): "G",  # D448H pathogenic (= pseudo allele)
+        ("1", 155235379): "A",  # gene anchor
+    }
+    g_all, p_all = _MOD.score_assignment(obs, discs, locus="gene")
+    # Hotspot alts cancel gene anchors → not assigned to gene (tie or pseudo).
+    assert _MOD.assign_locus(g_all, p_all) != "gene"
+    g, p = _MOD.score_assignment(obs, scoring, locus="gene")
+    assert g > p
+    assert _MOD.assign_locus(g, p) == "gene"
 
 
 def test_genotype_l444p_from_gene_assigned_counts():

@@ -1,5 +1,8 @@
 # Gauchian 1.0.2 Exon9-11 SNV discriminators (GBA_haplotype_38.txt).
 # gene_allele / pseudo_allele are the bases Gauchian counts for gene vs GBAP1.
+# Force-call scoring excludes rows that coincide with gba1_homology_hotspots.tsv
+# (L483P / A495P / D448H): pathogenic alts match the GBAP1 allele and must not
+# vote fragments toward "pseudo".
 chrom	gene_pos	gene_allele	pseudo_pos	pseudo_allele	label
 chr1	155234903	C	155214276	T	anchor
 chr1	155235203	C	155214576	G	V499=
