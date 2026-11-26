@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Paralog-aware GBA1 exon 9–11 hotspot force-call.
 
-Reads mapping to GBA1 or GBAP1 are reassigned using Gauchian discriminating
-SNPs, then only gene-assigned fragments are piled at pathogenic hotspots
-(L444P / A495P / D448H). Emits a VCF (including hom-ref QC rows) and JSON
-summary. Requires pysam.
+Reads overlapping GBA1 or GBAP1 exon 9–11 windows are scored against the
+GRCh38 gene template and a *patched* GBAP1 template (GRCh38 GBAP1 sites that
+erroneously carry GBA-like bases are restored to the major GBAP1 alleles).
+Gene-better fragments are piled at pathogenic hotspots (L444P / A495P / D448H).
+Emits a VCF (including hom-ref QC rows) and JSON summary. Requires pysam.
 """
 
 from __future__ import annotations
@@ -16,6 +17,9 @@ import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
+
+
+_COMPLEMENT = str.maketrans("ACGTNacgtn", "TGCANtgcan")
 
 
 @dataclass(frozen=True)
@@ -41,9 +45,22 @@ class Hotspot:
     pd_class: str
 
 
+@dataclass(frozen=True)
+class Patch:
+    chrom: str
+    pos: int
+    grch38_allele: str
+    patched_allele: str
+    note: str
+
+
 def bare_chrom(chrom: str) -> str:
     text = str(chrom or "").strip()
     return text[3:] if text.lower().startswith("chr") else text
+
+
+def revcomp(seq: str) -> str:
+    return seq.translate(_COMPLEMENT)[::-1]
 
 
 def load_discriminators(path: Path) -> list[Discriminator]:
@@ -95,31 +112,26 @@ def load_hotspots(path: Path) -> list[Hotspot]:
     return rows
 
 
-def score_assignment(
-    observed: dict[tuple[str, int], str],
-    discriminators: list[Discriminator],
-    *,
-    locus: str,
-) -> tuple[int, int]:
-    """Return (gene_score, pseudo_score) from bases seen on one fragment."""
-    gene = 0
-    pseudo = 0
-    for disc in discriminators:
-        if locus == "gene":
-            key = (bare_chrom(disc.chrom), disc.gene_pos)
-            gene_base, pseudo_base = disc.gene_allele, disc.pseudo_allele
-        else:
-            key = (bare_chrom(disc.chrom), disc.pseudo_pos)
-            gene_base, pseudo_base = disc.gene_allele, disc.pseudo_allele
-        base = observed.get(key)
-        if not base:
-            continue
-        base = base.upper()
-        if base == gene_base:
-            gene += 1
-        elif base == pseudo_base:
-            pseudo += 1
-    return gene, pseudo
+def load_patches(path: Path) -> list[Patch]:
+    rows: list[Patch] = []
+    with path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(
+            (line for line in handle if line.strip() and not line.lstrip().startswith("#")),
+            delimiter="\t",
+        )
+        for row in reader:
+            rows.append(
+                Patch(
+                    chrom=str(row["chrom"]).strip(),
+                    pos=int(row["pos"]),
+                    grch38_allele=str(row["grch38_allele"]).strip().upper(),
+                    patched_allele=str(row["patched_allele"]).strip().upper(),
+                    note=str(row.get("note") or "").strip(),
+                )
+            )
+    if not rows:
+        raise ValueError(f"{path} has no patch rows")
+    return rows
 
 
 def assign_locus(gene_score: int, pseudo_score: int) -> str:
@@ -180,11 +192,97 @@ def _fragment_windows(discriminators: list[Discriminator], pad: int) -> tuple[tu
     return (chrom, max(1, gene_start), gene_end), (chrom, max(1, pseudo_start), pseudo_end)
 
 
+def _fetch_sequence(fasta, chrom: str, start: int, end: int) -> tuple[str, str, int, int]:
+    """Return (seq, contigname, start, end) for 1-based inclusive coords."""
+    names = list(fasta.references)
+    candidates = [chrom]
+    bare = bare_chrom(chrom)
+    if chrom.lower().startswith("chr"):
+        candidates.append(bare)
+    else:
+        candidates.append(f"chr{chrom}")
+    for name in candidates:
+        if name in fasta.references or name in names:
+            # pysam fetch is 0-based half-open
+            seq = fasta.fetch(name, start - 1, end).upper()
+            return seq, name, start, end
+    raise KeyError(f"chromosome {chrom!r} not in reference (tried {candidates})")
+
+
+def apply_patches(
+    seq: str,
+    *,
+    window_start: int,
+    patches: list[Patch],
+    chrom: str,
+) -> tuple[str, list[dict]]:
+    """Apply GBAP1 GRCh38→major patches inside a window sequence."""
+    chars = list(seq)
+    applied: list[dict] = []
+    chrom_key = bare_chrom(chrom)
+    for patch in patches:
+        if bare_chrom(patch.chrom) != chrom_key:
+            continue
+        if patch.pos < window_start or patch.pos > window_start + len(chars) - 1:
+            continue
+        idx = patch.pos - window_start
+        observed = chars[idx]
+        if observed not in {patch.grch38_allele, patch.patched_allele}:
+            raise ValueError(
+                f"GBAP1 patch at {patch.chrom}:{patch.pos}: expected "
+                f"{patch.grch38_allele} or {patch.patched_allele}, found {observed}"
+            )
+        chars[idx] = patch.patched_allele
+        applied.append(
+            {
+                "pos": patch.pos,
+                "from": observed,
+                "to": patch.patched_allele,
+                "note": patch.note,
+            }
+        )
+    return "".join(chars), applied
+
+
+def best_ungapped_matches(query: str, template: str) -> int:
+    """Maximum ACGT matches for an ungapped placement of query on template."""
+    q = (query or "").upper()
+    t = (template or "").upper()
+    if not q or not t:
+        return 0
+    if len(q) > len(t):
+        # Rare (very long read); slide template over query instead.
+        return best_ungapped_matches(t, q)
+    best = 0
+    qlen = len(q)
+    for i in range(len(t) - qlen + 1):
+        window = t[i : i + qlen]
+        matches = 0
+        for a, b in zip(q, window):
+            if a in "ACGT" and b in "ACGT" and a == b:
+                matches += 1
+        if matches > best:
+            best = matches
+    return best
+
+
+def score_read_vs_templates(query: str, gene_seq: str, pseudo_seq: str) -> tuple[int, int]:
+    """Return (gene_matches, pseudo_matches) using the best strand for each."""
+    if not query:
+        return 0, 0
+    rc = revcomp(query)
+    gene = max(best_ungapped_matches(query, gene_seq), best_ungapped_matches(rc, gene_seq))
+    pseudo = max(best_ungapped_matches(query, pseudo_seq), best_ungapped_matches(rc, pseudo_seq))
+    return gene, pseudo
+
+
 def forcecall(
     bam_path: Path,
     *,
+    reference: Path,
     discriminators: list[Discriminator],
     hotspots: list[Hotspot],
+    patches: list[Patch],
     sample_id: str,
     min_alt_reads: int = 3,
     min_alt_fraction: float = 0.15,
@@ -201,16 +299,29 @@ def forcecall(
     hotspot_gene_pos = {h.pos for h in hotspots}
     hotspot_pseudo_pos = {h.pseudo_pos for h in hotspots}
 
-    # query_name -> list of (locus_hint, observed bases, alignment locus)
-    by_qname: dict[str, list[tuple[str, dict[tuple[str, int], str]]]] = defaultdict(list)
+    with pysam.FastaFile(str(reference)) as fasta:
+        gene_seq, gene_contig, gene_start, gene_end = _fetch_sequence(
+            fasta, gene_win[0], gene_win[1], gene_win[2]
+        )
+        pseudo_raw, pseudo_contig, pseudo_start, pseudo_end = _fetch_sequence(
+            fasta, pseudo_win[0], pseudo_win[1], pseudo_win[2]
+        )
+    pseudo_seq, patches_applied = apply_patches(
+        pseudo_raw,
+        window_start=pseudo_start,
+        patches=patches,
+        chrom=pseudo_win[0],
+    )
+
+    # query_name -> (best observed bases, best read sequence seen)
+    by_qname_obs: dict[str, dict[tuple[str, int], str]] = defaultdict(dict)
+    by_qname_seq: dict[str, str] = {}
 
     with pysam.AlignmentFile(str(bam_path), "rb") as bam:
         for label, (chrom, start, end) in (("gene", gene_win), ("pseudo", pseudo_win)):
-            # pysam fetch is 0-based half-open
             try:
                 iterator = bam.fetch(chrom, start - 1, end)
             except ValueError:
-                # try without chr prefix / with chr
                 alt = bare_chrom(chrom) if chrom.lower().startswith("chr") else f"chr{chrom}"
                 iterator = bam.fetch(alt, start - 1, end)
             for read in iterator:
@@ -218,38 +329,33 @@ def forcecall(
                     continue
                 if read.mapping_quality < mapq_floor:
                     continue
+                seq = read.query_sequence
+                if not seq:
+                    continue
                 observed: dict[tuple[str, int], str] = {}
-                positions = gene_positions | hotspot_gene_pos if label == "gene" else pseudo_positions | hotspot_pseudo_pos
+                positions = (
+                    gene_positions | hotspot_gene_pos if label == "gene" else pseudo_positions | hotspot_pseudo_pos
+                )
                 for pos in positions:
                     base = _read_base_at(read, chrom, pos)
                     if base:
                         observed[(bare_chrom(chrom), pos)] = base
-                if not observed:
-                    continue
                 qname = read.query_name or f"anon:{read.reference_start}"
-                by_qname[qname].append((label, observed))
+                if observed:
+                    by_qname_obs[qname].update(observed)
+                # Keep the longest sequence for the fragment (mates may differ).
+                prev = by_qname_seq.get(qname)
+                if prev is None or len(seq) > len(prev):
+                    by_qname_seq[qname] = seq
 
-    # Merge observations per fragment; score assignment.
     gene_assigned_obs: list[dict[tuple[str, int], str]] = []
     assignment_counts = Counter()
-    for _qname, parts in by_qname.items():
-        merged: dict[tuple[str, int], str] = {}
-        locus_hints = []
-        for hint, obs in parts:
-            locus_hints.append(hint)
-            merged.update(obs)
-        # Prefer scoring in the coordinate system with more discriminator hits.
-        g_gene, g_pseudo = score_assignment(merged, discriminators, locus="gene")
-        p_gene, p_pseudo = score_assignment(merged, discriminators, locus="pseudo")
-        # Use the stronger of the two views (gene coords vs pseudo coords).
-        if (g_gene + g_pseudo) >= (p_gene + p_pseudo):
-            gene_s, pseudo_s = g_gene, g_pseudo
-        else:
-            gene_s, pseudo_s = p_gene, p_pseudo
+    for qname, seq in by_qname_seq.items():
+        gene_s, pseudo_s = score_read_vs_templates(seq, gene_seq, pseudo_seq)
         locus = assign_locus(gene_s, pseudo_s)
         assignment_counts[locus] += 1
         if locus == "gene":
-            gene_assigned_obs.append(merged)
+            gene_assigned_obs.append(by_qname_obs.get(qname, {}))
 
     sites: list[dict] = []
     for hotspot in hotspots:
@@ -290,9 +396,20 @@ def forcecall(
 
     summary = {
         "sample_id": sample_id,
+        "assignment_mode": "patched_grch38_template",
         "fragments_scored": int(sum(assignment_counts.values())),
         "assignment_counts": dict(assignment_counts),
         "gene_assigned_fragments": int(assignment_counts.get("gene", 0)),
+        "templates": {
+            "gene": {"contig": gene_contig, "start": gene_start, "end": gene_end, "length": len(gene_seq)},
+            "pseudo_patched": {
+                "contig": pseudo_contig,
+                "start": pseudo_start,
+                "end": pseudo_end,
+                "length": len(pseudo_seq),
+                "patches_applied": patches_applied,
+            },
+        },
         "sites": [
             {
                 "token": s["token"],
@@ -350,8 +467,10 @@ def write_vcf(path: Path, sample_id: str, sites: list[dict]) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bam", required=True, type=Path)
+    parser.add_argument("--reference", required=True, type=Path, help="GRCh38 FASTA (indexed)")
     parser.add_argument("--discriminators", required=True, type=Path)
     parser.add_argument("--hotspots", required=True, type=Path)
+    parser.add_argument("--patches", required=True, type=Path, help="GBAP1 GRCh38→major allele patches")
     parser.add_argument("--sample-id", required=True)
     parser.add_argument("--out-vcf", required=True, type=Path)
     parser.add_argument("--out-json", required=True, type=Path)
@@ -363,10 +482,13 @@ def main(argv: list[str] | None = None) -> int:
 
     discriminators = load_discriminators(args.discriminators)
     hotspots = load_hotspots(args.hotspots)
+    patches = load_patches(args.patches)
     sites, summary = forcecall(
         args.bam,
+        reference=args.reference,
         discriminators=discriminators,
         hotspots=hotspots,
+        patches=patches,
         sample_id=args.sample_id,
         min_alt_reads=args.min_alt_reads,
         min_alt_fraction=args.min_alt_fraction,
@@ -378,6 +500,7 @@ def main(argv: list[str] | None = None) -> int:
     carriers = [s["token"] for s in sites if s["gt"] not in {"0/0", "./.", "."}]
     print(
         f"gba1_paralog_forcecall: {len(sites)} site(s); "
+        f"mode=patched_grch38_template; "
         f"gene_assigned_fragments={summary['gene_assigned_fragments']}; "
         f"carriers={','.join(carriers) or 'none'}",
         file=sys.stderr,

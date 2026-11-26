@@ -1,0 +1,9 @@
+# GRCh38 GBAP1 (GBA1LP) sites that carry GBA-like minor alleles in the reference.
+# Patch to the major/true GBAP1 base before scoring window reads (Orimo et al.
+# J Hum Genet 2024; also Woo et al. Commun Biol 2022 "first three sites").
+# Coordinates are GRCh38 / chr1 1-based.
+chrom	pos	grch38_allele	patched_allele	note
+chr1	155214266	A	G	MTX1/GBAP1 flank; AF~0.21 minor in GRCh38
+chr1	155214276	C	T	anchor / differentiating site
+chr1	155214576	C	G	V499= homologous site
+chr1	155214590	C	G	A495P homologous site

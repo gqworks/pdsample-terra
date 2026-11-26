@@ -176,6 +176,7 @@ pairs = [
     ("resources/gba1/gba1_pd_browser.tsv", "gba1_pd_browser.tsv"),
     ("resources/gba1/gba1_homology_discriminators.tsv", "gba1_homology_discriminators.tsv"),
     ("resources/gba1/gba1_homology_hotspots.tsv", "gba1_homology_hotspots.tsv"),
+    ("resources/gba1/gbap1_grch38_patches.tsv", "gbap1_grch38_patches.tsv"),
     ("workflow/assets/expansionhunter_pd.hg38.json", "eh_catalog.json"),
     ("config/config.yaml", "config.yaml"),
     ("config/columns.yaml", "columns.yaml"),
@@ -210,6 +211,7 @@ PY
     File gba1_pd_browser = "gba1_pd_browser.tsv"
     File gba1_homology_discriminators = "gba1_homology_discriminators.tsv"
     File gba1_homology_hotspots = "gba1_homology_hotspots.tsv"
+    File gbap1_grch38_patches = "gbap1_grch38_patches.tsv"
     File eh_catalog = "eh_catalog.json"
     File config_yaml = "config.yaml"
     File columns_yaml = "columns.yaml"
@@ -1239,21 +1241,24 @@ task CallSummaryLoci {
   }
 }
 
-# Gene-assign reads across GBA1/GBAP1 exon 9–11 and force-call severe hotspots
-# (L444P / A495P / D448H) when HaplotypeCaller / Gauchian miss mis-mapped evidence.
+# Gene-assign reads across GBA1/GBAP1 exon 9–11 (score vs gene + patched GBAP1
+# GRCh38 templates) and force-call severe hotspots when HC / Gauchian miss.
 task Gba1ParalogHotspots {
   input {
     File bam
     File bam_index
+    File ref_fasta
+    File ref_fasta_index
     File gba1_paralog_forcecall_py
     File discriminators
     File hotspots
+    File patches
     File qc_gate
     String sample_id
     String python_docker = "python:3.11.11-slim-bookworm"
     Int preemptible = 3
   }
-  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + 40)
+  Int disk_gb = ceil(size(bam, "GiB") * 2 + size(bam_index, "GiB") + size(ref_fasta, "GiB") + 40)
   command <<<
     set -euo pipefail
     wc -c ~{qc_gate} >/dev/null
@@ -1263,11 +1268,18 @@ task Gba1ParalogHotspots {
       [[ -e "${align}.bai" ]] || ln -s "$index" "${align}.bai"
       [[ -e "${align%.bam}.bai" ]] || ln -s "$index" "${align%.bam}.bai"
     fi
+    # pysam FastaFile expects sibling .fai named after the FASTA basename.
+    ref_base=$(basename "~{ref_fasta}")
+    mkdir -p ref_bundle
+    ln -sf "~{ref_fasta}" "ref_bundle/$ref_base"
+    ln -sf "~{ref_fasta_index}" "ref_bundle/${ref_base}.fai"
     pip install --no-cache-dir "pysam==0.24.1"
     python3 "~{gba1_paralog_forcecall_py}" \
       --bam "~{bam}" \
+      --reference "ref_bundle/$ref_base" \
       --discriminators "~{discriminators}" \
       --hotspots "~{hotspots}" \
+      --patches "~{patches}" \
       --sample-id "~{sample_id}" \
       --out-vcf "~{sample_id}.gba1_paralog.vcf" \
       --out-json "~{sample_id}.gba1_paralog.json"

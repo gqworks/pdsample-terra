@@ -23,9 +23,10 @@ classification.
 
 ## Homology hotspot force-call
 
-`gba1_homology_discriminators.tsv` and `gba1_homology_hotspots.tsv` drive
-`workflow/scripts/gba1_paralog_forcecall.py` (WDL `Gba1ParalogHotspots`).
-Reads overlapping GBA1 or GBAP1 exon 9–11 are reassigned with Gauchian 1.0.2
-discriminating SNPs; gene-assigned fragments are piled at L444P / A495P /
-D448H so mis-mapping to GBAP1 does not silently drop those alleles when
-Gauchian returns a non-carrier.
+`gba1_homology_discriminators.tsv`, `gba1_homology_hotspots.tsv`, and
+`gbap1_grch38_patches.tsv` drive `workflow/scripts/gba1_paralog_forcecall.py`
+(WDL `Gba1ParalogHotspots`). Window reads are scored against the GRCh38 GBA1
+template and a GBAP1 template with GRCh38’s GBA-like minor alleles patched to
+the major GBAP1 bases (Orimo et al. 2024 / Woo et al. 2022). Gene-better
+fragments are piled at L444P / A495P / D448H so mis-mapping to GBAP1 does not
+silently drop those alleles when Gauchian returns a non-carrier.
