@@ -87,6 +87,12 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File rescued_vcf_index =" in sample_tasks.split("task RescueSites {", 1)[1]
     assert "RescueSites.rescued_vcf" in text
     assert "RescueSites.rescued_vcf_index" in text
+    assert "task Gba1ParalogHotspots" in sample_tasks
+    assert "gba1_paralog_forcecall.py" in sample_tasks
+    assert "Gba1ParalogHotspots.vcf" in text
+    assert "gba1_paralog_vcf = Gba1ParalogHotspots.vcf" in text
+    assert "gba1_homology_hotspots.tsv" in sample_tasks
+    assert "gba1_homology_discriminators.tsv" in sample_tasks
     assert "task AnnotateClinvarPlp" in sample_tasks
     assert "rescue_nonpass_sites.py" in sample_tasks
     assert "probe_prior_file.py" in sample_tasks
@@ -370,7 +376,7 @@ def test_cp_uses_localized_file_interpolation():
 def test_alignment_readers_accept_picard_bai_names():
     """htslib looks for sample.bam.bai; Picard writes sample.bai."""
     text = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
-    assert text.count('ln -s "$index" "${align}.bai"') == 6
+    assert text.count('ln -s "$index" "${align}.bai"') == 7
 
 
 def test_requester_pays_flag_is_a_haplotypecaller_argument():

@@ -28,7 +28,7 @@ Terra writes these Assess files into one `candidates` array column, in this orde
 | `inheritance_status` | `AR_comphet_candidate`, `AR_hom`, `AD_candidate`, `AD_gof_intronic` (weak intron in GoF/DN AD gene), `risk_biallelic`, `mtdna_pathogenic_candidate`, `mtdna_variant`, `str_expanded`, `module_not_assessed`, and the other statuses in `src/pdvar/report.py` |
 | `str_n_expanded_alleles`, `str_motif`, `str_motif_pathogenic`, `str_moi` | Count of alleles at or above the cited floor, observed motif when parsed, whether that motif is the pathogenic one, and STR inheritance |
 | `high_sr_background`, `freq_het`, `sv_artifact` | GATK-SV HIGH_SR_BACKGROUND flag, in-cohort FREQ_HET, and depth-only artifact tag (unscored; not a hard drop) |
-| `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `mtdna`, or `sv` |
+| `hit_source` | `small_variant`, `expansionhunter`, `gauchian`, `gba1_paralog`, `mtdna`, or `sv` |
 | `sv_panel_af` | True GATK-SV reference-panel AF when available (hard-filtered like gnomAD); not the joint-callset INFO/AF |
 | `cohort_af` | In-callset SV allele frequency from INFO/AF or CN_NONREF_FREQ (annotation only; not a hard filter) |
 | `sv_algorithms` | INFO/ALGORITHMS from GATK-SV |

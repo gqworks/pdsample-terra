@@ -1,0 +1,11 @@
+# Gauchian 1.0.2 Exon9-11 SNV discriminators (GBA_haplotype_38.txt).
+# gene_allele / pseudo_allele are the bases Gauchian counts for gene vs GBAP1.
+chrom	gene_pos	gene_allele	pseudo_pos	pseudo_allele	label
+chr1	155234903	C	155214276	T	anchor
+chr1	155235203	C	155214576	G	V499=
+chr1	155235217	C	155214590	G	A495P
+chr1	155235252	A	155214625	G	L483P
+chr1	155235379	A	155214752	G	anchor
+chr1	155235412	G	155214785	A	anchor
+chr1	155235727	C	155215100	G	D448H
+chr1	155235918	A	155215236	G	anchor

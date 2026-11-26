@@ -1,0 +1,7 @@
+# Pathogenic Exon9-11 hotspots force-called from gene-assigned fragments.
+# ref/alt are GRCh38 +strand alleles (ClinVar / GBA1-PD Browser coordinates).
+# Pathogenic alt matches the Gauchian GBAP1-like (pseudo) allele at that site.
+token	cdna	protein	chrom	pos	ref	alt	pseudo_pos	pd_class
+L483P	c.1448T>C	p.Leu483Pro	chr1	155235252	A	G	155214625	severe
+A495P	c.1483G>C	p.Ala495Pro	chr1	155235217	C	G	155214590	severe
+D448H	c.1342G>C	p.Asp448His	chr1	155235727	C	G	155215100	severe

@@ -30,6 +30,11 @@ MODULES = {
         "carrier": "GBA1 carrier",
         "absent": "no GBA1 variant",
     },
+    "gba1_paralog": {
+        "not_assessed": "GBA1 paralog hotspots not assessed",
+        "carrier": "GBA1 paralog hotspot carrier",
+        "absent": "no GBA1 paralog hotspot",
+    },
     "mtdna": {
         "not_assessed": "mtDNA not assessed",
         "carrier": "mtDNA carrier",
@@ -426,11 +431,12 @@ def _variant_raw_depth_ab(raw_counts: object, hgvsc: str, hgvsp: str) -> tuple[f
 
 
 def drop_redundant_gauchian_snvs(df: pd.DataFrame) -> pd.DataFrame:
-    """Prefer VEP/small-variant GBA1 alleles when Gauchian reports the same c. HGVS.
+    """Prefer VEP/small-variant GBA1 alleles when Gauchian/paralog report the same c. HGVS.
 
     Copy GBA1-PD Browser class (and related annotation) onto the surviving VEP
     row so a ClinVar-benign risk allele such as E365K is not lost with the
-    Gauchian duplicate.
+    Gauchian duplicate. Also drops ``gba1_paralog`` rows that duplicate
+    ``gauchian`` catalog SNVs (prefer Gauchian).
     """
     if df.empty or "hit_source" not in df.columns or "gene" not in df.columns:
         return df
@@ -439,13 +445,10 @@ def drop_redundant_gauchian_snvs(df: pd.DataFrame) -> pd.DataFrame:
     event = df["dosage_event"].fillna("").astype(str) if "dosage_event" in df.columns else pd.Series("", index=df.index)
     hgvsc = df["hgvsc"] if "hgvsc" in df.columns else pd.Series("", index=df.index)
     small = gene.eq("GBA1") & hit.eq("small_variant")
-    gauchian = gene.eq("GBA1") & hit.eq("gauchian") & event.eq("other_variant")
-    if not small.any() or not gauchian.any():
-        return df
-    seen = {gba_c_dot(value) for value in hgvsc[small] if gba_c_dot(value)}
-    if not seen:
-        return df
-    drop = gauchian & hgvsc.map(lambda value: gba_c_dot(value) in seen)
+    specialty = gene.eq("GBA1") & (
+        (hit.eq("gauchian") & event.eq("other_variant")) | hit.eq("gba1_paralog")
+    )
+    drop = pd.Series(False, index=df.index)
     copy_cols = [
         col
         for col in (
@@ -457,9 +460,27 @@ def drop_redundant_gauchian_snvs(df: pd.DataFrame) -> pd.DataFrame:
         )
         if col in df.columns
     ]
-    if copy_cols:
+    if small.any() and specialty.any():
+        seen = {gba_c_dot(value) for value in hgvsc[small] if gba_c_dot(value)}
+        if seen:
+            drop = drop | (specialty & hgvsc.map(lambda value: gba_c_dot(value) in seen))
+    # Prefer Gauchian over paralog force-call for the same c. HGVS.
+    gauchian_keys = {
+        gba_c_dot(value)
+        for value in hgvsc[gene.eq("GBA1") & hit.eq("gauchian") & event.eq("other_variant")]
+        if gba_c_dot(value)
+    }
+    if gauchian_keys:
+        drop = drop | (
+            gene.eq("GBA1")
+            & hit.eq("gba1_paralog")
+            & hgvsc.map(lambda value: gba_c_dot(value) in gauchian_keys)
+        )
+    if not drop.any():
+        return df
+    if copy_cols and small.any():
         by_key: dict[str, dict] = {}
-        for idx in df.index[drop]:
+        for idx in df.index[drop & specialty]:
             key = gba_c_dot(hgvsc.at[idx] if "hgvsc" in df.columns else "")
             if not key:
                 continue
@@ -474,6 +495,89 @@ def drop_redundant_gauchian_snvs(df: pd.DataFrame) -> pd.DataFrame:
                 if current is None or (isinstance(current, float) and pd.isna(current)) or str(current).strip() in {"", "nan", "<NA>"}:
                     df.at[idx, col] = value
     return df.loc[~drop].reset_index(drop=True)
+
+
+def parse_gba1_paralog(
+    path: str | Path,
+    sample_prefix: str | None = None,
+    default_sample: str | None = None,
+) -> tuple[pd.DataFrame, set[str], set[str]]:
+    """Ingest paralog-aware GBA1 hotspot VCF (``PDVAR_GBA1_PARALOG`` carriers only)."""
+    path = Path(path)
+    header = [sample for sample in read_samples(path) if not sample_prefix or sample.startswith(sample_prefix)]
+    if not header and default_sample:
+        header = [default_sample]
+    rows: list[dict] = []
+    carriers: set[str] = set()
+    seen: set[str] = set(header)
+    for record in iter_vcf(path):
+        info = record["info"]
+        if not info.get("PDVAR_GBA1_PARALOG"):
+            continue
+        samples = record.get("samples") or {}
+        if not samples and default_sample:
+            samples = {default_sample: {"GT": "0/1"}}
+        for sample, fmt in samples.items():
+            sample = str(sample)
+            if sample_prefix and not sample.startswith(sample_prefix):
+                continue
+            seen.add(sample)
+            gt = str(fmt.get("GT") or "./.")
+            if not _carrier_gt(gt):
+                continue
+            hgvsc = str(info.get("HGVSC") or "").strip()
+            hgvsp = str(info.get("HGVSP") or "").strip()
+            token = str(info.get("TOKEN") or "").strip()
+            if not hgvsc and token:
+                hgvsc = token
+            chrom = chrom_bare(record["chrom"])
+            alt = record["alt"].split(",")[0]
+            depth = _float_or_none(fmt.get("DP"))
+            ad = str(fmt.get("AD") or "")
+            allele_balance = None
+            if "," in ad:
+                try:
+                    ad_ref, ad_alt = [float(part) for part in ad.split(",")[:2]]
+                    total = ad_ref + ad_alt
+                    if total > 0:
+                        allele_balance = ad_alt / total
+                        if depth is None:
+                            depth = total
+                except ValueError:
+                    allele_balance = None
+            consequence = _consequence_from_protein(hgvsp) if hgvsp else "missense_variant"
+            carriers.add(sample)
+            rows.append(
+                _blank_row(
+                    sample_id=sample,
+                    family_id=sample,
+                    chrom=chrom,
+                    pos=record["pos"],
+                    end=record["pos"],
+                    ref=record["ref"],
+                    alt=alt,
+                    variant_id=f"GBA1-paralog-{hgvsc or token or record['pos']}-{sample}",
+                    gene="GBA1",
+                    consequence=consequence,
+                    hgvsc=hgvsc or pd.NA,
+                    hgvsp=hgvsp or pd.NA,
+                    genotype=gt if "/" in gt or "|" in gt else "0/1",
+                    zygosity="hom" if gt.replace("|", "/") in {"1/1", "1|1"} else "het",
+                    depth=depth if depth is not None else pd.NA,
+                    allele_balance=allele_balance if allele_balance is not None else pd.NA,
+                    clinvar="Pathogenic",
+                    clinvar_class="P/LP",
+                    variant_class="SNV",
+                    hit_source="gba1_paralog",
+                    dosage_mechanism="paralog_hotspot",
+                    dosage_event="paralog_hotspot",
+                    scored_dosage=False,
+                )
+            )
+    table = pd.DataFrame(rows) if rows else empty_variant_table()
+    if not table.empty:
+        table = derive_zygosity(table)
+    return table, seen, carriers
 
 
 def parse_gauchian(
@@ -776,11 +880,12 @@ def ingest_sample_callsets(
     *,
     expansionhunter: Path | None = None,
     gauchian: Path | None = None,
+    gba1_paralog: Path | None = None,
     mtdna: Path | None = None,
     cfg: dict | None = None,
     gba1_pd_browser: str | Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Ingest the three per-sample callsets. A missing file stays not assessed."""
+    """Ingest per-sample callsets. A missing file stays not assessed."""
     cfg = cfg or {}
     sample_id = str(sample_id)
     frames: list[pd.DataFrame] = []
@@ -819,6 +924,11 @@ def ingest_sample_callsets(
             gba1_pd_browser=browser,
             cfg=cfg,
         ),
+    )
+    add(
+        "gba1_paralog",
+        gba1_paralog,
+        lambda path: parse_gba1_paralog(path, default_sample=sample_id),
     )
     add("mtdna", mtdna, lambda path: parse_mtdna(path, cfg=cfg))
     return _concat(frames), pd.DataFrame(assessments)
