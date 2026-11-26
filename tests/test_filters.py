@@ -155,6 +155,27 @@ def test_clinvar_plp_rescued_from_frequency(cfg):
     assert out.loc[0, "clinvar_rescued"]
 
 
+def test_gba1_paralog_low_ab_kept_via_specialty_source(cfg):
+    """Gene-assigned L483P pileups can be < min_allele_balance and must still keep."""
+    panel = pd.DataFrame({"gene": ["GBA1"], "moi": ["RISK"]})
+    # MONOPDAUS_000046-style: AD 8/48 ≈ 0.167 < filters.min_allele_balance 0.2
+    row = _variants(
+        gene="GBA1",
+        hit_source="gba1_paralog",
+        allele_balance=8 / 48,
+        depth=48,
+        gq=None,
+        clinvar_class="P/LP",
+    )
+    # Same row as small_variant fails AB and is dropped.
+    small = row.copy()
+    small["hit_source"] = ["small_variant"]
+    assert filters.apply_filters(small, panel, cfg["filters"]).empty
+    out = filters.apply_filters(row, panel, cfg["filters"])
+    assert len(out) == 1
+    assert bool(out.loc[0, "source_rescued"])
+
+
 def test_ar_panel_gene_relaxes_af(cfg):
     assert len(filters.apply_filters(_variants(gnomad_af=0.02, gnomad_popmax_af=0.02), PANEL, cfg["filters"])) == 1
     assert len(filters.apply_filters(_variants(gnomad_af=0.04, gnomad_popmax_af=0.04), PANEL, cfg["filters"])) == 1

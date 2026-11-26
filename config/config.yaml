@@ -78,7 +78,8 @@ filters:
     - mitochondrial_variant
   # Always keep ClinVar P/LP regardless of frequency/consequence filters.
   always_keep_clinvar_plp: true
-  # Off-panel STR / GBA1 / mtDNA rows. Quality filters still apply.
+  # Off-panel STR / GBA1 / mtDNA rows. Depth/GQ still apply; het allele balance
+  # does not (specialty pileups are not HC diploid hets).
   always_keep_sources:
     - expansionhunter
     - gauchian

@@ -71,6 +71,21 @@ def quality_mask(df: pd.DataFrame, fcfg: dict) -> pd.Series:
     return mask
 
 
+def specialty_quality_mask(df: pd.DataFrame, fcfg: dict) -> pd.Series:
+    """Depth/GQ only for specialty callers (Gauchian, gba1_paralog, STR, mtDNA).
+
+    Het allele balance is a HaplotypeCaller diploid expectation. Gene-assigned
+    paralog pileups often look low-AB because WT gene copies dilute ALT fraction
+    (e.g. L483P AD 8/48), so AB must not drop ``always_keep_sources`` rows.
+    """
+    mask = pd.Series(True, index=df.index)
+    if "gq" in df.columns and "min_gq" in fcfg:
+        mask &= _ge_or_missing(df["gq"], fcfg["min_gq"])
+    if "depth" in df.columns and "min_depth" in fcfg:
+        mask &= _ge_or_missing(df["depth"], fcfg["min_depth"])
+    return mask
+
+
 def consequence_mask(df: pd.DataFrame, keep: list[str]) -> pd.Series:
     """True if any '&'/','-separated consequence term is in ``keep``."""
     keep_set = set(keep)
@@ -272,7 +287,7 @@ def apply_filters(df: pd.DataFrame, panel: pd.DataFrame, fcfg: dict) -> pd.DataF
     keep = df["pass_panel"] & df["pass_quality"] & df["pass_frequency"] & df["pass_consequence"]
     sources = fcfg.get("always_keep_sources") or []
     if sources and "hit_source" in df.columns:
-        source_keep = df["hit_source"].isin(sources) & df["pass_quality"]
+        source_keep = df["hit_source"].isin(sources) & specialty_quality_mask(df, fcfg)
         df["source_rescued"] = source_keep & ~keep
         keep |= source_keep
     if fcfg.get("always_keep_clinvar_plp", True) and "clinvar_class" in df.columns:
