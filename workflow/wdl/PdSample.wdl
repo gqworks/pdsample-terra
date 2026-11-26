@@ -727,9 +727,12 @@ workflow PdSample {
     input:
       bam = sample_bam,
       bam_index = sample_bai,
+      ref_fasta = ref_fasta,
+      ref_fasta_index = ref_fasta_index,
       gba1_paralog_forcecall_py = FetchRepoAssets.gba1_paralog_forcecall_py,
       discriminators = FetchRepoAssets.gba1_homology_discriminators,
       hotspots = FetchRepoAssets.gba1_homology_hotspots,
+      patches = FetchRepoAssets.gbap1_grch38_patches,
       qc_gate = QcGate.gate,
       sample_id = sample_id,
       preemptible = preemptible

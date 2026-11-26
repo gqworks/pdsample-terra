@@ -93,6 +93,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "gba1_paralog_vcf = Gba1ParalogHotspots.vcf" in text
     assert "gba1_homology_hotspots.tsv" in sample_tasks
     assert "gba1_homology_discriminators.tsv" in sample_tasks
+    assert "gbap1_grch38_patches.tsv" in sample_tasks
+    assert "patches = FetchRepoAssets.gbap1_grch38_patches" in text
+    assert "ref_fasta = ref_fasta" in text.split("call Tasks.Gba1ParalogHotspots", 1)[1].split("call Tasks.", 1)[0]
     assert "task AnnotateClinvarPlp" in sample_tasks
     assert "rescue_nonpass_sites.py" in sample_tasks
     assert "probe_prior_file.py" in sample_tasks
