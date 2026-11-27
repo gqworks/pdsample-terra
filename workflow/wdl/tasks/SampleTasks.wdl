@@ -1130,6 +1130,7 @@ task AnnotateAvi {
   input {
     File vcf
     File annotate_avi_py
+    String sample_id
     # AlphaGenome "AVI SNV scores" download (bgzipped TSV) and its Tabix index.
     # Unset writes a header-only table and leaves AVI not_assessed.
     File? avi_table
@@ -1152,10 +1153,10 @@ task AnnotateAvi {
         args+=(--index "${index}")
       fi
     fi
-    python3 "~{annotate_avi_py}" --vcf "~{vcf}" --out avi.tsv ${args[@]+"${args[@]}"}
+    python3 "~{annotate_avi_py}" --vcf "~{vcf}" --out "~{sample_id}.avi.tsv" ${args[@]+"${args[@]}"}
   >>>
   output {
-    File avi_tsv = "avi.tsv"
+    File avi_tsv = "~{sample_id}.avi.tsv"
   }
   runtime {
     docker: python_docker

@@ -7,7 +7,7 @@ import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai). Optional this.<name> priors (ProbePriorFile) skip only that file's producer: vep_vcf, small_vcf, sv_vcf, expansionhunter_vcf, gauchian_json, mtdna_vcf, introme, avi_tsv. Empty/placeholder/zero-byte priors run the caller. Else SV: sv_joint_vcf subset or GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai). Optional this.<name> priors (ProbePriorFile) skip only that file's producer: vep_vcf, small_vcf, sv_vcf, expansionhunter_vcf, gauchian_json, gba1_paralog_vcf, mtdna_vcf, introme, avi_tsv. Empty/placeholder/zero-byte priors run the caller. Else SV: sv_joint_vcf subset or GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
   }
   input {
     String sample_id
@@ -85,6 +85,8 @@ workflow PdSample {
     String small_vcf_prior_index = ""
     String expansionhunter_vcf_prior = ""
     String gauchian_json_prior = ""
+    # Optional per-sample prior GBA1 paralog VCF (Terra: this.gba1_paralog_vcf).
+    String gba1_paralog_vcf_prior = ""
     String mtdna_vcf_prior = ""
     String avi_tsv_prior = ""
     Boolean introme_quality_filter = false
@@ -185,6 +187,9 @@ workflow PdSample {
     String sv_case_pesr_disc = ""
     String sv_case_pesr_split = ""
     String sv_case_pesr_sd = ""
+    # Terra: this.sample_metrics_files. Passthrough when GATK-SV is skipped so
+    # write-back does not blank the array column with [].
+    Array[File] sv_case_sample_metrics_files = []
     # Optional per-sample prior SV VCF (Terra: this.sv_vcf / this.sv_vcf_index).
     # A real non-empty VCF skips SubsetJointSvVcf and GATKSVPipelineSingleSample
     # and reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
@@ -405,6 +410,14 @@ workflow PdSample {
       python_docker = python_docker,
       preemptible = preemptible
   }
+  call Tasks.ProbePriorFile as ProbeGba1ParalogPrior {
+    input:
+      path = gba1_paralog_vcf_prior,
+      kind = "vcf",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
   call Tasks.ProbePriorFile as ProbeMtdnaPrior {
     input:
       path = mtdna_vcf_prior,
@@ -427,6 +440,7 @@ workflow PdSample {
   Boolean use_prior_sv = ProbeSvPrior.usable
   Boolean use_prior_eh = ProbeEhPrior.usable
   Boolean use_prior_gauchian = ProbeGauchianPrior.usable
+  Boolean use_prior_gba1_paralog = ProbeGba1ParalogPrior.usable
   Boolean use_prior_mtdna = ProbeMtdnaPrior.usable
   Boolean use_prior_avi = ProbeAviPrior.usable
   Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []
@@ -438,6 +452,7 @@ workflow PdSample {
   Array[File] sv_prior_vcf_index_files = if ProbeSvPriorIndex.usable then [sv_prior_vcf_index] else []
   Array[File] expansionhunter_vcf_prior_files = if use_prior_eh then [expansionhunter_vcf_prior] else []
   Array[File] gauchian_json_prior_files = if use_prior_gauchian then [gauchian_json_prior] else []
+  Array[File] gba1_paralog_vcf_prior_files = if use_prior_gba1_paralog then [gba1_paralog_vcf_prior] else []
   Array[File] mtdna_vcf_prior_files = if use_prior_mtdna then [mtdna_vcf_prior] else []
   Array[File] avi_tsv_prior_files = if use_prior_avi then [avi_tsv_prior] else []
 
@@ -621,13 +636,23 @@ workflow PdSample {
       input:
         vcf = sample_small_vcf,
         annotate_avi_py = FetchRepoAssets.annotate_avi_py,
+        sample_id = sample_id,
         avi_table = avi_table,
         avi_table_index = avi_table_index,
         preemptible = preemptible
     }
   }
   Array[File] avi_tsv_files = flatten([avi_tsv_prior_files, select_all([AnnotateAvi.avi_tsv])])
-  File? sample_avi_tsv = if length(avi_tsv_files) > 0 then avi_tsv_files[0] else optional_file_none
+  # Normalize prior or fresh AVI to this.<sample_id>.avi.tsv for Terra write-back.
+  if (length(avi_tsv_files) > 0) {
+    call Tasks.ReleaseAfterQc as NameAvi {
+      input:
+        payload = avi_tsv_files[0],
+        gate = QcGate.gate,
+        name = sample_id + ".avi.tsv"
+    }
+  }
+  File? sample_avi_tsv = if length(select_all([NameAvi.released])) > 0 then NameAvi.released else optional_file_none
   if (!use_prior_vep) {
     call Tasks.VepAnnotate {
       input:
@@ -723,20 +748,31 @@ workflow PdSample {
     }
   }
   File sample_gauchian_json = select_first(flatten([gauchian_json_prior_files, select_all([Gauchian.json])]))
-  call Tasks.Gba1ParalogHotspots {
-    input:
-      bam = sample_bam,
-      bam_index = sample_bai,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      gba1_paralog_forcecall_py = FetchRepoAssets.gba1_paralog_forcecall_py,
-      discriminators = FetchRepoAssets.gba1_homology_discriminators,
-      hotspots = FetchRepoAssets.gba1_homology_hotspots,
-      patches = FetchRepoAssets.gbap1_grch38_patches,
-      qc_gate = QcGate.gate,
-      sample_id = sample_id,
-      preemptible = preemptible
+  if (!use_prior_gba1_paralog) {
+    call Tasks.Gba1ParalogHotspots {
+      input:
+        bam = sample_bam,
+        bam_index = sample_bai,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
+        gba1_paralog_forcecall_py = FetchRepoAssets.gba1_paralog_forcecall_py,
+        discriminators = FetchRepoAssets.gba1_homology_discriminators,
+        hotspots = FetchRepoAssets.gba1_homology_hotspots,
+        patches = FetchRepoAssets.gbap1_grch38_patches,
+        qc_gate = QcGate.gate,
+        sample_id = sample_id,
+        preemptible = preemptible
+    }
   }
+  File sample_gba1_paralog_vcf_raw = select_first(flatten([gba1_paralog_vcf_prior_files, select_all([Gba1ParalogHotspots.vcf])]))
+  # Normalize prior or fresh paralog VCF to this.<sample_id>.gba1_paralog.vcf.
+  call Tasks.ReleaseAfterQc as NameGba1Paralog {
+    input:
+      payload = sample_gba1_paralog_vcf_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".gba1_paralog.vcf"
+  }
+  File sample_gba1_paralog_vcf = NameGba1Paralog.released
   # Gate mito / GATK-SV on QC. EnsureBam already emits sample_id.bam / .bam.bai;
   # ReleaseAfterQc hardlinks again so Manta 1.6 does not start before the gate.
   call Tasks.ReleaseAfterQc as ReleaseBam {
@@ -1067,7 +1103,7 @@ workflow PdSample {
       sv_status = if use_prior_sv then "prior" else if use_joint_sv then "joint" else "called",
       expansionhunter_vcf = sample_expansionhunter_vcf,
       gauchian_json = sample_gauchian_json,
-      gba1_paralog_vcf = Gba1ParalogHotspots.vcf,
+      gba1_paralog_vcf = sample_gba1_paralog_vcf,
       mtdna_vcf = sample_mtdna_vcf,
       mtdna_annotation = sample_mtdna_annotation,
       introme_tsv = NameIntrome.released,
@@ -1104,29 +1140,31 @@ workflow PdSample {
     File sv_vcf_index = NameSvVcfIndex.released
     File expansionhunter_vcf = sample_expansionhunter_vcf
     File gauchian_json = sample_gauchian_json
-    File gba1_paralog_vcf = Gba1ParalogHotspots.vcf
-    File gba1_paralog_json = Gba1ParalogHotspots.json
+    # Write back to this.gba1_paralog_vcf for reuse via gba1_paralog_vcf_prior.
+    File gba1_paralog_vcf = sample_gba1_paralog_vcf
+    File? gba1_paralog_json = Gba1ParalogHotspots.json
     File mtdna_vcf = sample_mtdna_vcf
     File introme = NameIntrome.released
     File? avi_tsv = sample_avi_tsv
     # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
-    # File? is unset when the joint-SV path skipped GatkSvSingle. Metrics stay
-    # Array[File] (empty on the joint path).
-    File? coverage_counts = GatkSvSingle.coverage_counts
-    File? manta_vcf = GatkSvSingle.manta_vcf
-    File? manta_index = EvidenceMantaIndex.out
-    File? pesr_disc = GatkSvSingle.pesr_disc
-    File? pesr_disc_index = GatkSvSingle.pesr_disc_index
-    File? pesr_sd = GatkSvSingle.pesr_sd
-    File? pesr_sd_index = GatkSvSingle.pesr_sd_index
-    File? pesr_split = GatkSvSingle.pesr_split
-    File? pesr_split_index = GatkSvSingle.pesr_split_index
-    File? scramble_clusters = GatkSvSingle.scramble_clusters
-    File? scramble_index = EvidenceScrambleIndex.out
-    File? scramble_table = GatkSvSingle.scramble_table
-    File? scramble_vcf = GatkSvSingle.scramble_vcf
-    File? wham_index = EvidenceWhamIndex.out
-    File? wham_vcf = GatkSvSingle.wham_vcf
-    Array[File] sample_metrics_files = select_first([GatkSvSingle.sample_metrics_files, []])
+    # When GATK-SV is skipped (sv_prior or joint SV), passthrough the existing
+    # case_* inputs so data-table write-back does not blank those columns.
+    # Indexes / clusters without case_* inputs stay unset on the skip path.
+    File? coverage_counts = if (use_prior_sv || use_joint_sv) then case_counts_file else GatkSvSingle.coverage_counts
+    File? manta_vcf = if (use_prior_sv || use_joint_sv) then case_manta_vcf else GatkSvSingle.manta_vcf
+    File? manta_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceMantaIndex.out
+    File? pesr_disc = if (use_prior_sv || use_joint_sv) then case_pesr_disc else GatkSvSingle.pesr_disc
+    File? pesr_disc_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_disc_index
+    File? pesr_sd = if (use_prior_sv || use_joint_sv) then case_pesr_sd else GatkSvSingle.pesr_sd
+    File? pesr_sd_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_sd_index
+    File? pesr_split = if (use_prior_sv || use_joint_sv) then case_pesr_split else GatkSvSingle.pesr_split
+    File? pesr_split_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_split_index
+    File? scramble_clusters = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.scramble_clusters
+    File? scramble_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceScrambleIndex.out
+    File? scramble_table = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.scramble_table
+    File? scramble_vcf = if (use_prior_sv || use_joint_sv) then case_scramble_vcf else GatkSvSingle.scramble_vcf
+    File? wham_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceWhamIndex.out
+    File? wham_vcf = if (use_prior_sv || use_joint_sv) then case_wham_vcf else GatkSvSingle.wham_vcf
+    Array[File] sample_metrics_files = if (use_prior_sv || use_joint_sv) then sv_case_sample_metrics_files else select_first([GatkSvSingle.sample_metrics_files, []])
   }
 }

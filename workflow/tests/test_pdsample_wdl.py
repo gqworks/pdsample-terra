@@ -90,7 +90,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "task Gba1ParalogHotspots" in sample_tasks
     assert "gba1_paralog_forcecall.py" in sample_tasks
     assert "Gba1ParalogHotspots.vcf" in text
-    assert "gba1_paralog_vcf = Gba1ParalogHotspots.vcf" in text
+    assert "gba1_paralog_vcf = sample_gba1_paralog_vcf" in text
+    assert "gba1_paralog_vcf_prior" in text
     assert "gba1_homology_hotspots.tsv" in sample_tasks
     assert "gba1_homology_discriminators.tsv" in sample_tasks
     assert "gbap1_grch38_patches.tsv" in sample_tasks
@@ -220,6 +221,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File mtdna_vcf_index =" not in text
     assert "File panel_csv =" not in text
     assert "File? avi_tsv = sample_avi_tsv" in text
+    assert 'name = sample_id + ".avi.tsv"' in text
+    assert 'name = sample_id + ".gba1_paralog.vcf"' in text
+    assert "~{sample_id}.avi.tsv" in sample_tasks
     assert "File gba1_pd_browser =" not in text
     assert "splicevault" not in text.lower()
     assert "splicevault" not in sample_tasks.lower()
@@ -607,6 +611,7 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert 'String sv_case_pesr_split = ""' in text
     assert 'String sv_case_pesr_sd = ""' in text
     assert 'String sv_case_manta_vcf = ""' in text
+    assert 'Array[File] sv_case_sample_metrics_files = []' in text
     assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
@@ -712,6 +717,7 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "Boolean use_prior_sv = ProbeSvPrior.usable" in text
     assert "Boolean use_prior_eh = ProbeEhPrior.usable" in text
     assert "Boolean use_prior_gauchian = ProbeGauchianPrior.usable" in text
+    assert "Boolean use_prior_gba1_paralog = ProbeGba1ParalogPrior.usable" in text
     assert "Boolean use_prior_mtdna = ProbeMtdnaPrior.usable" in text
     assert "Boolean use_prior_avi = ProbeAviPrior.usable" in text
     assert "Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []" in text
@@ -722,6 +728,7 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "if (!use_prior_small)" in text
     assert "if (!use_prior_eh)" in text
     assert "if (!use_prior_gauchian)" in text
+    assert "if (!use_prior_gba1_paralog)" in text
     assert "if (!use_prior_mtdna)" in text
     assert "if (!use_prior_avi)" in text
     assert "if (use_prior_vep)" in text
@@ -730,6 +737,7 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "call Tasks.NormPass" in text.split("if (!use_prior_small)", 1)[1]
     assert "call Tasks.ExpansionHunter" in text.split("if (!use_prior_eh)", 1)[1]
     assert "call Tasks.Gauchian" in text.split("if (!use_prior_gauchian)", 1)[1]
+    assert "call Tasks.Gba1ParalogHotspots" in text.split("if (!use_prior_gba1_paralog)", 1)[1]
     assert "call Tasks.AnnotateAvi" in text.split("if (!use_prior_avi)", 1)[1]
     assert "call Mitochondria.MitochondriaPipeline" in text.split("if (!use_prior_mtdna)", 1)[1]
     vep_prior_files = "vep_prior_vcf_files, select_all([AnnotateClinvarSmall.annotated_vcf])"
@@ -739,13 +747,16 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert 'String small_vcf_prior = ""' in text
     assert 'String expansionhunter_vcf_prior = ""' in text
     assert 'String gauchian_json_prior = ""' in text
+    assert 'String gba1_paralog_vcf_prior = ""' in text
     assert 'String mtdna_vcf_prior = ""' in text
     assert 'String avi_tsv_prior = ""' in text
     assert '"PdSample.small_vcf_prior": "${this.small_vcf}"' in terra
     assert '"PdSample.expansionhunter_vcf_prior": "${this.expansionhunter_vcf}"' in terra
     assert '"PdSample.gauchian_json_prior": "${this.gauchian_json}"' in terra
+    assert '"PdSample.gba1_paralog_vcf_prior": "${this.gba1_paralog_vcf}"' in terra
     assert '"PdSample.mtdna_vcf_prior": "${this.mtdna_vcf}"' in terra
     assert '"PdSample.avi_tsv_prior": "${this.avi_tsv}"' in terra
+    assert "File gba1_paralog_vcf = sample_gba1_paralog_vcf" in text
     assert "panel_csv_prior" not in terra
     assert "gba1_pd_browser_prior" not in terra
     assert '("workflow/scripts/probe_prior_file.py", "probe_prior_file.py")' in tasks
@@ -763,22 +774,21 @@ def test_gatksv_evidence_outputs_for_terra():
     assert "if (!use_prior_sv && !use_joint_sv)" in text
     assert "task PreferOrBuildTabix" in tasks
     assert "call Tasks.PreferOrBuildTabix as EvidenceMantaIndex" in text
-    assert "File? coverage_counts = GatkSvSingle.coverage_counts" in text
-    assert "File? manta_vcf = GatkSvSingle.manta_vcf" in text
-    assert "File? manta_index = EvidenceMantaIndex.out" in text
-    assert "File? pesr_disc = GatkSvSingle.pesr_disc" in text
-    assert "File? pesr_disc_index = GatkSvSingle.pesr_disc_index" in text
-    assert "File? pesr_sd = GatkSvSingle.pesr_sd" in text
-    assert "File? pesr_sd_index = GatkSvSingle.pesr_sd_index" in text
-    assert "File? pesr_split = GatkSvSingle.pesr_split" in text
-    assert "File? pesr_split_index = GatkSvSingle.pesr_split_index" in text
-    assert "File? scramble_clusters = GatkSvSingle.scramble_clusters" in text
-    assert "File? scramble_index = EvidenceScrambleIndex.out" in text
-    assert "File? scramble_table = GatkSvSingle.scramble_table" in text
-    assert "File? scramble_vcf = GatkSvSingle.scramble_vcf" in text
-    assert "File? wham_index = EvidenceWhamIndex.out" in text
-    assert "File? wham_vcf = GatkSvSingle.wham_vcf" in text
-    assert "Array[File] sample_metrics_files = select_first([GatkSvSingle.sample_metrics_files, []])" in text
+    assert "then case_counts_file else GatkSvSingle.coverage_counts" in text
+    assert "then case_manta_vcf else GatkSvSingle.manta_vcf" in text
+    assert "then optional_file_none else EvidenceMantaIndex.out" in text
+    assert "then case_pesr_disc else GatkSvSingle.pesr_disc" in text
+    assert "then case_pesr_sd else GatkSvSingle.pesr_sd" in text
+    assert "then case_pesr_split else GatkSvSingle.pesr_split" in text
+    assert "then case_scramble_vcf else GatkSvSingle.scramble_vcf" in text
+    assert "then case_wham_vcf else GatkSvSingle.wham_vcf" in text
+    assert "then optional_file_none else EvidenceWhamIndex.out" in text
+    assert "then optional_file_none else EvidenceScrambleIndex.out" in text
+    assert "use_prior_sv || use_joint_sv" in text
+    assert 'Array[File] sv_case_sample_metrics_files = []' in text
+    assert 'sample_metrics_files = if (use_prior_sv || use_joint_sv) then sv_case_sample_metrics_files else select_first([GatkSvSingle.sample_metrics_files, []])' in text
+    terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
+    assert '"PdSample.sv_case_sample_metrics_files": "${this.sample_metrics_files}"' in terra
     assert "File coverage_counts = case_counts_file_" in vendor
     assert "File manta_vcf = evidence_manta_vcf" in vendor
     assert "File? manta_index = evidence_manta_index" in vendor
