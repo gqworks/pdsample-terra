@@ -1211,7 +1211,6 @@ workflow PdSample {
     File gauchian_json = NameGauchian.released
     # Write back to this.gba1_paralog_vcf for reuse via gba1_paralog_vcf_prior.
     File gba1_paralog_vcf = sample_gba1_paralog_vcf
-    File? gba1_paralog_json = Gba1ParalogHotspots.json
     File mtdna_vcf = NameMtdna.released
     File introme = NameIntrome.released
     File? avi_tsv = sample_avi_tsv
