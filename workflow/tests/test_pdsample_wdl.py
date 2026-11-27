@@ -90,7 +90,8 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "task Gba1ParalogHotspots" in sample_tasks
     assert "gba1_paralog_forcecall.py" in sample_tasks
     assert "Gba1ParalogHotspots.vcf" in text
-    assert "gba1_paralog_vcf = Gba1ParalogHotspots.vcf" in text
+    assert "gba1_paralog_vcf = sample_gba1_paralog_vcf" in text
+    assert "gba1_paralog_vcf_prior" in text
     assert "gba1_homology_hotspots.tsv" in sample_tasks
     assert "gba1_homology_discriminators.tsv" in sample_tasks
     assert "gbap1_grch38_patches.tsv" in sample_tasks
@@ -712,6 +713,7 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "Boolean use_prior_sv = ProbeSvPrior.usable" in text
     assert "Boolean use_prior_eh = ProbeEhPrior.usable" in text
     assert "Boolean use_prior_gauchian = ProbeGauchianPrior.usable" in text
+    assert "Boolean use_prior_gba1_paralog = ProbeGba1ParalogPrior.usable" in text
     assert "Boolean use_prior_mtdna = ProbeMtdnaPrior.usable" in text
     assert "Boolean use_prior_avi = ProbeAviPrior.usable" in text
     assert "Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []" in text
@@ -722,6 +724,7 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "if (!use_prior_small)" in text
     assert "if (!use_prior_eh)" in text
     assert "if (!use_prior_gauchian)" in text
+    assert "if (!use_prior_gba1_paralog)" in text
     assert "if (!use_prior_mtdna)" in text
     assert "if (!use_prior_avi)" in text
     assert "if (use_prior_vep)" in text
@@ -730,6 +733,7 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert "call Tasks.NormPass" in text.split("if (!use_prior_small)", 1)[1]
     assert "call Tasks.ExpansionHunter" in text.split("if (!use_prior_eh)", 1)[1]
     assert "call Tasks.Gauchian" in text.split("if (!use_prior_gauchian)", 1)[1]
+    assert "call Tasks.Gba1ParalogHotspots" in text.split("if (!use_prior_gba1_paralog)", 1)[1]
     assert "call Tasks.AnnotateAvi" in text.split("if (!use_prior_avi)", 1)[1]
     assert "call Mitochondria.MitochondriaPipeline" in text.split("if (!use_prior_mtdna)", 1)[1]
     vep_prior_files = "vep_prior_vcf_files, select_all([AnnotateClinvarSmall.annotated_vcf])"
@@ -739,13 +743,16 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
     assert 'String small_vcf_prior = ""' in text
     assert 'String expansionhunter_vcf_prior = ""' in text
     assert 'String gauchian_json_prior = ""' in text
+    assert 'String gba1_paralog_vcf_prior = ""' in text
     assert 'String mtdna_vcf_prior = ""' in text
     assert 'String avi_tsv_prior = ""' in text
     assert '"PdSample.small_vcf_prior": "${this.small_vcf}"' in terra
     assert '"PdSample.expansionhunter_vcf_prior": "${this.expansionhunter_vcf}"' in terra
     assert '"PdSample.gauchian_json_prior": "${this.gauchian_json}"' in terra
+    assert '"PdSample.gba1_paralog_vcf_prior": "${this.gba1_paralog_vcf}"' in terra
     assert '"PdSample.mtdna_vcf_prior": "${this.mtdna_vcf}"' in terra
     assert '"PdSample.avi_tsv_prior": "${this.avi_tsv}"' in terra
+    assert "File gba1_paralog_vcf = sample_gba1_paralog_vcf" in text
     assert "panel_csv_prior" not in terra
     assert "gba1_pd_browser_prior" not in terra
     assert '("workflow/scripts/probe_prior_file.py", "probe_prior_file.py")' in tasks

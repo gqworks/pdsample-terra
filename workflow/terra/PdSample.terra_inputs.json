@@ -63,6 +63,7 @@
   "PdSample.small_vcf_prior_index": "${this.small_vcf_index}",
   "PdSample.expansionhunter_vcf_prior": "${this.expansionhunter_vcf}",
   "PdSample.gauchian_json_prior": "${this.gauchian_json}",
+  "PdSample.gba1_paralog_vcf_prior": "${this.gba1_paralog_vcf}",
   "PdSample.mtdna_vcf_prior": "${this.mtdna_vcf}",
   "PdSample.avi_tsv_prior": "${this.avi_tsv}",
   "PdSample.sv_joint_vcf": "${workspace.sv_joint_vcf}",
