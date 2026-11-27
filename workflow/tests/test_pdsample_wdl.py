@@ -212,12 +212,12 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File introme_tsv =" not in text
     assert "File introme =" in text
     assert "File introme_vcf =" not in text
-    assert "File expansionhunter_vcf = sample_expansionhunter_vcf" in text
+    assert "File expansionhunter_vcf = NameExpansionHunter.released" in text
     assert "File expansionhunter_vcf_index =" not in text
-    assert "File small_vcf = sample_small_vcf" in text
-    assert "File small_vcf_index = sample_small_vcf_index" in text
-    assert "File gauchian_json = sample_gauchian_json" in text
-    assert "File mtdna_vcf = sample_mtdna_vcf" in text
+    assert "File small_vcf = NameSmallVcf.released" in text
+    assert "File small_vcf_index = NameSmallVcfIndex.released" in text
+    assert "File gauchian_json = NameGauchian.released" in text
+    assert "File mtdna_vcf = NameMtdna.released" in text
     assert "File mtdna_vcf_index =" not in text
     assert "File panel_csv =" not in text
     assert "File? avi_tsv = sample_avi_tsv" in text
@@ -249,8 +249,27 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File? mtdna_mitimpact" in text
     assert "annotate_mtdna.py" in sample_tasks
     assert "task AnnotateMtdna" in sample_tasks
-    assert "File vep_vcf = sample_vep_vcf" in text
+    # Reused priors are restaged into this submission (ReleaseAfterQc), like sv_vcf.
+    assert "call Tasks.ReleaseAfterQc as NameVepVcf" in text
+    assert "call Tasks.ReleaseAfterQc as NameVepVcfIndex" in text
+    assert "call Tasks.ReleaseAfterQc as NameSmallVcf" in text
+    assert "call Tasks.ReleaseAfterQc as NameSmallVcfIndex" in text
+    assert "call Tasks.ReleaseAfterQc as NameExpansionHunter" in text
+    assert "call Tasks.ReleaseAfterQc as NameGauchian" in text
+    assert "call Tasks.ReleaseAfterQc as NameMtdna" in text
+    assert "File vep_vcf = NameVepVcf.released" in text
+    assert "File vep_vcf_index = NameVepVcfIndex.released" in text
+    assert "File small_vcf = NameSmallVcf.released" in text
+    assert "File small_vcf_index = NameSmallVcfIndex.released" in text
+    assert "File expansionhunter_vcf = NameExpansionHunter.released" in text
+    assert "File gauchian_json = NameGauchian.released" in text
+    assert "File mtdna_vcf = NameMtdna.released" in text
     assert "File sv_vcf = NameSvVcf.released" in text
+    assert 'name = sample_id + ".vep.vcf.gz"' in text
+    assert 'name = sample_id + ".small.vcf.gz"' in text
+    assert 'name = sample_id + ".expansionhunter.vcf.gz"' in text
+    assert 'name = sample_id + ".gauchian.json"' in text
+    assert 'name = sample_id + ".mtdna.annotated.vcf"' in text
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
     assert 'Array[File] candidates = [' in tasks
     assert '"out/~{sample_id}_report.html"' in tasks
@@ -777,6 +796,10 @@ def test_gatksv_evidence_outputs_for_terra():
     assert "then case_counts_file else GatkSvSingle.coverage_counts" in text
     assert "then case_manta_vcf else GatkSvSingle.manta_vcf" in text
     assert "then optional_file_none else EvidenceMantaIndex.out" in text
+    # Skip-path sv_case_* evidence stays passthrough (not Name*/ReleaseAfterQc).
+    assert "Intentionally NOT restaged into this submission" in text
+    assert "call Tasks.ReleaseAfterQc as NameCoverageCounts" not in text
+    assert "call Tasks.ReleaseAfterQc as NameManta" not in text
     assert "then case_pesr_disc else GatkSvSingle.pesr_disc" in text
     assert "then case_pesr_sd else GatkSvSingle.pesr_sd" in text
     assert "then case_pesr_split else GatkSvSingle.pesr_split" in text
