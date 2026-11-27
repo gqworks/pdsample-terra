@@ -627,19 +627,35 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert "case_sr_file = case_pesr_split" in text
     assert "case_sd_file = case_pesr_sd" in text
     assert 'String sv_case_pesr_disc = ""' in text
+    assert 'String sv_case_pesr_disc_index = ""' in text
     assert 'String sv_case_pesr_split = ""' in text
+    assert 'String sv_case_pesr_split_index = ""' in text
     assert 'String sv_case_pesr_sd = ""' in text
+    assert 'String sv_case_pesr_sd_index = ""' in text
     assert 'String sv_case_manta_vcf = ""' in text
-    assert 'Array[File] sv_case_sample_metrics_files = []' in text
+    assert 'String sv_case_manta_index = ""' in text
+    assert 'String sv_case_wham_index = ""' in text
+    assert 'String sv_case_scramble_index = ""' in text
+    assert 'String sv_case_scramble_clusters = ""' in text
+    assert 'String sv_case_scramble_table = ""' in text
+    assert "sv_case_sample_metrics_files" not in text
     assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
+    assert '"PdSample.sv_case_manta_index": "${this.manta_index}"' in terra
     assert '"PdSample.sv_case_counts_file": "${this.Coverage_count}"' in terra
     assert '"PdSample.sv_case_pesr_disc": "${this.pesr_disc}"' in terra
+    assert '"PdSample.sv_case_pesr_disc_index": "${this.pesr_disc_index}"' in terra
     assert '"PdSample.sv_case_pesr_split": "${this.pesr_split}"' in terra
+    assert '"PdSample.sv_case_pesr_split_index": "${this.pesr_split_index}"' in terra
     assert '"PdSample.sv_case_pesr_sd": "${this.pesr_sd}"' in terra
+    assert '"PdSample.sv_case_pesr_sd_index": "${this.pesr_sd_index}"' in terra
     assert '"PdSample.sv_case_wham_vcf": "${this.wham_vcf}"' in terra
+    assert '"PdSample.sv_case_wham_index": "${this.wham_index}"' in terra
     assert '"PdSample.sv_case_scramble_vcf": "${this.scramble_vcf}"' in terra
+    assert '"PdSample.sv_case_scramble_index": "${this.scramble_index}"' in terra
+    assert '"PdSample.sv_case_scramble_clusters": "${this.scramble_clusters}"' in terra
+    assert '"PdSample.sv_case_scramble_table": "${this.scramble_table}"' in terra
     assert "gq_recalibrator_model_file = sv_gq_recalibrator_model_file" in text
     assert "sl_filter_args = sv_sl_filter_args" in text
     assert "HERVK_reference = sv_hervk_reference" in text
@@ -782,40 +798,49 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
 
 
 def test_gatksv_evidence_outputs_for_terra():
-    """GatkSvSingle evidence intermediates are singular File? Terra outputs (metrics stay Array)."""
+    """GatkSvSingle evidence intermediates are singular File? Terra outputs (no metrics column)."""
     text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     vendor = (
         ROOT / "workflow" / "wdl" / "vendor" / "gatk-sv" / "GATKSVPipelineSingleSample.wdl"
     ).read_text(encoding="utf-8")
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
-    assert "Boolean sv_run_sampleevidence_metrics = true" in text
+    assert "Boolean sv_run_sampleevidence_metrics = false" in text
     assert "run_sampleevidence_metrics = sv_run_sampleevidence_metrics" in text
     assert "if (!use_prior_sv && !use_joint_sv)" in text
     assert "task PreferOrBuildTabix" in tasks
     assert "call Tasks.PreferOrBuildTabix as EvidenceMantaIndex" in text
     assert "then case_counts_file else GatkSvSingle.coverage_counts" in text
     assert "then case_manta_vcf else GatkSvSingle.manta_vcf" in text
-    assert "then optional_file_none else EvidenceMantaIndex.out" in text
+    assert "then case_manta_index else EvidenceMantaIndex.out" in text
     # Skip-path sv_case_* evidence stays passthrough (not Name*/ReleaseAfterQc).
     assert "Intentionally NOT restaged into this submission" in text
     assert "call Tasks.ReleaseAfterQc as NameCoverageCounts" not in text
     assert "call Tasks.ReleaseAfterQc as NameManta" not in text
     assert "then case_pesr_disc else GatkSvSingle.pesr_disc" in text
+    assert "then case_pesr_disc_index else GatkSvSingle.pesr_disc_index" in text
     assert "then case_pesr_sd else GatkSvSingle.pesr_sd" in text
+    assert "then case_pesr_sd_index else GatkSvSingle.pesr_sd_index" in text
     assert "then case_pesr_split else GatkSvSingle.pesr_split" in text
+    assert "then case_pesr_split_index else GatkSvSingle.pesr_split_index" in text
     assert "then case_scramble_vcf else GatkSvSingle.scramble_vcf" in text
+    assert "then case_scramble_clusters else GatkSvSingle.scramble_clusters" in text
+    assert "then case_scramble_table else GatkSvSingle.scramble_table" in text
     assert "then case_wham_vcf else GatkSvSingle.wham_vcf" in text
-    assert "then optional_file_none else EvidenceWhamIndex.out" in text
-    assert "then optional_file_none else EvidenceScrambleIndex.out" in text
+    assert "then case_wham_index else EvidenceWhamIndex.out" in text
+    assert "then case_scramble_index else EvidenceScrambleIndex.out" in text
     assert "use_prior_sv || use_joint_sv" in text
-    assert 'Array[File] sv_case_sample_metrics_files = []' in text
-    assert 'sample_metrics_files = if (use_prior_sv || use_joint_sv) then sv_case_sample_metrics_files else select_first([GatkSvSingle.sample_metrics_files, []])' in text
+    assert "sv_case_sample_metrics_files" not in text
+    assert "Array[File] sample_metrics_files =" not in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
-    assert '"PdSample.sv_case_sample_metrics_files": "${this.sample_metrics_files}"' in terra
+    assert "sv_case_sample_metrics_files" not in terra
+    assert '"PdSample.sv_case_manta_index": "${this.manta_index}"' in terra
+    assert '"PdSample.sv_case_scramble_clusters": "${this.scramble_clusters}"' in terra
+    assert '"PdSample.sv_case_scramble_table": "${this.scramble_table}"' in terra
     assert "File coverage_counts = case_counts_file_" in vendor
     assert "File manta_vcf = evidence_manta_vcf" in vendor
     assert "File? manta_index = evidence_manta_index" in vendor
     assert "primary_contigs_fai = primary_contigs_fai" in vendor
+    # Vendor still has the array output; PdSample no longer surfaces it.
     assert "Array[File] sample_metrics_files = evidence_sample_metrics_files" in vendor
 
 

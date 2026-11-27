@@ -177,19 +177,25 @@ workflow PdSample {
     # Optional GatherSampleEvidence outputs for this sample. When set, GATK-SV
     # skips the matching caller / coverage / PE-SR collection. Provide all of
     # counts + pe + sr + sd to skip evidence collection entirely; provide each
-    # caller VCF to skip that caller. Indexes are not separate WDL inputs —
-    # keep .tbi objects next to the primary paths in GCS when tools need them.
+    # caller VCF to skip that caller. Index / scramble cluster+table Strings are
+    # for Terra write-back passthrough when GATK-SV is skipped (GATK-SV itself
+    # still expects .tbi next to primary VCF paths in GCS when tools need them).
     # Strings so Terra blank sample cells ("") stay unset instead of illegal File "".
     String sv_case_manta_vcf = ""
+    String sv_case_manta_index = ""
     String sv_case_wham_vcf = ""
+    String sv_case_wham_index = ""
     String sv_case_scramble_vcf = ""
+    String sv_case_scramble_index = ""
+    String sv_case_scramble_clusters = ""
+    String sv_case_scramble_table = ""
     String sv_case_counts_file = ""
     String sv_case_pesr_disc = ""
+    String sv_case_pesr_disc_index = ""
     String sv_case_pesr_split = ""
+    String sv_case_pesr_split_index = ""
     String sv_case_pesr_sd = ""
-    # Terra: this.sample_metrics_files. Passthrough when GATK-SV is skipped so
-    # write-back does not blank the array column with [].
-    Array[File] sv_case_sample_metrics_files = []
+    String sv_case_pesr_sd_index = ""
     # Optional per-sample prior SV VCF (Terra: this.sv_vcf / this.sv_vcf_index).
     # A real non-empty VCF skips SubsetJointSvVcf and GATKSVPipelineSingleSample
     # and reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
@@ -226,8 +232,9 @@ workflow PdSample {
     File sv_sd_locs_vcf
     File sv_wham_include_list_bed_file
     Boolean sv_run_vcf_qc = false
-    # When true, GatherSampleEvidence writes sample_metrics_files (manta/wham/SR/PE/counts).
-    Boolean sv_run_sampleevidence_metrics = true
+    # GatherSampleEvidence metrics (manta/wham/SR/PE/counts). Off by default —
+    # PdSample does not expose sample_metrics_files as a Terra input/output.
+    Boolean sv_run_sampleevidence_metrics = false
     File sv_wgd_scoring_mask
     Int sv_min_svsize = 50
     # Manta runs one local job per core and accounts 2 GiB to each job.
@@ -326,12 +333,20 @@ workflow PdSample {
   Array[File] sv_joint_vcf_files = if sv_joint_vcf != "" then [sv_joint_vcf] else []
   Array[File] sv_joint_vcf_index_files = if sv_joint_vcf_index != "" then [sv_joint_vcf_index] else []
   File? case_manta_vcf = if sv_case_manta_vcf != "" then sv_case_manta_vcf else optional_file_none
+  File? case_manta_index = if sv_case_manta_index != "" then sv_case_manta_index else optional_file_none
   File? case_wham_vcf = if sv_case_wham_vcf != "" then sv_case_wham_vcf else optional_file_none
+  File? case_wham_index = if sv_case_wham_index != "" then sv_case_wham_index else optional_file_none
   File? case_scramble_vcf = if sv_case_scramble_vcf != "" then sv_case_scramble_vcf else optional_file_none
+  File? case_scramble_index = if sv_case_scramble_index != "" then sv_case_scramble_index else optional_file_none
+  File? case_scramble_clusters = if sv_case_scramble_clusters != "" then sv_case_scramble_clusters else optional_file_none
+  File? case_scramble_table = if sv_case_scramble_table != "" then sv_case_scramble_table else optional_file_none
   File? case_counts_file = if sv_case_counts_file != "" then sv_case_counts_file else optional_file_none
   File? case_pesr_disc = if sv_case_pesr_disc != "" then sv_case_pesr_disc else optional_file_none
+  File? case_pesr_disc_index = if sv_case_pesr_disc_index != "" then sv_case_pesr_disc_index else optional_file_none
   File? case_pesr_split = if sv_case_pesr_split != "" then sv_case_pesr_split else optional_file_none
+  File? case_pesr_split_index = if sv_case_pesr_split_index != "" then sv_case_pesr_split_index else optional_file_none
   File? case_pesr_sd = if sv_case_pesr_sd != "" then sv_case_pesr_sd else optional_file_none
+  File? case_pesr_sd_index = if sv_case_pesr_sd_index != "" then sv_case_pesr_sd_index else optional_file_none
 
   call Tasks.FetchRepoAssets {
     input:
@@ -1202,24 +1217,23 @@ workflow PdSample {
     File? avi_tsv = sample_avi_tsv
     # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
     # When GATK-SV is skipped (sv_prior or joint SV), passthrough the existing
-    # case_* inputs so data-table write-back does not blank those columns.
+    # case_* inputs (VCFs, indexes, scramble clusters/table, metrics) so
+    # data-table write-back does not blank those columns.
     # Intentionally NOT restaged into this submission (unlike vep/small/sv/EH/…).
-    # Indexes / clusters without case_* inputs stay unset on the skip path.
     File? coverage_counts = if (use_prior_sv || use_joint_sv) then case_counts_file else GatkSvSingle.coverage_counts
     File? manta_vcf = if (use_prior_sv || use_joint_sv) then case_manta_vcf else GatkSvSingle.manta_vcf
-    File? manta_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceMantaIndex.out
+    File? manta_index = if (use_prior_sv || use_joint_sv) then case_manta_index else EvidenceMantaIndex.out
     File? pesr_disc = if (use_prior_sv || use_joint_sv) then case_pesr_disc else GatkSvSingle.pesr_disc
-    File? pesr_disc_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_disc_index
+    File? pesr_disc_index = if (use_prior_sv || use_joint_sv) then case_pesr_disc_index else GatkSvSingle.pesr_disc_index
     File? pesr_sd = if (use_prior_sv || use_joint_sv) then case_pesr_sd else GatkSvSingle.pesr_sd
-    File? pesr_sd_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_sd_index
+    File? pesr_sd_index = if (use_prior_sv || use_joint_sv) then case_pesr_sd_index else GatkSvSingle.pesr_sd_index
     File? pesr_split = if (use_prior_sv || use_joint_sv) then case_pesr_split else GatkSvSingle.pesr_split
-    File? pesr_split_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_split_index
-    File? scramble_clusters = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.scramble_clusters
-    File? scramble_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceScrambleIndex.out
-    File? scramble_table = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.scramble_table
+    File? pesr_split_index = if (use_prior_sv || use_joint_sv) then case_pesr_split_index else GatkSvSingle.pesr_split_index
+    File? scramble_clusters = if (use_prior_sv || use_joint_sv) then case_scramble_clusters else GatkSvSingle.scramble_clusters
+    File? scramble_index = if (use_prior_sv || use_joint_sv) then case_scramble_index else EvidenceScrambleIndex.out
+    File? scramble_table = if (use_prior_sv || use_joint_sv) then case_scramble_table else GatkSvSingle.scramble_table
     File? scramble_vcf = if (use_prior_sv || use_joint_sv) then case_scramble_vcf else GatkSvSingle.scramble_vcf
-    File? wham_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceWhamIndex.out
+    File? wham_index = if (use_prior_sv || use_joint_sv) then case_wham_index else EvidenceWhamIndex.out
     File? wham_vcf = if (use_prior_sv || use_joint_sv) then case_wham_vcf else GatkSvSingle.wham_vcf
-    Array[File] sample_metrics_files = if (use_prior_sv || use_joint_sv) then sv_case_sample_metrics_files else select_first([GatkSvSingle.sample_metrics_files, []])
   }
 }
