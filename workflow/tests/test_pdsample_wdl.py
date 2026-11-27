@@ -638,7 +638,7 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert 'String sv_case_scramble_index = ""' in text
     assert 'String sv_case_scramble_clusters = ""' in text
     assert 'String sv_case_scramble_table = ""' in text
-    assert 'Array[File] sv_case_sample_metrics_files = []' in text
+    assert "sv_case_sample_metrics_files" not in text
     assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
@@ -798,13 +798,13 @@ def test_empty_introme_and_vep_priors_do_not_size_placeholder_files():
 
 
 def test_gatksv_evidence_outputs_for_terra():
-    """GatkSvSingle evidence intermediates are singular File? Terra outputs (metrics stay Array)."""
+    """GatkSvSingle evidence intermediates are singular File? Terra outputs (no metrics column)."""
     text = (ROOT / "workflow" / "wdl" / "PdSample.wdl").read_text(encoding="utf-8")
     vendor = (
         ROOT / "workflow" / "wdl" / "vendor" / "gatk-sv" / "GATKSVPipelineSingleSample.wdl"
     ).read_text(encoding="utf-8")
     tasks = (ROOT / "workflow" / "wdl" / "tasks" / "SampleTasks.wdl").read_text(encoding="utf-8")
-    assert "Boolean sv_run_sampleevidence_metrics = true" in text
+    assert "Boolean sv_run_sampleevidence_metrics = false" in text
     assert "run_sampleevidence_metrics = sv_run_sampleevidence_metrics" in text
     assert "if (!use_prior_sv && !use_joint_sv)" in text
     assert "task PreferOrBuildTabix" in tasks
@@ -829,10 +829,10 @@ def test_gatksv_evidence_outputs_for_terra():
     assert "then case_wham_index else EvidenceWhamIndex.out" in text
     assert "then case_scramble_index else EvidenceScrambleIndex.out" in text
     assert "use_prior_sv || use_joint_sv" in text
-    assert 'Array[File] sv_case_sample_metrics_files = []' in text
-    assert 'sample_metrics_files = if (use_prior_sv || use_joint_sv) then sv_case_sample_metrics_files else select_first([GatkSvSingle.sample_metrics_files, []])' in text
+    assert "sv_case_sample_metrics_files" not in text
+    assert "Array[File] sample_metrics_files =" not in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
-    assert '"PdSample.sv_case_sample_metrics_files": "${this.sample_metrics_files}"' in terra
+    assert "sv_case_sample_metrics_files" not in terra
     assert '"PdSample.sv_case_manta_index": "${this.manta_index}"' in terra
     assert '"PdSample.sv_case_scramble_clusters": "${this.scramble_clusters}"' in terra
     assert '"PdSample.sv_case_scramble_table": "${this.scramble_table}"' in terra
@@ -840,6 +840,7 @@ def test_gatksv_evidence_outputs_for_terra():
     assert "File manta_vcf = evidence_manta_vcf" in vendor
     assert "File? manta_index = evidence_manta_index" in vendor
     assert "primary_contigs_fai = primary_contigs_fai" in vendor
+    # Vendor still has the array output; PdSample no longer surfaces it.
     assert "Array[File] sample_metrics_files = evidence_sample_metrics_files" in vendor
 
 

@@ -62,7 +62,6 @@
   "PdSample.sv_case_pesr_split_index": "${this.pesr_split_index}",
   "PdSample.sv_case_pesr_sd": "${this.pesr_sd}",
   "PdSample.sv_case_pesr_sd_index": "${this.pesr_sd_index}",
-  "PdSample.sv_case_sample_metrics_files": "${this.sample_metrics_files}",
   "PdSample.sv_prior_vcf": "${this.sv_vcf}",
   "PdSample.sv_prior_vcf_index": "${this.sv_vcf_index}",
   "PdSample.introme_prior": "${this.introme}",

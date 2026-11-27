@@ -196,9 +196,6 @@ workflow PdSample {
     String sv_case_pesr_split_index = ""
     String sv_case_pesr_sd = ""
     String sv_case_pesr_sd_index = ""
-    # Terra: this.sample_metrics_files. Passthrough when GATK-SV is skipped so
-    # write-back does not blank the array column with [].
-    Array[File] sv_case_sample_metrics_files = []
     # Optional per-sample prior SV VCF (Terra: this.sv_vcf / this.sv_vcf_index).
     # A real non-empty VCF skips SubsetJointSvVcf and GATKSVPipelineSingleSample
     # and reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
@@ -235,8 +232,9 @@ workflow PdSample {
     File sv_sd_locs_vcf
     File sv_wham_include_list_bed_file
     Boolean sv_run_vcf_qc = false
-    # When true, GatherSampleEvidence writes sample_metrics_files (manta/wham/SR/PE/counts).
-    Boolean sv_run_sampleevidence_metrics = true
+    # GatherSampleEvidence metrics (manta/wham/SR/PE/counts). Off by default —
+    # PdSample does not expose sample_metrics_files as a Terra input/output.
+    Boolean sv_run_sampleevidence_metrics = false
     File sv_wgd_scoring_mask
     Int sv_min_svsize = 50
     # Manta runs one local job per core and accounts 2 GiB to each job.
@@ -1237,6 +1235,5 @@ workflow PdSample {
     File? scramble_vcf = if (use_prior_sv || use_joint_sv) then case_scramble_vcf else GatkSvSingle.scramble_vcf
     File? wham_index = if (use_prior_sv || use_joint_sv) then case_wham_index else EvidenceWhamIndex.out
     File? wham_vcf = if (use_prior_sv || use_joint_sv) then case_wham_vcf else GatkSvSingle.wham_vcf
-    Array[File] sample_metrics_files = if (use_prior_sv || use_joint_sv) then sv_case_sample_metrics_files else select_first([GatkSvSingle.sample_metrics_files, []])
   }
 }
