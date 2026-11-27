@@ -629,8 +629,23 @@ workflow PdSample {
         preemptible = preemptible
     }
   }
-  File sample_small_vcf = select_first(flatten([small_vcf_prior_files, select_all([NormPass.normalized_vcf])]))
-  File sample_small_vcf_index = select_first(flatten([select_all([PriorSmallIndex.out]), select_all([NormPass.normalized_vcf_index])]))
+  # Restage prior or fresh small VCF into this submission (same pattern as NameSvVcf).
+  File sample_small_vcf_raw = select_first(flatten([small_vcf_prior_files, select_all([NormPass.normalized_vcf])]))
+  File sample_small_vcf_index_raw = select_first(flatten([select_all([PriorSmallIndex.out]), select_all([NormPass.normalized_vcf_index])]))
+  call Tasks.ReleaseAfterQc as NameSmallVcf {
+    input:
+      payload = sample_small_vcf_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".small.vcf.gz"
+  }
+  call Tasks.ReleaseAfterQc as NameSmallVcfIndex {
+    input:
+      payload = sample_small_vcf_index_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".small.vcf.gz.tbi"
+  }
+  File sample_small_vcf = NameSmallVcf.released
+  File sample_small_vcf_index = NameSmallVcfIndex.released
   if (!use_prior_avi) {
     call Tasks.AnnotateAvi {
       input:
@@ -717,8 +732,23 @@ workflow PdSample {
         preemptible = preemptible
     }
   }
-  File sample_vep_vcf = select_first(flatten([vep_prior_vcf_files, select_all([AnnotateClinvarSmall.annotated_vcf]), select_all([LiftGnomadInfo.lifted_vcf])]))
-  File sample_vep_vcf_index = select_first(flatten([select_all([PriorVepIndex.out]), select_all([AnnotateClinvarSmall.annotated_vcf_index]), select_all([LiftGnomadInfo.lifted_vcf_index])]))
+  # Restage prior or fresh VEP VCF into this submission (priors otherwise keep old gs:// URIs).
+  File sample_vep_vcf_raw = select_first(flatten([vep_prior_vcf_files, select_all([AnnotateClinvarSmall.annotated_vcf]), select_all([LiftGnomadInfo.lifted_vcf])]))
+  File sample_vep_vcf_index_raw = select_first(flatten([select_all([PriorVepIndex.out]), select_all([AnnotateClinvarSmall.annotated_vcf_index]), select_all([LiftGnomadInfo.lifted_vcf_index])]))
+  call Tasks.ReleaseAfterQc as NameVepVcf {
+    input:
+      payload = sample_vep_vcf_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".vep.vcf.gz"
+  }
+  call Tasks.ReleaseAfterQc as NameVepVcfIndex {
+    input:
+      payload = sample_vep_vcf_index_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".vep.vcf.gz.tbi"
+  }
+  File sample_vep_vcf = NameVepVcf.released
+  File sample_vep_vcf_index = NameVepVcfIndex.released
   if (!use_prior_eh) {
     call Tasks.ExpansionHunter {
       input:
@@ -733,7 +763,14 @@ workflow PdSample {
         preemptible = preemptible
     }
   }
-  File sample_expansionhunter_vcf = select_first(flatten([expansionhunter_vcf_prior_files, select_all([ExpansionHunter.vcf])]))
+  File sample_expansionhunter_vcf_raw = select_first(flatten([expansionhunter_vcf_prior_files, select_all([ExpansionHunter.vcf])]))
+  call Tasks.ReleaseAfterQc as NameExpansionHunter {
+    input:
+      payload = sample_expansionhunter_vcf_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".expansionhunter.vcf.gz"
+  }
+  File sample_expansionhunter_vcf = NameExpansionHunter.released
   if (!use_prior_gauchian) {
     call Tasks.Gauchian {
       input:
@@ -747,7 +784,14 @@ workflow PdSample {
         preemptible = preemptible
     }
   }
-  File sample_gauchian_json = select_first(flatten([gauchian_json_prior_files, select_all([Gauchian.json])]))
+  File sample_gauchian_json_raw = select_first(flatten([gauchian_json_prior_files, select_all([Gauchian.json])]))
+  call Tasks.ReleaseAfterQc as NameGauchian {
+    input:
+      payload = sample_gauchian_json_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".gauchian.json"
+  }
+  File sample_gauchian_json = NameGauchian.released
   if (!use_prior_gba1_paralog) {
     call Tasks.Gba1ParalogHotspots {
       input:
@@ -834,7 +878,14 @@ workflow PdSample {
         preemptible = preemptible
     }
   }
-  File sample_mtdna_vcf = select_first(flatten([mtdna_vcf_prior_files, select_all([AnnotateMtdna.mtdna_vcf])]))
+  File sample_mtdna_vcf_raw = select_first(flatten([mtdna_vcf_prior_files, select_all([AnnotateMtdna.mtdna_vcf])]))
+  call Tasks.ReleaseAfterQc as NameMtdna {
+    input:
+      payload = sample_mtdna_vcf_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".mtdna.annotated.vcf"
+  }
+  File sample_mtdna_vcf = NameMtdna.released
   String sample_mtdna_annotation = if use_prior_mtdna then "prior" else select_first([AnnotateMtdna.annotation_status])
   call Tasks.Haplogrep {
     input:
@@ -1132,23 +1183,27 @@ workflow PdSample {
 
   output {
     Array[File] candidates = Assess.candidates
-    File vep_vcf = sample_vep_vcf
-    File vep_vcf_index = sample_vep_vcf_index
-    File small_vcf = sample_small_vcf
-    File small_vcf_index = sample_small_vcf_index
+    # Name* ReleaseAfterQc restages prior-or-fresh callsets into this submission
+    # (write-back gets new gs:// URIs). sv_case_* evidence below stays passthrough
+    # when GATK-SV is skipped — do not restage those.
+    File vep_vcf = NameVepVcf.released
+    File vep_vcf_index = NameVepVcfIndex.released
+    File small_vcf = NameSmallVcf.released
+    File small_vcf_index = NameSmallVcfIndex.released
     File sv_vcf = NameSvVcf.released
     File sv_vcf_index = NameSvVcfIndex.released
-    File expansionhunter_vcf = sample_expansionhunter_vcf
-    File gauchian_json = sample_gauchian_json
+    File expansionhunter_vcf = NameExpansionHunter.released
+    File gauchian_json = NameGauchian.released
     # Write back to this.gba1_paralog_vcf for reuse via gba1_paralog_vcf_prior.
     File gba1_paralog_vcf = sample_gba1_paralog_vcf
     File? gba1_paralog_json = Gba1ParalogHotspots.json
-    File mtdna_vcf = sample_mtdna_vcf
+    File mtdna_vcf = NameMtdna.released
     File introme = NameIntrome.released
     File? avi_tsv = sample_avi_tsv
     # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
     # When GATK-SV is skipped (sv_prior or joint SV), passthrough the existing
     # case_* inputs so data-table write-back does not blank those columns.
+    # Intentionally NOT restaged into this submission (unlike vep/small/sv/EH/…).
     # Indexes / clusters without case_* inputs stay unset on the skip path.
     File? coverage_counts = if (use_prior_sv || use_joint_sv) then case_counts_file else GatkSvSingle.coverage_counts
     File? manta_vcf = if (use_prior_sv || use_joint_sv) then case_manta_vcf else GatkSvSingle.manta_vcf
