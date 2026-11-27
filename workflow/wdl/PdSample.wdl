@@ -633,13 +633,23 @@ workflow PdSample {
       input:
         vcf = sample_small_vcf,
         annotate_avi_py = FetchRepoAssets.annotate_avi_py,
+        sample_id = sample_id,
         avi_table = avi_table,
         avi_table_index = avi_table_index,
         preemptible = preemptible
     }
   }
   Array[File] avi_tsv_files = flatten([avi_tsv_prior_files, select_all([AnnotateAvi.avi_tsv])])
-  File? sample_avi_tsv = if length(avi_tsv_files) > 0 then avi_tsv_files[0] else optional_file_none
+  # Normalize prior or fresh AVI to this.<sample_id>.avi.tsv for Terra write-back.
+  if (length(avi_tsv_files) > 0) {
+    call Tasks.ReleaseAfterQc as NameAvi {
+      input:
+        payload = avi_tsv_files[0],
+        gate = QcGate.gate,
+        name = sample_id + ".avi.tsv"
+    }
+  }
+  File? sample_avi_tsv = if length(select_all([NameAvi.released])) > 0 then NameAvi.released else optional_file_none
   if (!use_prior_vep) {
     call Tasks.VepAnnotate {
       input:
@@ -751,7 +761,15 @@ workflow PdSample {
         preemptible = preemptible
     }
   }
-  File sample_gba1_paralog_vcf = select_first(flatten([gba1_paralog_vcf_prior_files, select_all([Gba1ParalogHotspots.vcf])]))
+  File sample_gba1_paralog_vcf_raw = select_first(flatten([gba1_paralog_vcf_prior_files, select_all([Gba1ParalogHotspots.vcf])]))
+  # Normalize prior or fresh paralog VCF to this.<sample_id>.gba1_paralog.vcf.
+  call Tasks.ReleaseAfterQc as NameGba1Paralog {
+    input:
+      payload = sample_gba1_paralog_vcf_raw,
+      gate = QcGate.gate,
+      name = sample_id + ".gba1_paralog.vcf"
+  }
+  File sample_gba1_paralog_vcf = NameGba1Paralog.released
   # Gate mito / GATK-SV on QC. EnsureBam already emits sample_id.bam / .bam.bai;
   # ReleaseAfterQc hardlinks again so Manta 1.6 does not start before the gate.
   call Tasks.ReleaseAfterQc as ReleaseBam {

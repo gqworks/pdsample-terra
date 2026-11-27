@@ -221,6 +221,9 @@ def test_pdsample_is_the_only_entry_workflow():
     assert "File mtdna_vcf_index =" not in text
     assert "File panel_csv =" not in text
     assert "File? avi_tsv = sample_avi_tsv" in text
+    assert 'name = sample_id + ".avi.tsv"' in text
+    assert 'name = sample_id + ".gba1_paralog.vcf"' in text
+    assert "~{sample_id}.avi.tsv" in sample_tasks
     assert "File gba1_pd_browser =" not in text
     assert "splicevault" not in text.lower()
     assert "splicevault" not in sample_tasks.lower()
