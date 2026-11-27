@@ -205,7 +205,7 @@ These are **GATK callset** filters on the small-variant VCF (before VEP / Assess
 | `mtdna_vcf` | Annotated mtDNA VCF, written back as `this.mtdna_vcf` |
 | `introme` | `{sample_id}.introme.predictions.tsv` — Introme scores, written back as `this.introme` for reuse |
 | `avi_tsv` | AlphaGenome AVI lookup table for this sample (`File?`), written back as `this.avi_tsv` |
-| `coverage_counts`, `manta_vcf`, `manta_index`, `pesr_disc`, `pesr_disc_index`, `pesr_sd`, `pesr_sd_index`, `pesr_split`, `pesr_split_index`, `scramble_vcf`, `scramble_index`, `scramble_clusters`, `scramble_table`, `wham_vcf`, `wham_index` | GatherSampleEvidence intermediates (`File?`). Set when `GatkSvSingle` runs; unset on the joint-SV path. Reuse as `sv_case_*` inputs on later runs. |
+| `coverage_counts`, `manta_vcf`, `manta_index`, `pesr_disc`, `pesr_disc_index`, `pesr_sd`, `pesr_sd_index`, `pesr_split`, `pesr_split_index`, `scramble_vcf`, `scramble_index`, `scramble_clusters`, `scramble_table`, `wham_vcf`, `wham_index` | GatherSampleEvidence intermediates (`File?`). Set when `GatkSvSingle` runs; on prior/joint SV skip, passthrough matching `sv_case_*` inputs (including indexes and scramble clusters/table) so write-back does not clear columns. |
 | `sample_metrics_files` | `Array[File]` of GatherSampleEvidence metrics (manta/wham/SR/PE/counts) when `sv_run_sampleevidence_metrics` is true (default). On prior/joint SV skip, passthrough `sv_case_sample_metrics_files` (`this.sample_metrics_files`) so write-back does not clear the column |
 
 ## Assess container
