@@ -187,6 +187,9 @@ workflow PdSample {
     String sv_case_pesr_disc = ""
     String sv_case_pesr_split = ""
     String sv_case_pesr_sd = ""
+    # Terra: this.sample_metrics_files. Passthrough when GATK-SV is skipped so
+    # write-back does not blank the array column with [].
+    Array[File] sv_case_sample_metrics_files = []
     # Optional per-sample prior SV VCF (Terra: this.sv_vcf / this.sv_vcf_index).
     # A real non-empty VCF skips SubsetJointSvVcf and GATKSVPipelineSingleSample
     # and reuses this callset as sv_vcf. Takes precedence over sv_joint_vcf.
@@ -1162,6 +1165,6 @@ workflow PdSample {
     File? scramble_vcf = if (use_prior_sv || use_joint_sv) then case_scramble_vcf else GatkSvSingle.scramble_vcf
     File? wham_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceWhamIndex.out
     File? wham_vcf = if (use_prior_sv || use_joint_sv) then case_wham_vcf else GatkSvSingle.wham_vcf
-    Array[File] sample_metrics_files = if (use_prior_sv || use_joint_sv) then [] else select_first([GatkSvSingle.sample_metrics_files, []])
+    Array[File] sample_metrics_files = if (use_prior_sv || use_joint_sv) then sv_case_sample_metrics_files else select_first([GatkSvSingle.sample_metrics_files, []])
   }
 }

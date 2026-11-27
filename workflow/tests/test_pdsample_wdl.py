@@ -611,6 +611,7 @@ def test_gatksv_uses_v1_1_1_with_scramble_not_melt():
     assert 'String sv_case_pesr_split = ""' in text
     assert 'String sv_case_pesr_sd = ""' in text
     assert 'String sv_case_manta_vcf = ""' in text
+    assert 'Array[File] sv_case_sample_metrics_files = []' in text
     assert "ref_std_scramble_vcf_tar = sv_ref_std_scramble_vcf_tar" in text
     terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
     assert '"PdSample.sv_case_manta_vcf": "${this.manta_vcf}"' in terra
@@ -784,7 +785,10 @@ def test_gatksv_evidence_outputs_for_terra():
     assert "then optional_file_none else EvidenceWhamIndex.out" in text
     assert "then optional_file_none else EvidenceScrambleIndex.out" in text
     assert "use_prior_sv || use_joint_sv" in text
-    assert 'sample_metrics_files = if (use_prior_sv || use_joint_sv) then [] else select_first([GatkSvSingle.sample_metrics_files, []])' in text
+    assert 'Array[File] sv_case_sample_metrics_files = []' in text
+    assert 'sample_metrics_files = if (use_prior_sv || use_joint_sv) then sv_case_sample_metrics_files else select_first([GatkSvSingle.sample_metrics_files, []])' in text
+    terra = (ROOT / "workflow" / "terra" / "PdSample.terra_inputs.json").read_text(encoding="utf-8")
+    assert '"PdSample.sv_case_sample_metrics_files": "${this.sample_metrics_files}"' in terra
     assert "File coverage_counts = case_counts_file_" in vendor
     assert "File manta_vcf = evidence_manta_vcf" in vendor
     assert "File? manta_index = evidence_manta_index" in vendor
