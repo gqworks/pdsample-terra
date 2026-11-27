@@ -1144,23 +1144,24 @@ workflow PdSample {
     File introme = NameIntrome.released
     File? avi_tsv = sample_avi_tsv
     # GatherSampleEvidence intermediates for Terra write-back / reuse as sv_case_*.
-    # File? is unset when the joint-SV path skipped GatkSvSingle. Metrics stay
-    # Array[File] (empty on the joint path).
-    File? coverage_counts = GatkSvSingle.coverage_counts
-    File? manta_vcf = GatkSvSingle.manta_vcf
-    File? manta_index = EvidenceMantaIndex.out
-    File? pesr_disc = GatkSvSingle.pesr_disc
-    File? pesr_disc_index = GatkSvSingle.pesr_disc_index
-    File? pesr_sd = GatkSvSingle.pesr_sd
-    File? pesr_sd_index = GatkSvSingle.pesr_sd_index
-    File? pesr_split = GatkSvSingle.pesr_split
-    File? pesr_split_index = GatkSvSingle.pesr_split_index
-    File? scramble_clusters = GatkSvSingle.scramble_clusters
-    File? scramble_index = EvidenceScrambleIndex.out
-    File? scramble_table = GatkSvSingle.scramble_table
-    File? scramble_vcf = GatkSvSingle.scramble_vcf
-    File? wham_index = EvidenceWhamIndex.out
-    File? wham_vcf = GatkSvSingle.wham_vcf
-    Array[File] sample_metrics_files = select_first([GatkSvSingle.sample_metrics_files, []])
+    # When GATK-SV is skipped (sv_prior or joint SV), passthrough the existing
+    # case_* inputs so data-table write-back does not blank those columns.
+    # Indexes / clusters without case_* inputs stay unset on the skip path.
+    File? coverage_counts = if (use_prior_sv || use_joint_sv) then case_counts_file else GatkSvSingle.coverage_counts
+    File? manta_vcf = if (use_prior_sv || use_joint_sv) then case_manta_vcf else GatkSvSingle.manta_vcf
+    File? manta_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceMantaIndex.out
+    File? pesr_disc = if (use_prior_sv || use_joint_sv) then case_pesr_disc else GatkSvSingle.pesr_disc
+    File? pesr_disc_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_disc_index
+    File? pesr_sd = if (use_prior_sv || use_joint_sv) then case_pesr_sd else GatkSvSingle.pesr_sd
+    File? pesr_sd_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_sd_index
+    File? pesr_split = if (use_prior_sv || use_joint_sv) then case_pesr_split else GatkSvSingle.pesr_split
+    File? pesr_split_index = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.pesr_split_index
+    File? scramble_clusters = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.scramble_clusters
+    File? scramble_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceScrambleIndex.out
+    File? scramble_table = if (use_prior_sv || use_joint_sv) then optional_file_none else GatkSvSingle.scramble_table
+    File? scramble_vcf = if (use_prior_sv || use_joint_sv) then case_scramble_vcf else GatkSvSingle.scramble_vcf
+    File? wham_index = if (use_prior_sv || use_joint_sv) then optional_file_none else EvidenceWhamIndex.out
+    File? wham_vcf = if (use_prior_sv || use_joint_sv) then case_wham_vcf else GatkSvSingle.wham_vcf
+    Array[File] sample_metrics_files = if (use_prior_sv || use_joint_sv) then [] else select_first([GatkSvSingle.sample_metrics_files, []])
   }
 }

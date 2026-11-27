@@ -773,22 +773,18 @@ def test_gatksv_evidence_outputs_for_terra():
     assert "if (!use_prior_sv && !use_joint_sv)" in text
     assert "task PreferOrBuildTabix" in tasks
     assert "call Tasks.PreferOrBuildTabix as EvidenceMantaIndex" in text
-    assert "File? coverage_counts = GatkSvSingle.coverage_counts" in text
-    assert "File? manta_vcf = GatkSvSingle.manta_vcf" in text
-    assert "File? manta_index = EvidenceMantaIndex.out" in text
-    assert "File? pesr_disc = GatkSvSingle.pesr_disc" in text
-    assert "File? pesr_disc_index = GatkSvSingle.pesr_disc_index" in text
-    assert "File? pesr_sd = GatkSvSingle.pesr_sd" in text
-    assert "File? pesr_sd_index = GatkSvSingle.pesr_sd_index" in text
-    assert "File? pesr_split = GatkSvSingle.pesr_split" in text
-    assert "File? pesr_split_index = GatkSvSingle.pesr_split_index" in text
-    assert "File? scramble_clusters = GatkSvSingle.scramble_clusters" in text
-    assert "File? scramble_index = EvidenceScrambleIndex.out" in text
-    assert "File? scramble_table = GatkSvSingle.scramble_table" in text
-    assert "File? scramble_vcf = GatkSvSingle.scramble_vcf" in text
-    assert "File? wham_index = EvidenceWhamIndex.out" in text
-    assert "File? wham_vcf = GatkSvSingle.wham_vcf" in text
-    assert "Array[File] sample_metrics_files = select_first([GatkSvSingle.sample_metrics_files, []])" in text
+    assert "then case_counts_file else GatkSvSingle.coverage_counts" in text
+    assert "then case_manta_vcf else GatkSvSingle.manta_vcf" in text
+    assert "then optional_file_none else EvidenceMantaIndex.out" in text
+    assert "then case_pesr_disc else GatkSvSingle.pesr_disc" in text
+    assert "then case_pesr_sd else GatkSvSingle.pesr_sd" in text
+    assert "then case_pesr_split else GatkSvSingle.pesr_split" in text
+    assert "then case_scramble_vcf else GatkSvSingle.scramble_vcf" in text
+    assert "then case_wham_vcf else GatkSvSingle.wham_vcf" in text
+    assert "then optional_file_none else EvidenceWhamIndex.out" in text
+    assert "then optional_file_none else EvidenceScrambleIndex.out" in text
+    assert "use_prior_sv || use_joint_sv" in text
+    assert 'sample_metrics_files = if (use_prior_sv || use_joint_sv) then [] else select_first([GatkSvSingle.sample_metrics_files, []])' in text
     assert "File coverage_counts = case_counts_file_" in vendor
     assert "File manta_vcf = evidence_manta_vcf" in vendor
     assert "File? manta_index = evidence_manta_index" in vendor
