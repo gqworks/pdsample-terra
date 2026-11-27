@@ -7,7 +7,7 @@ import "vendor/gatk-sv/GATKSVPipelineSingleSample.wdl" as GatkSv
 
 workflow PdSample {
   meta {
-    description: "One Terra sample row. Every call is made from a BAM (+ .bai). Optional this.<name> priors (ProbePriorFile) skip only that file's producer: vep_vcf, small_vcf, sv_vcf, expansionhunter_vcf, gauchian_json, mtdna_vcf, introme, avi_tsv. Empty/placeholder/zero-byte priors run the caller. Else SV: sv_joint_vcf subset or GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
+    description: "One Terra sample row. Every call is made from a BAM (+ .bai). Optional this.<name> priors (ProbePriorFile) skip only that file's producer: vep_vcf, small_vcf, sv_vcf, expansionhunter_vcf, gauchian_json, gba1_paralog_vcf, mtdna_vcf, introme, avi_tsv. Empty/placeholder/zero-byte priors run the caller. Else SV: sv_joint_vcf subset or GATK-SV v1.1.1 (Scramble on, MELT off). A cohort is a Terra sample_set that launches this workflow once per row. CRAM inputs (with or without an index) are converted to BAM/BAI by EnsureBam."
   }
   input {
     String sample_id
@@ -85,6 +85,8 @@ workflow PdSample {
     String small_vcf_prior_index = ""
     String expansionhunter_vcf_prior = ""
     String gauchian_json_prior = ""
+    # Optional per-sample prior GBA1 paralog VCF (Terra: this.gba1_paralog_vcf).
+    String gba1_paralog_vcf_prior = ""
     String mtdna_vcf_prior = ""
     String avi_tsv_prior = ""
     Boolean introme_quality_filter = false
@@ -405,6 +407,14 @@ workflow PdSample {
       python_docker = python_docker,
       preemptible = preemptible
   }
+  call Tasks.ProbePriorFile as ProbeGba1ParalogPrior {
+    input:
+      path = gba1_paralog_vcf_prior,
+      kind = "vcf",
+      probe_prior_file_py = FetchRepoAssets.probe_prior_file_py,
+      python_docker = python_docker,
+      preemptible = preemptible
+  }
   call Tasks.ProbePriorFile as ProbeMtdnaPrior {
     input:
       path = mtdna_vcf_prior,
@@ -427,6 +437,7 @@ workflow PdSample {
   Boolean use_prior_sv = ProbeSvPrior.usable
   Boolean use_prior_eh = ProbeEhPrior.usable
   Boolean use_prior_gauchian = ProbeGauchianPrior.usable
+  Boolean use_prior_gba1_paralog = ProbeGba1ParalogPrior.usable
   Boolean use_prior_mtdna = ProbeMtdnaPrior.usable
   Boolean use_prior_avi = ProbeAviPrior.usable
   Array[File] introme_prior_files = if use_prior_introme then [introme_prior] else []
@@ -438,6 +449,7 @@ workflow PdSample {
   Array[File] sv_prior_vcf_index_files = if ProbeSvPriorIndex.usable then [sv_prior_vcf_index] else []
   Array[File] expansionhunter_vcf_prior_files = if use_prior_eh then [expansionhunter_vcf_prior] else []
   Array[File] gauchian_json_prior_files = if use_prior_gauchian then [gauchian_json_prior] else []
+  Array[File] gba1_paralog_vcf_prior_files = if use_prior_gba1_paralog then [gba1_paralog_vcf_prior] else []
   Array[File] mtdna_vcf_prior_files = if use_prior_mtdna then [mtdna_vcf_prior] else []
   Array[File] avi_tsv_prior_files = if use_prior_avi then [avi_tsv_prior] else []
 
@@ -723,20 +735,23 @@ workflow PdSample {
     }
   }
   File sample_gauchian_json = select_first(flatten([gauchian_json_prior_files, select_all([Gauchian.json])]))
-  call Tasks.Gba1ParalogHotspots {
-    input:
-      bam = sample_bam,
-      bam_index = sample_bai,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      gba1_paralog_forcecall_py = FetchRepoAssets.gba1_paralog_forcecall_py,
-      discriminators = FetchRepoAssets.gba1_homology_discriminators,
-      hotspots = FetchRepoAssets.gba1_homology_hotspots,
-      patches = FetchRepoAssets.gbap1_grch38_patches,
-      qc_gate = QcGate.gate,
-      sample_id = sample_id,
-      preemptible = preemptible
+  if (!use_prior_gba1_paralog) {
+    call Tasks.Gba1ParalogHotspots {
+      input:
+        bam = sample_bam,
+        bam_index = sample_bai,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
+        gba1_paralog_forcecall_py = FetchRepoAssets.gba1_paralog_forcecall_py,
+        discriminators = FetchRepoAssets.gba1_homology_discriminators,
+        hotspots = FetchRepoAssets.gba1_homology_hotspots,
+        patches = FetchRepoAssets.gbap1_grch38_patches,
+        qc_gate = QcGate.gate,
+        sample_id = sample_id,
+        preemptible = preemptible
+    }
   }
+  File sample_gba1_paralog_vcf = select_first(flatten([gba1_paralog_vcf_prior_files, select_all([Gba1ParalogHotspots.vcf])]))
   # Gate mito / GATK-SV on QC. EnsureBam already emits sample_id.bam / .bam.bai;
   # ReleaseAfterQc hardlinks again so Manta 1.6 does not start before the gate.
   call Tasks.ReleaseAfterQc as ReleaseBam {
@@ -1067,7 +1082,7 @@ workflow PdSample {
       sv_status = if use_prior_sv then "prior" else if use_joint_sv then "joint" else "called",
       expansionhunter_vcf = sample_expansionhunter_vcf,
       gauchian_json = sample_gauchian_json,
-      gba1_paralog_vcf = Gba1ParalogHotspots.vcf,
+      gba1_paralog_vcf = sample_gba1_paralog_vcf,
       mtdna_vcf = sample_mtdna_vcf,
       mtdna_annotation = sample_mtdna_annotation,
       introme_tsv = NameIntrome.released,
@@ -1104,8 +1119,9 @@ workflow PdSample {
     File sv_vcf_index = NameSvVcfIndex.released
     File expansionhunter_vcf = sample_expansionhunter_vcf
     File gauchian_json = sample_gauchian_json
-    File gba1_paralog_vcf = Gba1ParalogHotspots.vcf
-    File gba1_paralog_json = Gba1ParalogHotspots.json
+    # Write back to this.gba1_paralog_vcf for reuse via gba1_paralog_vcf_prior.
+    File gba1_paralog_vcf = sample_gba1_paralog_vcf
+    File? gba1_paralog_json = Gba1ParalogHotspots.json
     File mtdna_vcf = sample_mtdna_vcf
     File introme = NameIntrome.released
     File? avi_tsv = sample_avi_tsv
